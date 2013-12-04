@@ -127,8 +127,12 @@ enum HMacroTokenType_  {
 #else
 /* Structure definitions  */
 
+
 #define H_STRUCT_SEQ(...) struct H_NAME { __VA_ARGS__ };
 #define H__TO(type,field, parser)  type field;  
+#undef GRAMMAR_END
+#define GRAMMAR_END(name) extern const struct name *parse_ ## name(const uint8_t *input, size_t length); \
+        extern const HParser * init_ ## name(); 
 
 #define H_TO_UINT H__TO
 #define H_TO_SINT H__TO
