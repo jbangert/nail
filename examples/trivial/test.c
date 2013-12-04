@@ -1,6 +1,6 @@
 #include "test.h"
 
-#define H_MACRO_IMPLEMENT
+#define HM_MACRO_IMPLEMENT
 #include "grammar.h"
 int main()
 {
