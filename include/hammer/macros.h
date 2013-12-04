@@ -1,4 +1,32 @@
 #include <stddef.h>
+/*This header file should be included multiple times. Depending on defined macros, it defines the
+ * H_TO* and H_STRUCT_SEQ, etc macros differently:
+ Here are the possible actions
+ To be included from within the projects header files:
+(nothing): Define structures corresponding to the AST for the grammar.  
+ H_MACROS_ENUM: Define the enum HMacroTokenType 
+
+ to be included once per project, in a C file (define H_MACRO_IMPLEMENT)
+ H_MACROS_PARSER : define a hammer parser for the grammar
+ H_MACROS_ACTION : define actions to emit the AST with the above parser
+
+The User API is to write a header file for the grammar, e.g. grammar.h and structure it as follows
+#include <hammer/macros.h>
+GRAMMAR_BEGIN(start_rule)
+H_STRUCT_SEQ (... - grammar goes here ...)
+GRAMMAR_END(start_rule)
+#include <hammer/macros_end.h>
+#ifdef H_MACRO_INCLUDE_LOOP
+#include "grammar.h" //include  the file itself here
+#endif
+
+Whereever the AST is supposed to be accessed, include grammar.h as is.
+To produce the functions that create the  AST (in a .c file)
+#define H_MACRO_IMPLEMENT
+#include "grammar.h"
+*/
+
+#undef H_MACRO_INCLUDE_LOOP /* To signal the consumer of this header file that it should include itself */
 #undef H_STRUCT_SEQ
 #undef H__TO 
 #undef H_TO_UINT
@@ -15,10 +43,15 @@
 #define TOKENPASTE2(x, y) TOKENPASTE(x, y)
 #endif 
 
-#ifdef H_MACROS_PARSER
-/* Parser -> next include will be actions */
-#undef H_MACROS_PARSER 
+#ifdef H_MACRO_IMPLEMENT
 #define H_MACROS_ACTION
+#undef H_MACRO_IMPLEMENT
+#endif
+
+#ifdef H_MACROS_PARSER
+
+#undef H_MACROS_PARSER 
+
 /* Hammer parser */
 #define H_TO_UINT H__TO
 #define H_TO_SINT H__TO
@@ -46,6 +79,7 @@
                         return NULL;                                    \
         }
 
+
 #elif defined(H_MACROS_ACTION)
 /*action*/
 
@@ -68,6 +102,11 @@
                    return h_make(p->arena,(HTokenType)TOKENPASTE2(TT_macro_,H_NAME), ret); \
        }                
 #define H_STRUCT_SEQ(...) H_STRUCT_SEQ_IMPL(H_NAME, __VA_ARGS__)
+/*Run again to emit the actions*/
+#define H_MACROS_PARSER
+#define H_MACRO_INCLUDE_LOOP
+
+
 #elif defined(H_MACROS_ENUM)
 #undef H_MACROS_ENUM
 #define H_MACROS_ERROR1
@@ -87,7 +126,6 @@ enum HMacroTokenType_  {
 #error "macros.h included more than twice without defining H_MACROS_*"
 #else
 /* Structure definitions  */
-#define H_MACROS_ENUM
 
 #define H_STRUCT_SEQ(...) struct H_NAME { __VA_ARGS__ };
 #define H__TO(type,field, parser)  type field;  
@@ -97,5 +135,7 @@ enum HMacroTokenType_  {
 #define H_TO_P    H__TO
 #define H_TO_SEQ  H__TO
 
-
+/* run again to get the enum */
+#define H_MACROS_ENUM
+#define H_MACRO_INCLUDE_LOOP
 #endif
