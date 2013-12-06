@@ -1,7 +1,7 @@
 #include <hammer/macros.h>
 GRAMMAR_BEGIN(foo)
 #define HM_NAME test_object
-HM_STRUCT_SEQ(HM_ARRAY(h_many1,HM_UINT,char,i1,h_ch_range('a','z'))
+HM_STRUCT_SEQ(HM_ARRAY(HM_UINT,char,i1,h_many1(h_ch_range('a','z')))
               HM_F(HM_SINT,int,i2,h_int16()))
 
 #undef HM_NAME

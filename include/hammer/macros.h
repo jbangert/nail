@@ -34,6 +34,7 @@ To produce the functions that create the  AST (in a .c file)
 #undef HM_F_OBJECT
 
 #define HM_F_OBJECT(type,field)   HM_F(HM_OBJECT,HM_PTR(type),field,type)
+#define HM_F_OBJECT_OPT(type,field) HM_OPTIONAL(HM_OBJECT,HM_PTR(type), field,type,NULL)
 #define HM_UINT(type,val) H_CAST_UINT(val)
 #define HM_SINT(type,val) H_CAST_SINT(val)
 #define HM_OBJECT(type,val) H_CAST(type,val)
@@ -70,7 +71,7 @@ To produce the functions that create the  AST (in a .c file)
 #define HM_F(cast,type,field,parser)  parser,
 #undef HM_OPTIONAL
 #define HM_OPTIONAL(cast,type,field,parser,default) h_optional(parser),
-#define HM_ARRAY(aggr,cast,type,field,parser) aggr(parser),
+#define HM_ARRAY HM_F
 #define HM_STRUCT_SEQ(...) HParser *HM_NAME = h_action(h_sequence( __VA_ARGS__ NULL),TOKENPASTE2(act_,  HM_NAME),NULL);
 #undef GRAMMAR_BEGIN
 #undef GRAMMAR_END
@@ -100,7 +101,7 @@ To produce the functions that create the  AST (in a .c file)
 #undef HM_PTR
 #define HM_PTR(type) type 
 #define HM_F(cast,type,field,parser) ret->field = cast(type,fields[i]); i++;
-#define HM_ARRAY(aggr,cast,type,field,parser) ret->field.count = h_seq_len(fields[i]); \
+#define HM_ARRAY(cast,type,field,parser) ret->field.count = h_seq_len(fields[i]); \
         do{int j; HParsedToken **seq = h_seq_elements(fields[i]); \
         ret->field.elem = (type *)h_arena_malloc(p->arena, sizeof(type) * ret->field.count); /*  WARNING, can fail*/ \
         for(j=0;j<ret->field.count;j++){ret->field.elem[j] = cast(type,seq[j]); } \
@@ -121,7 +122,7 @@ To produce the functions that create the  AST (in a .c file)
        }                
 #define HM_STRUCT_SEQ(...) HM_STRUCT_SEQ_IMPL(HM_NAME, __VA_ARGS__)
 #undef HM_RULE
-#define HM_RULE(name,def) H_RULE(name,def)
+#define HM_RULE(name,def) H_RULE(name,def);
 /*Run again to emit the actions*/
 #define HM_MACROS_PARSER
 #define HM_MACRO_INCLUDE_LOOP
@@ -156,7 +157,7 @@ enum HMacroTokenType_  {
 
 
 
-#define HM_ARRAY(aggr,cast,type,field,parser)  struct { type *elem; size_t count; } field;
+#define HM_ARRAY(cast,type,field,parser)  struct { type *elem; size_t count; } field;
 
 /* run again to get the enum */
 #define HM_MACROS_ENUM
