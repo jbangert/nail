@@ -1716,6 +1716,7 @@ typedef struct foo {
 } foo;
 
 
+
 extern const struct foo *parse_foo(const uint8_t *input, size_t length);
 extern const HParser * init_foo();
 
@@ -1729,6 +1730,7 @@ enum HMacroTokenType_ {
 
 
     TT_foo,
+
 
 
 
@@ -1766,6 +1768,7 @@ HParsedToken * act_foo (const HParseResult *p, void* user_data) {
 
 
 
+
 const HParser * init_foo () {
     static const HParser *ret = ((void *)0);
     if(ret) return ret;
@@ -1775,6 +1778,7 @@ const HParser * init_foo () {
 
 
     HParser *foo = h_action(h_sequence( h_int32(), test_object, ((void *)0)),act_foo,((void *)0));
+
 
 
     ret = foo;

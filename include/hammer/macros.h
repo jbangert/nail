@@ -31,7 +31,9 @@ To produce the functions that create the  AST (in a .c file)
 #undef HM__TO 
 #undef HM_F
 #undef HM_PTR
+#undef HM_F_OBJECT
 
+#define HM_F_OBJECT(type,field)   HM_F(HM_OBJECT,HM_PTR(type),field,type)
 #define HM_UINT(type,val) H_CAST_UINT(val)
 #define HM_SINT(type,val) H_CAST_SINT(val)
 #define HM_OBJECT(type,val) H_CAST(type,val)
@@ -63,7 +65,7 @@ To produce the functions that create the  AST (in a .c file)
 /* Hammer parser */
 
 
-#define HM_F_OBJECT(type,field)   HM_F(HM_OBJECT,HM_PTR(type),field,type)
+
 #define HM_F(cast,type,field,parser)  parser,
 
 #define HM_STRUCT_SEQ(...) HParser *HM_NAME = h_action(h_sequence( __VA_ARGS__ NULL),TOKENPASTE2(act_,  HM_NAME),NULL);
