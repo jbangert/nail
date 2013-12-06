@@ -1772,10 +1772,16 @@ HParsedToken * act_foo (const HParseResult *p, void* user_data) {
     int i =0;
     HParsedToken **fields = h_seq_elements(p->ast);
     struct foo *ret = ((struct foo *) h_arena_malloc(p->arena, sizeof(struct foo)));
-    ret->name1 = ((((fields[i]->token_type == (HTokenType)TT_SINT) ? (void) (0) : __assert_fail ("fields[i]->token_type == (HTokenType)TT_SINT", "grammar.h", 10, __PRETTY_FUNCTION__)), fields[i])->sint);
+    ret->name1 = ((((fields[i]->token_type == (HTokenType)TT_SINT) ? (void) (0) : __assert_fail ("fields[i]->token_type == (HTokenType)TT_SINT", "grammar.h", 11, __PRETTY_FUNCTION__)), fields[i])->sint);
     i++;
-    ret->object = ((test_object *) (((fields[i]->token_type == (HTokenType)TT_test_object) ? (void) (0) : __assert_fail ("fields[i]->token_type == (HTokenType)TT_test_object", "grammar.h", 10, __PRETTY_FUNCTION__)), fields[i])->user);
-    i++;
+    if(fields[i]->token_type == TT_NONE) {
+        ret->object = ((void *)0);
+        i++;
+    }
+    else {
+        ret->object = ((test_object *) (((fields[i]->token_type == (HTokenType)TT_test_object) ? (void) (0) : __assert_fail ("fields[i]->token_type == (HTokenType)TT_test_object", "grammar.h", 11, __PRETTY_FUNCTION__)), fields[i])->user);
+        i++;
+    }
     return h_make(p->arena,(HTokenType)TT_foo, ret);
 }
 
@@ -1788,12 +1794,12 @@ const HParser * init_foo () {
     static const HParser *ret = ((void *)0);
     if(ret) return ret;
 
-    HParser *test_object = h_action(h_sequence( h_many(h_ch_range('a','z')), h_int16(), ((void *)0)),act_test_object,((void *)0));
+    HParser *test_object = h_action(h_sequence( h_many1(h_ch_range('a','z')), h_int16(), ((void *)0)),act_test_object,((void *)0));
 
 
 
 
-    HParser *foo = h_action(h_sequence( h_int32(), test_object, ((void *)0)),act_foo,((void *)0));
+    HParser *foo = h_action(h_sequence( h_int32(), h_optional(test_object), ((void *)0)),act_foo,((void *)0));
 
 
 
@@ -1816,7 +1822,13 @@ int main()
     fwrite(input, 1, inputsize, stderr);
     result = parse_foo(input,inputsize);
     if(result) {
-        printf("\n%d %.*s %d\n", result->name1, result->object->i1.count,result->object->i1.elem,result->object->i2);
+        printf("\n%d", result->name1);
+        if(result->object) {
+            printf("%.*s %d\n", result->object->i1.count,result->object->i1.elem,result->object->i2);
+        }
+        else
+            printf("<none>");
+        printf("\n");
         return 0;
     } else {
         return 1;

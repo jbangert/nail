@@ -13,7 +13,13 @@ int main()
     fwrite(input, 1, inputsize, stderr);  
     result =  parse_foo(input,inputsize);
     if(result) {
-            printf("\n%d %.*s %d\n", result->name1, result->object->i1.count,result->object->i1.elem,result->object->i2);
+            printf("\n%d", result->name1);
+            if(result->object){
+                    printf("%.*s %d\n", result->object->i1.count,result->object->i1.elem,result->object->i2);
+            }
+            else
+                    printf("<none>");
+            printf("\n");
             return 0;
     } else {
         return 1;

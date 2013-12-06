@@ -40,10 +40,11 @@ To produce the functions that create the  AST (in a .c file)
 #define HM_PTR(type) type *
 
 #undef HM_ARRAY  
-
+#undef HM_OPTIONAL
 #undef GRAMMAR_BEGIN
 #undef GRAMMAR_END
 #undef HM_RULE
+
 #define GRAMMAR_BEGIN(x)
 #define GRAMMAR_END(x)
 #define HM_RULE(name,def)
@@ -67,6 +68,8 @@ To produce the functions that create the  AST (in a .c file)
 
 
 #define HM_F(cast,type,field,parser)  parser,
+#undef HM_OPTIONAL
+#define HM_OPTIONAL(cast,type,field,parser,default) h_optional(parser),
 #define HM_ARRAY(aggr,cast,type,field,parser) aggr(parser),
 #define HM_STRUCT_SEQ(...) HParser *HM_NAME = h_action(h_sequence( __VA_ARGS__ NULL),TOKENPASTE2(act_,  HM_NAME),NULL);
 #undef GRAMMAR_BEGIN
@@ -102,6 +105,7 @@ To produce the functions that create the  AST (in a .c file)
         ret->field.elem = (type *)h_arena_malloc(p->arena, sizeof(type) * ret->field.count); /*  WARNING, can fail*/ \
         for(j=0;j<ret->field.count;j++){ret->field.elem[j] = cast(type,seq[j]); } \
         }while(0); i++;
+#define HM_OPTIONAL(cast,type,field,parser,default) if(fields[i]->token_type == TT_NONE){ret->field = default;i++;} else {HM_F(cast,type,field,parser)}
 //#define HM_F_ARRAY(type,field,parser)  ret->field = /* We want an array of type */
 // HM__TO(H_CAST_SEQ ,type,field,parser)
 
@@ -140,8 +144,12 @@ enum HMacroTokenType_  {
 #error "macros.h included more than twice without defining HM_MACROS_*"
 #else
 /* Structure definitions  */
+
+
+#define HM_OPTIONAL(cast,type,field,parser,default) HM_F(cast,type,field,parser)
 #define HM_STRUCT_SEQ(...) typedef struct HM_NAME { __VA_ARGS__ } HM_NAME;
 #define HM_F(cast,type,field, parser)  type field;  
+
 #undef GRAMMAR_END
 #define GRAMMAR_END(name) extern const struct name *parse_ ## name(const uint8_t *input, size_t length); \
         extern const HParser * init_ ## name(); 
