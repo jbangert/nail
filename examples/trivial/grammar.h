@@ -1,8 +1,9 @@
 #include <hammer/macros.h>
 GRAMMAR_BEGIN(foo)
 #define HM_NAME test_object
-HM_STRUCT_SEQ(HM_F(HM_SINT,int,i1,h_int16())
+HM_STRUCT_SEQ(HM_ARRAY(h_many,HM_UINT,char,i1,h_ch_range('a','z'))
               HM_F(HM_SINT,int,i2,h_int16()))
+
 #undef HM_NAME
 #define HM_NAME foo
 HM_STRUCT_SEQ( HM_F(HM_SINT,int,name1,h_int32()) 

@@ -13,7 +13,7 @@ int main()
     fwrite(input, 1, inputsize, stderr);  
     result =  parse_foo(input,inputsize);
     if(result) {
-            printf("\n%d %d %d\n", result->name1, result->object->i1,result->object->i2);
+            printf("\n%d %c %d\n", result->name1, result->object->i1,result->object->i2);
             return 0;
     } else {
         return 1;

@@ -67,7 +67,7 @@ To produce the functions that create the  AST (in a .c file)
 
 
 #define HM_F(cast,type,field,parser)  parser,
-
+#define HM_ARRAY(aggr,cast,type,field,parser) aggr(parser),
 #define HM_STRUCT_SEQ(...) HParser *HM_NAME = h_action(h_sequence( __VA_ARGS__ NULL),TOKENPASTE2(act_,  HM_NAME),NULL);
 #undef GRAMMAR_BEGIN
 #undef GRAMMAR_END
@@ -97,7 +97,11 @@ To produce the functions that create the  AST (in a .c file)
 #undef HM_PTR
 #define HM_PTR(type) type 
 #define HM_F(cast,type,field,parser) ret->field = cast(type,fields[i]); i++;
-
+#define HM_ARRAY(aggr,cast,type,field,parser) ret->field.count = h_seq_len(fields[i]); \
+        do{int j; HParsedToken **seq = h_seq_elements(fields[i]); \
+        ret->field.elem = (type *)h_arena_malloc(p->arena, sizeof(type) * ret->field.count); /*  WARNING, can fail*/ \
+        for(j=0;j<ret->field.count;j++){ret->field.elem[j] = cast(type,seq[j]); } \
+        }while(0);
 //#define HM_F_ARRAY(type,field,parser)  ret->field = /* We want an array of type */
 // HM__TO(H_CAST_SEQ ,type,field,parser)
 
@@ -126,7 +130,7 @@ To produce the functions that create the  AST (in a .c file)
 /* Enum - the second include*/
 
 #define HM_F
-
+#define HM_ARRAY
 
 enum HMacroTokenType_  {
         TT_Macro_unused = TT_USER,
@@ -144,7 +148,7 @@ enum HMacroTokenType_  {
 
 
 
-#define HM_F_ARRAY(type,field,parser)  struct { type *elem; size_t count; } field;
+#define HM_ARRAY(aggr,cast,type,field,parser)  struct { type *elem; size_t count; } field;
 
 /* run again to get the enum */
 #define HM_MACROS_ENUM

@@ -1704,9 +1704,13 @@ typedef int wchar_t;
 
 
 typedef struct test_object {
-    int i1;
+    struct {
+        char *elem;
+        size_t count;
+    } i1;
     int i2;
 } test_object;
+
 
 
 
@@ -1729,6 +1733,7 @@ enum HMacroTokenType_ {
 
 
 
+
     TT_foo,
 
 
@@ -1744,8 +1749,16 @@ HParsedToken * act_test_object (const HParseResult *p, void* user_data) {
     int i =0;
     HParsedToken **fields = h_seq_elements(p->ast);
     struct test_object *ret = ((struct test_object *) h_arena_malloc(p->arena, sizeof(struct test_object)));
-    ret->i1 = ((((fields[i]->token_type == (HTokenType)TT_SINT) ? (void) (0) : __assert_fail ("fields[i]->token_type == (HTokenType)TT_SINT", "grammar.h", 5, __PRETTY_FUNCTION__)), fields[i])->sint);
-    i++;
+    ret->i1.count = h_seq_len(fields[i]);
+    do {
+        int j;
+        HParsedToken **seq = h_seq_elements(fields[i]);
+        ret->i1.elem = (char *)h_arena_malloc(p->arena, sizeof(char) * ret->i1.count);
+        for(j=0; j<ret->i1.count; j++) {
+            ret->i1.elem[j] = ((((seq[j]->token_type == (HTokenType)TT_UINT) ? (void) (0) : __assert_fail ("seq[j]->token_type == (HTokenType)TT_UINT", "grammar.h", 5, __PRETTY_FUNCTION__)), seq[j])->uint);
+        }
+    }
+    while(0);
     ret->i2 = ((((fields[i]->token_type == (HTokenType)TT_SINT) ? (void) (0) : __assert_fail ("fields[i]->token_type == (HTokenType)TT_SINT", "grammar.h", 5, __PRETTY_FUNCTION__)), fields[i])->sint);
     i++;
     return h_make(p->arena,(HTokenType)TT_test_object, ret);
@@ -1753,13 +1766,14 @@ HParsedToken * act_test_object (const HParseResult *p, void* user_data) {
 
 
 
+
 HParsedToken * act_foo (const HParseResult *p, void* user_data) {
     int i =0;
     HParsedToken **fields = h_seq_elements(p->ast);
     struct foo *ret = ((struct foo *) h_arena_malloc(p->arena, sizeof(struct foo)));
-    ret->name1 = ((((fields[i]->token_type == (HTokenType)TT_SINT) ? (void) (0) : __assert_fail ("fields[i]->token_type == (HTokenType)TT_SINT", "grammar.h", 9, __PRETTY_FUNCTION__)), fields[i])->sint);
+    ret->name1 = ((((fields[i]->token_type == (HTokenType)TT_SINT) ? (void) (0) : __assert_fail ("fields[i]->token_type == (HTokenType)TT_SINT", "grammar.h", 10, __PRETTY_FUNCTION__)), fields[i])->sint);
     i++;
-    ret->object = ((test_object *) (((fields[i]->token_type == (HTokenType)TT_test_object) ? (void) (0) : __assert_fail ("fields[i]->token_type == (HTokenType)TT_test_object", "grammar.h", 9, __PRETTY_FUNCTION__)), fields[i])->user);
+    ret->object = ((test_object *) (((fields[i]->token_type == (HTokenType)TT_test_object) ? (void) (0) : __assert_fail ("fields[i]->token_type == (HTokenType)TT_test_object", "grammar.h", 10, __PRETTY_FUNCTION__)), fields[i])->user);
     i++;
     return h_make(p->arena,(HTokenType)TT_foo, ret);
 }
@@ -1773,7 +1787,8 @@ const HParser * init_foo () {
     static const HParser *ret = ((void *)0);
     if(ret) return ret;
 
-    HParser *test_object = h_action(h_sequence( h_int16(), h_int16(), ((void *)0)),act_test_object,((void *)0));
+    HParser *test_object = h_action(h_sequence( h_many(h_ch_range('a','z')), h_int16(), ((void *)0)),act_test_object,((void *)0));
+
 
 
 
@@ -1800,7 +1815,7 @@ int main()
     fwrite(input, 1, inputsize, stderr);
     result = parse_foo(input,inputsize);
     if(result) {
-        printf("\n%d %d %d\n", result->name1, result->object->i1,result->object->i2);
+        printf("\n%d %c %d\n", result->name1, result->object->i1,result->object->i2);
         return 0;
     } else {
         return 1;
