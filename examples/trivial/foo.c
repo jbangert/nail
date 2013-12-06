@@ -1,3 +1,4 @@
+
 typedef __builtin_va_list __gnuc_va_list;
 typedef __gnuc_va_list va_list;
 
@@ -1716,7 +1717,7 @@ typedef struct test_object {
 
 typedef struct foo {
     int name1;
-    test_object * object;
+    test_object* object;
 } foo;
 
 

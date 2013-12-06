@@ -30,15 +30,18 @@ To produce the functions that create the  AST (in a .c file)
 #undef HM_STRUCT_SEQ
 #undef HM__TO 
 #undef HM_F
-#undef HM_PTR
 #undef HM_F_OBJECT
+#undef HM_UINT
+#undef HM_SINT
+#undef HM_OBJECT
 
+#define HM_UINT(x) x
+#define HM_SINT(x) x
+#define HM_OBJECT(x) x*
 #define HM_F_OBJECT(type,field)   HM_F(HM_OBJECT,HM_PTR(type),field,type)
 #define HM_F_OBJECT_OPT(type,field) HM_OPTIONAL(HM_OBJECT,HM_PTR(type), field,type,NULL)
-#define HM_UINT(type,val) H_CAST_UINT(val)
-#define HM_SINT(type,val) H_CAST_SINT(val)
-#define HM_OBJECT(type,val) H_CAST(type,val)
-#define HM_PTR(type) type *
+
+
 
 #undef HM_ARRAY  
 #undef HM_OPTIONAL
@@ -100,8 +103,12 @@ To produce the functions that create the  AST (in a .c file)
 /*action*/
 
 #undef HM_MACROS_ACTION
-#undef HM_PTR
-#define HM_PTR(type) type 
+#undef HM_UINT
+#undef HM_SINT
+#undef HM_OBJECT
+#define HM_UINT(type,val) H_CAST_UINT(val)
+#define HM_SINT(type,val) H_CAST_SINT(val)
+#define HM_OBJECT(type,val) H_CAST(type,val)
 #define HM_F(cast,type,field,parser) ret->field = cast(type,fields[i]); i++;
 #define HM_ARRAY(cast,type,field,parser) ret->field.count = h_seq_len(fields[i]); \
         do{int j; HParsedToken **seq = h_seq_elements(fields[i]); \
@@ -148,9 +155,10 @@ enum HMacroTokenType_  {
 /* Structure definitions  */
 
 
+
 #define HM_OPTIONAL(cast,type,field,parser,default) HM_F(cast,type,field,parser)
 #define HM_STRUCT_SEQ(...) typedef struct HM_NAME { __VA_ARGS__ } HM_NAME;
-#define HM_F(cast,type,field, parser)  type field;  
+#define HM_F(cast,type,field, parser)  cast(type) field;  
 
 #undef GRAMMAR_END
 #define GRAMMAR_END(name) extern const struct name *parse_ ## name(const uint8_t *input, size_t length); \
