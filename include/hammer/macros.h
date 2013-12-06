@@ -29,15 +29,17 @@ To produce the functions that create the  AST (in a .c file)
 #undef HM_MACRO_INCLUDE_LOOP /* To signal the consumer of this header file that it should include itself */
 #undef HM_STRUCT_SEQ
 #undef HM__TO 
-#undef HM_TO_UINT
-#undef HM_TO_SINT 
-#undef HM_TO_P   
-#undef HM_TO_SEQ  
+#undef HM_F_UINT
+#undef HM_F_SINT 
+#undef HM_F_OBJECT 
+#undef HM_F_ARRAY  
 
 #undef GRAMMAR_BEGIN
 #undef GRAMMAR_END
+#undef HM_RULE
 #define GRAMMAR_BEGIN(x)
 #define GRAMMAR_END(x)
+#define HM_RULE(name,def)
 #ifndef TOKENPASTE2
 #define TOKENPASTE(x, y) x ## y  //http://stackoverflow.com/questions/1597007
 #define TOKENPASTE2(x, y) TOKENPASTE(x, y)
@@ -53,10 +55,10 @@ To produce the functions that create the  AST (in a .c file)
 #undef HM_MACROS_PARSER 
 
 /* Hammer parser */
-#define HM_TO_UINT HM__TO
-#define HM_TO_SINT HM__TO
-#define HM_TO_P    HM__TO
-#define HM_TO_SEQ  HM__TO
+#define HM_F_UINT HM__TO
+#define HM_F_SINT HM__TO
+#define HM_F_OBJECT(type,field)   HM__TO(type,name,type)
+#define HM_F_ARRAY  HM__TO
 #define HM__TO(type,field,parser)  parser,
 #define HM_STRUCT_SEQ(...) HParser *HM_NAME = h_action(h_sequence( __VA_ARGS__ NULL),TOKENPASTE2(act_,  HM_NAME),NULL);
 #undef GRAMMAR_BEGIN
@@ -86,10 +88,11 @@ To produce the functions that create the  AST (in a .c file)
 #undef HM_MACROS_ACTION
 
 
-#define HM_TO_UINT(type,field,parser) HM__TO(H_CAST_UINT,type,field,parser)
-#define HM_TO_SINT(type,field,parser) HM__TO(H_CAST_SINT,type,field,parser)
-#define HM_TO_P(type,field,parser)    HM__TO(H_CAST_P   ,type,field,parser)
-#define HM_TO_SEQ(type,field,parser)  HM__TO(H_CAST_SEQ ,type,field,parser)
+#define HM_F_UINT(type,field,parser) HM__TO(H_CAST_UINT,type,field,parser)
+#define HM_F_SINT(type,field,parser) HM__TO(H_CAST_SINT,type,field,parser)
+#define HM_F_OBJECT(type,field) ret->field = H_CAST(type, fields[i]); i++;
+//#define HM_F_ARRAY(type,field,parser)  ret->field = /* We want an array of type */
+// HM__TO(H_CAST_SEQ ,type,field,parser)
 
 #define HM__TO(CAST,type,field,parser)  ret->field = CAST(fields[i]); i++;
 #define HM_STRUCT_SEQ_IMPL(name,...)                                     \
@@ -99,9 +102,11 @@ To produce the functions that create the  AST (in a .c file)
           HParsedToken **fields = h_seq_elements(p->ast);               \
           struct HM_NAME *ret = H_ALLOC(struct HM_NAME);  /*TODO: can fail*/  \
            __VA_ARGS__                                                 \
-                   return h_make(p->arena,(HTokenType)TOKENPASTE2(TT_macro_,HM_NAME), ret); \
+                   return h_make(p->arena,(HTokenType)TOKENPASTE2(TT_,HM_NAME), ret); \
        }                
 #define HM_STRUCT_SEQ(...) HM_STRUCT_SEQ_IMPL(HM_NAME, __VA_ARGS__)
+#undef HM_RULE
+#define HM_RULE(name,def) H_RULE(name,def)
 /*Run again to emit the actions*/
 #define HM_MACROS_PARSER
 #define HM_MACRO_INCLUDE_LOOP
@@ -113,14 +118,14 @@ To produce the functions that create the  AST (in a .c file)
 #define MACROS_END_CURLY
 /* Enum - the second include*/
 
-#define HM_TO_UINT 
-#define HM_TO_SINT 
-#define HM_TO_P    
-#define HM_TO_SEQ
+#define HM_F_UINT 
+#define HM_F_SINT 
+#define HM_F_OBJECT
+#define HM_F_ARRAY
 
 enum HMacroTokenType_  {
         TT_Macro_unused = TT_USER,
-#define HM_STRUCT_SEQ(...) TOKENPASTE2(TT_macro_,HM_NAME),
+#define HM_STRUCT_SEQ(...) TOKENPASTE2(TT_,HM_NAME),
 
 #elif  defined(HM_MACROS_ERROR1)
 #error "macros.h included more than twice without defining HM_MACROS_*"
@@ -128,16 +133,16 @@ enum HMacroTokenType_  {
 /* Structure definitions  */
 
 
-#define HM_STRUCT_SEQ(...) struct HM_NAME { __VA_ARGS__ };
+#define HM_STRUCT_SEQ(...) typedef struct HM_NAME { __VA_ARGS__ } HM_NAME;
 #define HM__TO(type,field, parser)  type field;  
 #undef GRAMMAR_END
 #define GRAMMAR_END(name) extern const struct name *parse_ ## name(const uint8_t *input, size_t length); \
         extern const HParser * init_ ## name(); 
 
-#define HM_TO_UINT HM__TO
-#define HM_TO_SINT HM__TO
-#define HM_TO_P    HM__TO
-#define HM_TO_SEQ  HM__TO
+#define HM_F_UINT HM__TO
+#define HM_F_SINT HM__TO
+#define HM_F_OBJECT(type,field)   type *field;
+#define HM_F_ARRAY(type,field,parser)  struct { type *elem; size_t count; } field;
 
 /* run again to get the enum */
 #define HM_MACROS_ENUM
