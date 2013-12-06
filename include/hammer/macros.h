@@ -30,6 +30,7 @@ To produce the functions that create the  AST (in a .c file)
 #undef HM_STRUCT_SEQ
 #undef HM__TO 
 #undef HM_F
+#undef HM_PTR
 
 #define HM_UINT(type,val) H_CAST_UINT(val)
 #define HM_SINT(type,val) H_CAST_SINT(val)
@@ -91,6 +92,7 @@ To produce the functions that create the  AST (in a .c file)
 /*action*/
 
 #undef HM_MACROS_ACTION
+#undef HM_PTR
 #define HM_PTR(type) type 
 #define HM_F(cast,type,field,parser) ret->field = cast(type,fields[i]); i++;
 

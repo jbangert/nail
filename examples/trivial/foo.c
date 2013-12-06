@@ -1712,7 +1712,7 @@ typedef struct test_object {
 
 typedef struct foo {
     int name1;
-    test_object * object;
+    test_object * test1;
 } foo;
 
 
@@ -1757,7 +1757,7 @@ HParsedToken * act_foo (const HParseResult *p, void* user_data) {
     struct foo *ret = ((struct foo *) h_arena_malloc(p->arena, sizeof(struct foo)));
     ret->name1 = ((((fields[i]->token_type == (HTokenType)TT_SINT) ? (void) (0) : __assert_fail ("fields[i]->token_type == (HTokenType)TT_SINT", "grammar.h", 9, __PRETTY_FUNCTION__)), fields[i])->sint);
     i++;
-    ret->object = ((test_object *) (((fields[i]->token_type == (HTokenType)TT_test_object) ? (void) (0) : __assert_fail ("fields[i]->token_type == (HTokenType)TT_test_object", "grammar.h", 9, __PRETTY_FUNCTION__)), fields[i])->user);
+    ret->test1 = ((test_object *) (((fields[i]->token_type == (HTokenType)TT_test_object) ? (void) (0) : __assert_fail ("fields[i]->token_type == (HTokenType)TT_test_object", "grammar.h", 9, __PRETTY_FUNCTION__)), fields[i])->user);
     i++;
     return h_make(p->arena,(HTokenType)TT_foo, ret);
 }
@@ -1796,7 +1796,7 @@ int main()
     fwrite(input, 1, inputsize, stderr);
     result = parse_foo(input,inputsize);
     if(result) {
-        printf("\n%d %d %d\n", result->name1, result->object->i1,result->object->i2);
+        printf("\n%d %d %d\n", result->name1, result->test1->i1,result->test1->i2);
         return 0;
     } else {
         return 1;
