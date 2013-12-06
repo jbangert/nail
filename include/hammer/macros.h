@@ -73,6 +73,8 @@ To produce the functions that create the  AST (in a .c file)
 #define HM_OPTIONAL(cast,type,field,parser,default) h_optional(parser),
 #define HM_ARRAY HM_F
 #define HM_STRUCT_SEQ(...) HParser *HM_NAME = h_action(h_sequence( __VA_ARGS__ NULL),TOKENPASTE2(act_,  HM_NAME),NULL);
+#undef HM_RULE
+#define HM_RULE(name,def) H_RULE(name,def);
 #undef GRAMMAR_BEGIN
 #undef GRAMMAR_END
 #define GRAMMAR_BEGIN(name)                     \
@@ -121,8 +123,7 @@ To produce the functions that create the  AST (in a .c file)
                    return h_make(p->arena,(HTokenType)TOKENPASTE2(TT_,HM_NAME), ret); \
        }                
 #define HM_STRUCT_SEQ(...) HM_STRUCT_SEQ_IMPL(HM_NAME, __VA_ARGS__)
-#undef HM_RULE
-#define HM_RULE(name,def) H_RULE(name,def);
+
 /*Run again to emit the actions*/
 #define HM_MACROS_PARSER
 #define HM_MACRO_INCLUDE_LOOP

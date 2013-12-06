@@ -1,3 +1,4 @@
+
 #include "test.h"
 
 #define HM_MACRO_IMPLEMENT
