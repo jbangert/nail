@@ -101,7 +101,7 @@ To produce the functions that create the  AST (in a .c file)
         do{int j; HParsedToken **seq = h_seq_elements(fields[i]); \
         ret->field.elem = (type *)h_arena_malloc(p->arena, sizeof(type) * ret->field.count); /*  WARNING, can fail*/ \
         for(j=0;j<ret->field.count;j++){ret->field.elem[j] = cast(type,seq[j]); } \
-        }while(0);
+        }while(0); i++;
 //#define HM_F_ARRAY(type,field,parser)  ret->field = /* We want an array of type */
 // HM__TO(H_CAST_SEQ ,type,field,parser)
 

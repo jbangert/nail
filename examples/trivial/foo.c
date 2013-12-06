@@ -1759,6 +1759,7 @@ HParsedToken * act_test_object (const HParseResult *p, void* user_data) {
         }
     }
     while(0);
+    i++;
     ret->i2 = ((((fields[i]->token_type == (HTokenType)TT_SINT) ? (void) (0) : __assert_fail ("fields[i]->token_type == (HTokenType)TT_SINT", "grammar.h", 5, __PRETTY_FUNCTION__)), fields[i])->sint);
     i++;
     return h_make(p->arena,(HTokenType)TT_test_object, ret);
@@ -1815,7 +1816,7 @@ int main()
     fwrite(input, 1, inputsize, stderr);
     result = parse_foo(input,inputsize);
     if(result) {
-        printf("\n%d %c %d\n", result->name1, result->object->i1,result->object->i2);
+        printf("\n%d %.*s %d\n", result->name1, result->object->i1.count,result->object->i1.elem,result->object->i2);
         return 0;
     } else {
         return 1;
