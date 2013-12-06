@@ -1,2 +1,4 @@
-test: test.c  *.h
-	gcc -lhammer -ggdb -o $@ test.c -I../../include
+test: foo.c  
+	gcc -lhammer -ggdb -o $@ $< -I../../include
+foo.c: test.c *.h
+	cpp -I../../include test.c |sed '/^\#/d' > foo.c && astyle foo.c
