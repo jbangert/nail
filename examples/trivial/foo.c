@@ -1722,7 +1722,7 @@ typedef struct foo {
 
 
 
-extern const struct foo *parse_foo(const uint8_t *input, size_t length);
+extern const foo *parse_foo(const uint8_t *input, size_t length);
 extern const HParser * init_foo();
 
 
@@ -1749,7 +1749,7 @@ enum HMacroTokenType_ {
 HParsedToken * act_test_object (const HParseResult *p, void* user_data) {
     int i =0;
     HParsedToken **fields = h_seq_elements(p->ast);
-    struct test_object *ret = ((struct test_object *) h_arena_malloc(p->arena, sizeof(struct test_object)));
+    test_object *ret = ((test_object *) h_arena_malloc(p->arena, sizeof(test_object)));
     ret->i1.count = h_seq_len(fields[i]);
     do {
         int j;
@@ -1772,7 +1772,7 @@ HParsedToken * act_test_object (const HParseResult *p, void* user_data) {
 HParsedToken * act_foo (const HParseResult *p, void* user_data) {
     int i =0;
     HParsedToken **fields = h_seq_elements(p->ast);
-    struct foo *ret = ((struct foo *) h_arena_malloc(p->arena, sizeof(struct foo)));
+    foo *ret = ((foo *) h_arena_malloc(p->arena, sizeof(foo)));
     ret->name1 = ((((fields[i]->token_type == (HTokenType)TT_SINT) ? (void) (0) : __assert_fail ("fields[i]->token_type == (HTokenType)TT_SINT", "grammar.h", 11, __PRETTY_FUNCTION__)), fields[i])->sint);
     i++;
     if(fields[i]->token_type == TT_NONE) {
@@ -1807,9 +1807,9 @@ const HParser * init_foo () {
     ret = foo;
     return ret;
 }
-const struct foo * parse_foo(const uint8_t* input, size_t length) {
+const foo * parse_foo(const uint8_t* input, size_t length) {
     HParseResult * ret = h_parse(init_foo (), input,length);
-    if(ret && ret->ast) return (const struct foo *)(ret->ast->user);
+    if(ret && ret->ast) return (const foo *)(ret->ast->user);
     else return ((void *)0);
 }
 int main()

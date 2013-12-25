@@ -112,6 +112,9 @@ To produce the functions that create the  AST (in a .c file)
 
 #define HM_DO_CAST(cast,type,val) TOKENPASTE2(cast,_CAST)(type,val)
 #define HM_DO_TYPE(cast,val) TOKENPASTE2(cast,_TYPE)(val)
+//FIXME: broken
+#define HM_FOREACH(type, name, container) size_t name ## _iter; type *name; for(;(name ##_iter < (container).count) && (name = (container).elem[0]); name = (container).elem[name##_iter],name ## _iter++)
+
 #endif
 
 
@@ -128,15 +131,16 @@ To produce the functions that create the  AST (in a .c file)
 
 /* Hammer parser */
 
+#define XQUOTE(x) #x
+#define QUOTE(x) XQUOTE(x)
 
-
-#define HM_F(cast,type,field,parser)  parser,
+#define HM_F(cast,type,field,parser)  h_name(# field, parser),
 #undef HM_OPTIONAL
-#define HM_OPTIONAL(cast,type,field,parser,default) h_optional(parser),
+#define HM_OPTIONAL(cast,type,field,parser,default) h_name( #field, h_optional(parser)),
 #define HM_ARRAY HM_F
-#define HM_STRUCT_SEQ(...) HParser *HM_NAME = h_action(h_sequence( __VA_ARGS__ NULL),TOKENPASTE2(act_,  HM_NAME),NULL);
+#define HM_STRUCT_SEQ(...) HParser *HM_NAME = h_action(h_name(QUOTE(HM_NAME),h_sequence( __VA_ARGS__ NULL)),TOKENPASTE2(act_,  HM_NAME),NULL);
 #undef HM_RULE
-#define HM_RULE(name,def) H_RULE(name,def);
+#define HM_RULE(name,def) H_RULE(name,h_name(#name,def));
 #undef GRAMMAR_BEGIN
 #undef GRAMMAR_END
 #define GRAMMAR_BEGIN(name)                     \
@@ -149,10 +153,10 @@ To produce the functions that create the  AST (in a .c file)
         ret = name;                             \
         return ret;                             \
         }                                       \
-        const struct name * parse_## name(const uint8_t* input, size_t length){ \
-                HParseResult * ret = h_parse(init_ ## name (), input,length); \
+        const  name * parse_## name(const uint8_t* input, size_t length){ \
+                HParseResult * ret = h_parse_error(init_ ## name (), input,length,stderr); \
                 if(ret && ret->ast)                                     \
-                        return (const struct name *)(ret->ast->user);         \
+                        return (const  name *)(ret->ast->user);         \
                 else                                                    \
                         return NULL;                                    \
         }
@@ -178,7 +182,7 @@ To produce the functions that create the  AST (in a .c file)
         {                                                               \
           int i =0;                                                     \
           HParsedToken **fields = h_seq_elements(p->ast);               \
-          struct HM_NAME *ret = H_ALLOC(struct HM_NAME);  /*TODO: can fail*/  \
+           HM_NAME *ret = H_ALLOC( HM_NAME);  /*TODO: can fail*/  \
            __VA_ARGS__                                                 \
                    return h_make(p->arena,(HTokenType)TOKENPASTE2(TT_,HM_NAME), ret); \
        }                
@@ -214,7 +218,7 @@ enum HMacroTokenType_  {
 #define HM_F(cast,type,field, parser)  HM_DO_TYPE(cast,type) field;  
 
 #undef GRAMMAR_END
-#define GRAMMAR_END(name) extern const struct name *parse_ ## name(const uint8_t *input, size_t length); \
+#define GRAMMAR_END(name) extern const  name *parse_ ## name(const uint8_t *input, size_t length); \
         extern const HParser * init_ ## name(); 
 
 
