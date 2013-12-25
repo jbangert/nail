@@ -8,13 +8,13 @@ int main()
       
     uint8_t input[102400];
     size_t inputsize;
-    const struct foo *result;
+    const struct obj_array *result;
     inputsize = fread(input, 1, sizeof(input), stdin);
     fprintf(stderr, "inputsize=%zu\ninput=", inputsize);
     fwrite(input, 1, inputsize, stderr);  
-    result =  parse_foo(input,inputsize);
+    result =  parse_obj_array(input,inputsize);
     if(result) {
-
+            printf("%d",result->entry1.elem[0]->a1);
             return 0;
     } else {
         return 1;
