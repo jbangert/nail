@@ -22,22 +22,14 @@ int main(int argc, char** argv) {
                   break;
           packet_size = fread(packet, 1, sizeof(packet), stdin);
           
-          const struct dns_domain *message = parse_dns_domain(packet, packet_size);
+          const struct dns_message *message = parse_dns_message(packet, packet_size);
           if (!message) {
                   printf("Invalid packet; ignoring\n");
                   continue;
           }
           printf("Parsed\n");
 
-          HM_FOREACH(dns_label,i,message->labels){
-                  putchar(i->firstletter);
-                  if(i->tail)
-                  {
-                          printf("%*s",i->tail->other_letters.count,i->tail->other_letters.elem);
-                          putchar(i->tail->last_letter);
-                  }
-          }
-          putchar('\n');
+          print_dns_message(message,stderr,0);
   }
 }
 #if 0

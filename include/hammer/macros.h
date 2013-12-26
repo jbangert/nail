@@ -112,6 +112,7 @@ To produce the functions that create the  AST (in a .c file)
 
 #define HM_DO_CAST(cast,type,val) TOKENPASTE2(cast,_CAST)(type,val)
 #define HM_DO_TYPE(cast,val) TOKENPASTE2(cast,_TYPE)(val)
+
 //FIXME: broken
 #define HM_FOREACH(type, name, container) size_t name ## _iter; type *name; for(;(name ##_iter < (container).count) && (name = (container).elem[0]); name = (container).elem[name##_iter],name ## _iter++)
 
@@ -161,7 +162,8 @@ To produce the functions that create the  AST (in a .c file)
                         return NULL;                                    \
         }
 
-
+#define HM_MACROS_PRINT
+#define HM_MACRO_INCLUDE_LOOP
 #elif defined(HM_MACROS_ACTION)
 /*action*/
 
@@ -192,6 +194,22 @@ To produce the functions that create the  AST (in a .c file)
 #define HM_MACROS_PARSER
 #define HM_MACRO_INCLUDE_LOOP
 
+#elif defined(HM_MACROS_PRINT)
+#undef HM_MACROS_PRINT
+#define HM_DO_PRINT(cast,field,type,val) TOKENPASTE2(cast,_PRINT)(field,type,val)
+#define HM_F(cast,type,field,parser)  HM_DO_PRINT(cast,field, type, val->field)
+#define HM_PRINT_FORMAT(field,format,value) fprintf(out,"%*s%s:" format "\n",2*indent,#field,value);
+#define HM_UINT_PRINT(field,type,value) HM_PRINT_FORMAT(field,"%lu",((unsigned long)value))
+#define HM_SINT_PRINT(field,type,value) HM_PRINT_FORMAT(field,"%ld",((long)value))
+#define HM_OBJECT_PRINT(field,type,value) if(value){ HM_PRINT_FORMAT(field,"%s","(object){");TOKENPASTE2(print_,type)(value,out,indent+1);} else {HM_PRINT_FORMAT(field,"%s","(null)");}
+#define HM_ARRAY(cast,type,field,parser) do{int j;type *ptr;\
+                                            for(j=0;j<val->field.count;j++){ \
+                                                    HM_DO_PRINT(cast,field,type,val->field.elem[j])}}while(0);
+#define HM_OPTIONAL(cast,type,field,parser,default) HM_F(cast,type,field,parser)
+#define HM_STRUCT_SEQ(...)                                      \
+        void TOKENPASTE2(print_,HM_NAME) (const HM_NAME *val,FILE *out,int indent) {  \
+                __VA_ARGS__                                             \
+      }
 
 #elif defined(HM_MACROS_ENUM)
 #undef HM_MACROS_ENUM
@@ -214,7 +232,7 @@ enum HMacroTokenType_  {
 
 
 #define HM_OPTIONAL(cast,type,field,parser,default) HM_F(cast,type,field,parser)
-#define HM_STRUCT_SEQ(...) typedef struct HM_NAME { __VA_ARGS__ } HM_NAME;
+#define HM_STRUCT_SEQ(...) typedef struct HM_NAME { __VA_ARGS__ } HM_NAME; extern void TOKENPASTE2(print_,HM_NAME)(const HM_NAME *ptr,FILE *out,int indent);
 #define HM_F(cast,type,field, parser)  HM_DO_TYPE(cast,type) field;  
 
 #undef GRAMMAR_END

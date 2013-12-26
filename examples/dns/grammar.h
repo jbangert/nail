@@ -56,7 +56,7 @@ HM_RULE (qlabel,    h_length_value(len, h_uint8()))  /* We need an exact length 
 
 
 #define HM_NAME question 
-HM_STRUCT_SEQ(HM_ARRAY(HM_UINT,char,labels, qlabel)
+HM_STRUCT_SEQ(HM_ARRAY(HM_UINT,char,labels, h_many(qlabel))
 HM_F(HM_UINT,uint8_t,nullbyte, h_ch('\x00'))
 HM_F(HM_UINT,int, qtype,qtype)
 HM_F(HM_UINT,int,qclass,qclass))
