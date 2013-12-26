@@ -1,7 +1,7 @@
 /* debug pretty-printing*/
 #define HM_DO_PRINT(cast,field,type,val) TOKENPASTE2(cast,_PRINT)(field,type,val)
 #define HM_F(cast,type,field,parser)  HM_DO_PRINT(cast,field, type, val->field)
-#define HM_PRINT_FORMAT(field,format,value) fprintf(out,"%*s%s:" format "\n",2*indent,#field,value);
+#define HM_PRINT_FORMAT(field,format,value) fprintf(out,"%*s:" format "\n",10+4*indent,#field,value);
 #define HM_UINT_PRINT(field,type,value) HM_PRINT_FORMAT(field,"%lu",((unsigned long)value))
 #define HM_SINT_PRINT(field,type,value) HM_PRINT_FORMAT(field,"%ld",((long)value))
 #define HM_OBJECT_PRINT(field,type,value) if(value){ HM_PRINT_FORMAT(field,"%s","(object){");TOKENPASTE2(print_,type)(value,out,indent+1);} else {HM_PRINT_FORMAT(field,"%s","(null)");}
