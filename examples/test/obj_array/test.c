@@ -14,7 +14,7 @@ int main()
     fwrite(input, 1, inputsize, stderr);  
     result =  parse_obj_array(input,inputsize);
     if(result) {
-            printf("%d",result->entry1.elem[0]->a1);
+            print_obj_array(result,stdout,0);
             return 0;
     } else {
         return 1;
