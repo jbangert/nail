@@ -1,7 +1,7 @@
 
 #include "test.h"
 
-#define HM_MACRO_IMPLEMENT
+#define N_MACRO_IMPLEMENT
 #include "grammar.h"
 int main()
 {

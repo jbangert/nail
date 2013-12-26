@@ -1,16 +1,10 @@
-#include <hammer/macros.h>
-GRAMMAR_BEGIN(obj_array)
-#define HM_NAME s1
-HM_STRUCT_SEQ(HM_F(HM_UINT,uint8_t,a1,h_uint8())
-              HM_F(HM_UINT,uint8_t,a2,h_uint8()))
-#undef HM_NAME
-#define HM_NAME obj_array
-HM_STRUCT_SEQ(HM_ARRAY(HM_OBJECT,s1,entry1,h_many(s1))
-              )
-#undef HM_NAME
-GRAMMAR_END(obj_array)
-#include <hammer/macros_end.h>
+#include <nail/macros.h>
+N_PARSER(obj_array,
+         N_ARRAY(N_STRUCT(N_FIELD(a1,N_SCALAR(UINT,int,h_uint8()))
+                          N_FIELD(a2,N_SCALAR(UINT,int,h_uint8()))),h_many))
 
-#ifdef HM_MACRO_INCLUDE_LOOP
+#include <nail/macros_end.h>
+
+#ifndef N_INCLUDE_DONE
 #include "grammar.h"
 #endif
