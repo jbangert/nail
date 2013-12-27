@@ -1,9 +1,13 @@
+#define N_SCALAR(cast,type,parser) parser
+#define N_OPTIONAL(inner) h_optional(inner)
+
+#define N_STRUCT(inner) h_sequence(inner NULL)
 #define N_DISCARD(inner) inner,
 #define N_FIELD(name,inner) h_name(#name, inner ),
-#define N_SCALAR(cast,type,parser) parser
+
 #define N_ARRAY(inner,combinator) combinator(inner)
-#define N_STRUCT(inner) h_sequence(inner NULL)
-#define N_OPTIONAL(inner) h_optional(inner)
+#define NX_LENGTHVALUE_HACK(lengthp, elemp) h_length_value(lengthp,elemp)
+
 #define N_PARSER(name) hammer_x_ ## name()
 #define N_DEFPARSER(name,inner) static HParser *hammer_x_ ## name(){      \
                 static HParser *ret=NULL;                               \

@@ -24,6 +24,8 @@
            }                                            \
         }
 
+#define NX_LENGTHVALUE_HACK(lengthp,elemp) N_ARRAY(elemp,h_length_value)
+
 #define N_FIELD(name,inner) {const HParsedToken *val=fields[i]; __typeof__(str->name) *out = &(str->name); inner; i++;}
 #define N_DISCARD(inner) i++;
 #define N_SCALAR(cast,type,parser) *out = cast(val);

@@ -10,3 +10,4 @@
 enum HMacroTokenType_  {
         TT_Macro_unused = TT_USER,
 #define N_DEFPARSER(name,intermal) TT_ ## name, 
+#define NX_LENGTHVALUE_HACK(lengthp,elemp)

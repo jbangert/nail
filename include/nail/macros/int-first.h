@@ -6,3 +6,5 @@
 #define N_FOREACH(type, name, container) size_t name ## _iter; type *name; for(;(name ##_iter < (container).count) && (name = (container).elem[0]); name = (container).elem[name##_iter],name ## _iter++)
 
 
+#define N_UINT(type,parser) N_SCALAR(UINT,type,parser)
+#define N_SINT(type,parser) N_SCALAR(SINT,type,parser)

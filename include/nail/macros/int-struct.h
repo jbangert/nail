@@ -3,7 +3,9 @@
 #define N_FIELD(name,inner) inner name;
 #define N_DISCARD(inner)
 #define N_ARRAY(inner,combinator) struct { inner *elem; size_t count;  } 
+#define NX_LENGTHVALUE_HACK(lengthp,elemp) N_ARRAY(elemp, h_length_value)
 #define N_STRUCT(inner) struct { inner }
 #define N_OPTIONAL(inner) inner *
 #define N_DEFPARSER(name,inner) typedef inner name;
 #define N_PARSER(name) name
+

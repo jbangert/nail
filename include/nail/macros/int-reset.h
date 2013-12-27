@@ -6,3 +6,4 @@
 #undef N_OPTIONAL
 #undef N_DISCARD
 #undef N_PARSER
+#undef NX_LENGTHVALUE_HACK

@@ -36,6 +36,7 @@
         }                                                       \
         N__PRINTIND("]")                                           \
         }
+#define NX_LENGTHVALUE_HACK(lenp,elemp) N_ARRAY(elemp,h_length_value)
 #define N_OPTIONAL(inner) {                             \
         __typeof__(*val) opt = *val;                      \
                 if(opt){                                \
