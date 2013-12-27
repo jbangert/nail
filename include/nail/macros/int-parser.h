@@ -4,8 +4,8 @@
 #define N_ARRAY(inner,combinator) combinator(inner)
 #define N_STRUCT(inner) h_sequence(inner NULL)
 #define N_OPTIONAL(inner) h_optional(inner)
-#define N_PARSER(name) hammer_inner_ ## name()
-#define N_DEFPARSER(name,inner) static HParser *hammer_inner_ ## name(){             \
+#define N_PARSER(name) hammer_x_ ## name()
+#define N_DEFPARSER(name,inner) static HParser *hammer_x_ ## name(){      \
                 static HParser *ret=NULL;                               \
                 if(!ret){                                               \
                         ret= h_name(#name,inner);                       \
@@ -15,7 +15,7 @@
         HParser *hammer_ ## name(){                                     \
                 static HParser *ret=NULL;                               \
                 if(!ret){                                               \
-                        ret= h_action(hammer_inner_##name,act_## name,NULL); \
+                        ret= h_action(hammer_x_##name(),act_## name,NULL); \
                 }                                                       \
                 return ret;                                             \
         }                                                               \
