@@ -4,8 +4,8 @@
 #define N__CAST_UINT(x) (unsigned long)(x)
 #define N__CAST_SINT(x) (signed long)(x)
 #define N__PRINTIND(format,...) fprintf(out,"\n%*s" format ,2*indent,"", ##__VA_ARGS__);
-
-#define N_PARSER(name,inner) void print_ ## name(const name *val, FILE *out,int indent){ \
+#define N_PARSER(name) print_##name(val,out,indent)
+#define N_DEFPARSER(name,inner) void print_ ## name(const name *val, FILE *out,int indent){ \
                 N__PRINTIND("{\"%s\":",#name);indent++;                     \
                 inner; indent--; \
                 N__PRINTIND("}\n");}                                      

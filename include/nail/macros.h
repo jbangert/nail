@@ -3,7 +3,7 @@
 
 The User API is to write a header file for the grammar, e.g. grammar.h and structure it as follows
 #include <hammer/macros.h>
-N_PARSER(N_STRUCT....)
+N_PARSER(name....)
 #include <hammer/macros_end.h>
 #ifndef N_INCLUDE_DONE
 #include "grammar.h" //include  the file itself here

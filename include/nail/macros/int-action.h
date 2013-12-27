@@ -35,12 +35,16 @@
                 inner;                                                  \
                 }                                                       \
         }
-                
-#define N_PARSER(name,inner) HParsedToken *act_## name(const HParseResult *p, void *user_data) { \
+#define N_PARSER(name) bind_##name(p,val,out);
+#define N_DEFPARSER(name,inner)                         \
+        static void bind_##name (const HParseResult *p,const HParsedToken *val, name *out) { \
+                inner;                                                  \
+        }                                                               \
+        HParsedToken *act_## name(const HParseResult *p, void *user_data) { \
                 name * out= H_ALLOC(name);                              \
-                const HParsedToken *val = p->ast;                             \
-                inner                                                   \
-                        return h_make(p->arena,(HTokenType)TT_ ## name,out); \
+                const HParsedToken *val = p->ast;                       \
+                bind_## name(p,val,out);                                \
+                return h_make(p->arena,(HTokenType)TT_ ## name,out);    \
         }
 
 

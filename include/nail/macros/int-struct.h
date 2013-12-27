@@ -5,4 +5,5 @@
 #define N_ARRAY(inner,combinator) struct { inner *elem; size_t count;  } 
 #define N_STRUCT(inner) struct { inner }
 #define N_OPTIONAL(inner) inner *
-#define N_PARSER(name,inner) typedef inner name;
+#define N_DEFPARSER(name,inner) typedef inner name;
+#define N_PARSER(name) name
