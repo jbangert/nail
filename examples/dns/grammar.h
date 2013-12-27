@@ -1,60 +1,45 @@
-#include <hammer/macros.h>
+#include <hammer/hammer.h>
 #include <hammer/glue.h>
+#include <nail/macros.h>
+
 #define false 0
-GRAMMAR_BEGIN(dns_message)
-HM_RULE(letter, h_choice(h_ch_range('a','z'), h_ch_range('A','Z'),NULL))
-HM_RULE(let_dig,   h_choice(letter, h_ch_range('0','9'), NULL))
-HM_RULE(ldh_char,   h_choice(let_dig, h_ch('-'), NULL))
-
-#define HM_NAME dns_label_tail
-HM_STRUCT_SEQ( HM_ARRAY( HM_UINT,char, other_letters,h_optional(h_many1(ldh_char)))
-               HM_F(HM_UINT,char,last_letter,let_dig))
-#undef HM_NAME
-#define HM_NAME dns_label
-HM_STRUCT_SEQ(HM_F(HM_UINT,char,firstletter,letter)
-              HM_F_OBJECT_OPT(dns_label_tail,tail))
-#undef HM_NAME
-#define HM_NAME dns_domain
-HM_STRUCT_SEQ(HM_ARRAY(HM_OBJECT,dns_label, labels,h_sepBy1(dns_label,h_ch('.'))))
-//TODO: Make this a choice!
-#undef HM_NAME
+/* Do away with these once we have N_UNION */
+H_RULE(letter, h_choice(h_ch_range('a','z'), h_ch_range('A','Z'),NULL))
+H_RULE(let_dig,   h_choice(letter, h_ch_range('0','9'), NULL))
+H_RULE(ldh_char,   h_choice(let_dig, h_ch('-'), NULL))
 
 
+N_DEFPARSER(header,
+N_STRUCT(N_FIELD(id,     N_UINT(uint16_t,h_bits(16,false)))
+         N_FIELD(qr,     N_UINT(bool,h_bits(1,false)))
+         N_FIELD(opcode, N_UINT(char,h_bits(4,false)))
+         N_FIELD(aa,     N_UINT(bool,h_bits(1,false)))
+         N_FIELD(tc,     N_UINT(bool,h_bits(1,false)))
+         N_FIELD(rd,     N_UINT(bool,h_bits(1,false)))
+         N_FIELD(ra,     N_UINT(bool,h_bits(1,false)))
+         N_FIELD(Z,      N_UINT(char,h_bits(3,false)))
+         N_FIELD(rcode,  N_UINT(char,h_bits(4,false)))
+         N_FIELD(question_count,  N_UINT(size_t,h_uint16()))
+         N_FIELD(answer_count,    N_UINT(size_t,h_uint16()))
+         N_FIELD(authority_count, N_UINT(size_t,h_uint16()))
+         N_FIELD(additional_count,N_UINT(size_t,h_uint16()))
+        ))
 
-#define HM_NAME domain_label
 
-#undef HM_NAME
-
-
-#define HM_NAME header
-HM_STRUCT_SEQ(HM_F(HM_UINT,uint16_t, id,h_bits(16,false))
-             HM_F(HM_UINT,bool, qr,h_bits(1,false))
-             HM_F(HM_UINT,char,opcode,h_bits(4,false))
-             HM_F(HM_UINT,bool, aa,h_bits(1,false))
-             HM_F(HM_UINT,bool, tc,h_bits(1,false))
-             HM_F(HM_UINT,bool, rd,h_bits(1,false))
-             HM_F(HM_UINT,bool, ra,h_bits(1,false))
-             HM_F(HM_UINT,char, Z, h_bits(3,false)) 
-             HM_F(HM_UINT,char, rcode, h_bits(4,false))
-             HM_F(HM_UINT,size_t, question_count, h_uint16())
-             HM_F(HM_UINT,size_t, answer_count, h_uint16())
-             HM_F(HM_UINT,size_t, authority_count, h_uint16())
-             HM_F(HM_UINT,size_t, additional_count, h_uint16()))
-
-#undef HM_NAME
-HM_RULE  (type,     h_int_range(h_uint16(), 1, 16))
-HM_RULE  (qtype,    h_choice(type, 
+H_RULE  (type,     h_int_range(h_uint16(), 1, 16))
+H_RULE  (qtype,    h_choice(type, 
         h_int_range(h_uint16(), 252, 255),
         NULL))
-HM_RULE  (class,    h_int_range(h_uint16(), 1, 4))
-HM_RULE  (qclass,   h_choice(class,
+H_RULE  (class,    h_int_range(h_uint16(), 1, 4))
+H_RULE  (qclass,   h_choice(class,
         h_int_range(h_uint16(), 255, 255),
         NULL))
-HM_RULE  (len,      h_int_range(h_uint8(), 1, 255))
-HM_RULE (qlabel,    h_length_value(len, h_uint8()))  /* We need an exact length tracing combinator
+H_RULE  (len,      h_int_range(h_uint8(), 1, 255))
+H_RULE (qlabel,    h_length_value(len, h_uint8()))  /* We need an exact length tracing combinator
                                                        * Gahk */
 
 
+N_STRUCT(N_FIELD(labels,
 #define HM_NAME question 
 HM_STRUCT_SEQ(HM_ARRAY(HM_UINT,char,labels, h_many(qlabel))
 HM_F(HM_UINT,uint8_t,nullbyte, h_ch('\x00'))
