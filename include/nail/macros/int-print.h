@@ -36,7 +36,17 @@
         }                                                       \
         N__PRINTIND("]")                                           \
         }
-
+#define N_OPTIONAL(inner) {                             \
+        __typeof__(*val) opt = *val;                      \
+                if(opt){                                \
+                        __typeof__(opt) val = opt;    \
+                        inner;                          \
+                }                                       \
+                else {                                  \
+                        fprintf(out,"(null)");          \
+                }                                       \
+        }
+#define N_DISCARD(inner)
 #define N__CAST(cast,x) TOKENPASTE(N__CAST_,cast)(x) 
 #define N__FMT(cast) TOKENPASTE(N__FORMAT_,cast)
 #define N_SCALAR(cast,type,parser) fprintf(out,N__FMT(cast),N__CAST(cast,*val))

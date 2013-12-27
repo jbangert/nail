@@ -6,7 +6,7 @@
 #define N_SCALAR(cast,type,parser) 
 #define N_ARRAY(inner,combinator) 
 #define N_STRUCT(inner) 
-
+#define N_OPTIONAL(inner)
 enum HMacroTokenType_  {
         TT_Macro_unused = TT_USER,
 #define N_PARSER(name,intermal) TT_ ## name, 

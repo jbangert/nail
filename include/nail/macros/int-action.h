@@ -23,8 +23,19 @@
              inner                                     \
            }                                            \
         }
+
 #define N_FIELD(name,inner) {const HParsedToken *val=fields[i]; __typeof__(str->name) *out = &(str->name); inner; i++;}
+#define N_DISCARD(inner) i++;
 #define N_SCALAR(cast,type,parser) *out = cast(val);
+#define N_OPTIONAL(inner) if(val->token_type == TT_NONE) *out=NULL; \
+        else{                                                           \
+                __typeof__(*out) opt = h_arena_malloc(p->arena,sizeof(**out));          \
+                *out = opt;                                             \
+                {__typeof__(opt) out = opt;                             \
+                inner;                                                  \
+                }                                                       \
+        }
+                
 #define N_PARSER(name,inner) HParsedToken *act_## name(const HParseResult *p, void *user_data) { \
                 name * out= H_ALLOC(name);                              \
                 const HParsedToken *val = p->ast;                             \

@@ -3,3 +3,5 @@
 #undef N_FIELD
 #undef N_SCALAR
 #undef N_PARSER
+#undef N_OPTIONAL
+#undef N_DISCARD
