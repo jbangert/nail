@@ -4,7 +4,7 @@
 #include <string.h>
 #include <hammer/hammer.h>
 #include "grammar.h"
-#define HM_MACRO_IMPLEMENT
+#define N_MACRO_IMPLEMENT
 #include "grammar.h"
 
 int main(int argc, char** argv) {

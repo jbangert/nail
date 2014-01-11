@@ -7,7 +7,8 @@
 
 #define N_ARRAY(inner,combinator) combinator(inner)
 #define NX_LENGTHVALUE_HACK(lengthp, elemp) h_length_value(lengthp,elemp)
-
+#undef NX_HRULE
+#define NX_HRULE(name,inner) H_RULE(name, inner);
 #define N_PARSER(name) hammer_x_ ## name()
 #define N_DEFPARSER(name,inner) static HParser *hammer_x_ ## name(){      \
                 static HParser *ret=NULL;                               \

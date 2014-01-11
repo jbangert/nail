@@ -7,3 +7,5 @@
 #undef N_DISCARD
 #undef N_PARSER
 #undef NX_LENGTHVALUE_HACK
+#undef NX_HRULE
+#define NX_HRULE(name, inner)
