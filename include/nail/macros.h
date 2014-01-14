@@ -41,6 +41,10 @@ To produce the functions that create the  AST (in a .c file)
 #elif defined(N_MACROS_PRINT)
 #undef N_MACROS_PRINT
 #include "macros/int-print.h"
+#define N_MACROS_GEN
+#elif defined(N_MACROS_GEN)
+#undef N_MACROS_GEN
+#include "macros/int-gen.h"
 #define N_INCLUDE_DONE
 #elif defined(N_MACROS_ENUM)
 #undef N_MACROS_ENUM
