@@ -1,2 +1,4 @@
 N_DEFPARSER(dns_question,
-            N_STRUCT(N_FIELD(labels,NX_LENGTHVALUE_HACK(h_uint8(),N_SCALAR(UINT,char,h_uint8())),h_many1)))  
+            N_STRUCT(N_FIELD(labels,N_ARRAY(
+                                     NX_LENGTHVALUE_HACK(h_int_range(h_uint8()
+,1,255),N_SCALAR(UINT,char,h_uint8())),h_many1))))   
