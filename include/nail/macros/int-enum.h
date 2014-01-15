@@ -11,7 +11,7 @@
 #define N_DISCARD(inner)
 #define N_PARSER(name)
 #define N_REF(inner)
-#define N_DEFPARSER(name,internal) ,_TT_ ## name internal
+#define N_DEFPARSER(name,internal) ,TT_ ## name internal
 #define NX_LENGTHVALUE_HACK(lengthp,elemp) elemp
 enum HMacroTokenType_  {
         TT_Macro_unused = TT_USER

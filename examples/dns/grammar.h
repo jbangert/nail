@@ -1,5 +1,4 @@
-#include <hammer/hammer.h>
-#include <hammer/glue.h>
+
 #include <nail/macros.h>
 
 #define false 0

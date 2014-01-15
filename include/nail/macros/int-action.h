@@ -4,7 +4,7 @@
         {                                                           \
                 __typeof__(out) str =  out;                           \
                 int i =0;                                             \
-                const HParsedToken **fields = h_seq_elements(val);    \
+                HParsedToken **fields = h_seq_elements(val);    \
                 inner                                                 \
         }
 
@@ -13,7 +13,7 @@
         {                                                               \
            __typeof__(out) arr =out;                                        \
            int i;                                                       \
-           const HParsedToken **seq = h_seq_elements(val);                    \
+           HParsedToken **seq = h_seq_elements(val);                    \
            out->count = h_seq_len(val);                                 \
            if(out->count >0)                                            \
                    out->elem = (void *)h_arena_malloc(p->arena,sizeof(out->elem[0])*out->count); \
@@ -58,7 +58,7 @@
         }
 
 #define N_PARSER(name) bind_##name(p,val,out);
-#define N_REF(name) out = H_CAST(name,val);
+#define N_REF(name) *out = H_CAST(name,val);
 #define N_DEFPARSER(name,inner)                         \
         static void bind_##name (const HParseResult *p,const HParsedToken *val, name *out) { \
                 inner;                                                  \
@@ -67,7 +67,7 @@
                 name * out= H_ALLOC(name);                              \
                 const HParsedToken *val = p->ast;                       \
                 bind_## name(p,val,out);                                \
-                return h_make(p->arena,(HTokenType)_TT_ ## name,out);    \
+                return h_make(p->arena,(HTokenType)TT_ ## name,out);    \
         }
 
 

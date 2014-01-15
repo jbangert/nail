@@ -3,7 +3,7 @@
 #include <err.h>
 #include <string.h>
 #include <hammer/hammer.h>
-#include "grammar.h"
+#include "server.h"
 #define N_MACRO_IMPLEMENT
 #include "grammar.h"
 

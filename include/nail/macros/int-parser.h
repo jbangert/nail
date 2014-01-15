@@ -1,5 +1,5 @@
 HParsedToken *N_act_choice_tag(const HParseResult *p, void *user_data) {
-        return h_make(p->arena,(HTokenType)user_data,p->ast); /* Wrap pointer in a thin struct*/
+        return h_make(p->arena,(HTokenType)user_data,(void *)p->ast); /* Wrap pointer in a thin struct*/
 }
 #define N_SCALAR(cast,type,parser) parser
 #define N_OPTIONAL(inner) h_optional(inner)
@@ -9,6 +9,8 @@ HParsedToken *N_act_choice_tag(const HParseResult *p, void *user_data) {
 #define N_FIELD(name,inner) h_name(#name, inner ),
 
 #define N_ARRAY(inner,combinator) combinator(inner)
+#undef N_SEPBY
+#define N_SEPBY(inner,seperator) h_sepBy(inner,seperator)
 #define NX_LENGTHVALUE_HACK(lengthp, elemp) h_length_value(lengthp,elemp)
 #undef NX_HRULE
 #define NX_HRULE(name,inner) H_RULE(name, inner);
@@ -19,7 +21,8 @@ HParsedToken *N_act_choice_tag(const HParseResult *p, void *user_data) {
 #define N_DEFPARSER(name,inner) static HParser *hammer_x_ ## name(){      \
                 static HParser *ret=NULL;                               \
                 if(!ret){                                               \
-                        ret= h_name(#name,inner);                       \
+                        ret = h_indirect();                             \
+                        h_bind_indirect(ret,h_name(#name,inner));       \
                 }                                                       \
                 return ret;                                             \
         }                                                               \

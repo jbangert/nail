@@ -20,32 +20,24 @@ To produce the functions that create the  AST (in a .c file)
 #ifndef N_MACROS_FIRST
 #define N_MACROS_FIRST
 #include "macros/int-first.h"
+#define N_MACROS_STRUCT
 #endif
-
 
 #ifdef N_MACRO_IMPLEMENT
 #undef N_INCLUDE_DONE
 #undef N_MACRO_IMPLEMENT
+#undef N_MACROS_ERROR1
 #define N_MACROS_ACTION
 #endif
 
-#ifdef N_MACROS_PARSER
-#undef N_MACROS_PARSER 
-#include "macros/int-parser.h"
-#define N_MACROS_PRINT
-#elif defined(N_MACROS_ACTION)
-#undef N_MACROS_ACTION
-#include "macros/int-action.h"
-/*Run again to emit the actions*/
-#define N_MACROS_PARSER
-#elif defined(N_MACROS_PRINT)
-#undef N_MACROS_PRINT
-#include "macros/int-print.h"
-#define N_INCLUDE_DONE
-//#elif defined(N_MACROS_GEN)
-//#undef N_MACROS_GEN
-// #include "macros/int-gen.h"
-//#define N_INCLUDE_DONE
+#ifdef N_MACROS_STRUCT
+#undef N_MACROS_STRUCT
+#include "macros/int-struct-decl.h"
+#define N_MACROS_STRUCT1
+#elif defined(N_MACROS_STRUCT1)
+#undef N_MACROS_STRUCT1
+#include "macros/int-struct.h"
+#define N_MACROS_ENUM
 #elif defined(N_MACROS_ENUM)
 #undef N_MACROS_ENUM
 #define N_MACROS_ERROR1
@@ -53,9 +45,24 @@ To produce the functions that create the  AST (in a .c file)
 #include "macros/int-enum.h"
 #elif  defined(N_MACROS_ERROR1)
 #error "macros.h included more than twice without defining N_MACROS_*"
-#else
-#include "macros/int-struct.h"
-/* run again to get the enum */
-#define N_MACROS_ENUM
 
+
+/* ------------
+   IMPLEMENTATION
+******/
+#elif defined(N_MACROS_ACTION)
+#undef N_MACROS_ACTION
+#include "macros/int-action.h"
+/*Run again to emit the actions*/
+#define N_MACROS_PARSER
+#elif defined(N_MACROS_PARSER)
+#undef N_MACROS_PARSER 
+#include "macros/int-parser.h"
+#define N_MACROS_PRINT
+#elif defined(N_MACROS_PRINT)
+#undef N_MACROS_PRINT
+#include "macros/int-print.h"
+#define N_INCLUDE_DONE
+#else
+#error 'Included thrice'
 #endif
