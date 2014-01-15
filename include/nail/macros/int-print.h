@@ -36,7 +36,10 @@
         }                                                       \
         N__PRINTIND("]")                                           \
         }
-
+#undef NX_STRING
+#define NX_STRING(inner,combinator){            \
+                fprintf(out,"\"%.*s\"",val->count,val->elem);   \
+                        }
 #define N_CHOICE(inner){                                                \
         __typeof__(val) choice = val;                                   \
         switch(choice->N_type){                                            \

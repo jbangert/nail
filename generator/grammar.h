@@ -11,45 +11,84 @@ N_DEFPARSER(balanced_paren,
                              N_OPTION(P_NEST, N_STRUCT(N_CONSTANT(h_ch('('))
                                                        N_FIELD(contents,N_REF(balanced_paren))
                                                        N_CONSTANT(h_ch(')'))))),h_many))
-N_DEFPARSER(identifier, N_ARRAY(N_UINT(uint8_t,al_num), h_many1))
+#define identifier NX_STRING(al_num, h_many1)
 N_DEFPARSER(parser_parameters,
-            N_STRUCT(space_token("(")
-                     N_FIELD(parameters,N_SEPBY(N_REF(parser_invocation),h_ch(',')))
-                     space_token(")")
-                    ))
+            N_CHOICE(
+                    N_OPTION(INVOCATION, N_STRUCT(space_token("(")
+                                                  N_FIELD(parameters,N_SEPBY(N_REF(parser_invocation),h_ch(',')))
+                                                  space_token(")")
+                                     ))))
 N_DEFPARSER(parser_invocation,  
-            N_STRUCT(space_token("")
-                     N_FIELD(name,N_PARSER(identifier))
+            N_STRUCT(N_FIELD(name,NX_STRING(h_not_in("(),",3),h_many))
                      N_FIELD(parameters, N_OPTIONAL(N_PARSER(parser_parameters)))
                     ))
 N_DEFPARSER(scalar_rule,
             N_STRUCT(space_token("N_SCALAR")
                      space_token("(")
-                     N_FIELD(cast,N_PARSER(identifier))
+                     N_FIELD(cast,identifier)
                      space_token(",")
-                     N_FIELD(type,N_PARSER(identifier))
+                     N_FIELD(type,identifier)
                      space_token(",")
                      N_FIELD(parser,N_PARSER(parser_invocation))
                      space_token(")")
                     ))
 
+N_DEFPARSER(embed_rule,
+            N_STRUCT(space_token("N_PARSER")
+                     space_token("(")
+                     N_FIELD(name,identifier)
+                     space_token(")")))
+N_DEFPARSER(ref_rule,
+            N_STRUCT(space_token("N_REF")
+                     space_token("(")
+                     N_FIELD(name,identifier)
+                     space_token(")")))
+
 N_DEFPARSER(parserrule,
             N_CHOICE(N_OPTION(P_STRUCT, N_REF(struct_rule))
                      N_OPTION(P_ARRAY, N_REF(array_rule))
-                     N_OPTION(P_SCALAR, N_REF(scalar_rule))))
+                     N_OPTION(P_REF, N_REF(ref_rule))
+                     N_OPTION(P_EMBED, N_REF(embed_rule))
+                     N_OPTION(P_SCALAR, N_REF(scalar_rule))
+                     N_OPTION(P_OPTIONAL, N_REF(optional_rule))
+                     N_OPTION(P_CHOICE,N_REF(choice_rule))
+                     N_OPTION(P_NX_LENGTH,N_REF(nx_length_rule))))
+
+
+N_DEFPARSER(optional_rule,
+            N_STRUCT(space_token("N_OPTIONAL")
+                     space_token("(")
+                     N_FIELD(inner,N_PARSER(parserrule))))
+N_DEFPARSER(choice_option,
+            N_STRUCT(space_token("N_OPTION")
+                     space_token("(")
+                     N_FIELD(tag,identifier)
+                     space_token(",")
+                     N_FIELD(inner,N_PARSER(parserrule))
+                     space_token(")")))
+N_DEFPARSER(choice_rule,
+            N_STRUCT(space_token("N_CHOICE")
+                     space_token("(")
+                     N_FIELD(options,N_ARRAY(N_PARSER(choice_option),h_many))
+                     space_token(")")))
 N_DEFPARSER(array_rule,
             N_STRUCT(space_token("N_ARRAY")
                      space_token("(")
                      N_FIELD(contents, N_PARSER(parserrule))
                      space_token(",")
-                     N_FIELD(parser_combinator, N_PARSER(identifier))
+                     N_FIELD(parser_combinator, identifier)
                      space_token(")")))
-
+N_DEFPARSER(nx_length_rule,
+            N_STRUCT(space_token("NX_LENGTHVALUE_HACK")
+                     space_token("(")
+                     N_FIELD(lengthparser,N_PARSER(parser_invocation))
+                     space_token(",")
+                     N_FIELD(inner,N_PARSER(parserrule))))
 
 N_DEFPARSER(struct_field,
             N_STRUCT(space_token("N_FIELD")
                      space_token("(")
-                     N_FIELD(name,N_PARSER(identifier))
+                     N_FIELD(name,identifier)
                      space_token(",")
                      N_FIELD(contents,N_PARSER(parserrule))
                      space_token(")")
@@ -58,8 +97,9 @@ N_DEFPARSER(struct_field,
 N_DEFPARSER(struct_const,
             N_STRUCT(space_token("N_CONSTANT")
                      space_token("(")
-                     N_FIELD(contents,N_PARSER(parserrule))))                  
-N_DEFPARSER(struct_elems,
+                     N_FIELD(contents,N_PARSER(parser_invocation))
+                     space_token(")")))                  
+N_DEFPARSER(struct_elem,
             N_CHOICE(
                     N_OPTION(S_FIELD, N_PARSER(struct_field))
                     N_OPTION(S_CONST, N_PARSER(struct_const))))
@@ -67,23 +107,22 @@ N_DEFPARSER(struct_rule,
             N_STRUCT(
                     space_token("N_STRUCT")
                     space_token("(")
-                    N_FIELD(fields,N_ARRAY(N_PARSER(struct_elems),h_many1))
+                    N_FIELD(fields,N_ARRAY(N_PARSER(struct_elem),h_many1))
                     space_token(")")
                     ))
 
 N_DEFPARSER(parser_definition,
             N_STRUCT(space_token("N_DEFPARSER")
                      space_token("(")
-                     N_FIELD(name,N_PARSER(identifier))
+                     N_FIELD(name,identifier)
                      space_token(",")
                      N_FIELD(rule, N_PARSER(parserrule))
                      space_token(")")))
 
 
-N_DEFPARSER(grammar, N_ARRAY(N_PARSER(parser_definition),h_many))
-
- 
-
+N_DEFPARSER(grammar, N_STRUCT(
+                    N_FIELD(rules,N_ARRAY(N_PARSER(parser_definition),h_many))
+                    N_CONSTANT(h_whitespace(h_end_p()))))
 #include <nail/macros_end.h>
 
 #ifndef N_INCLUDE_DONE

@@ -17,11 +17,11 @@ HParsedToken *N_act_choice_tag(const HParseResult *p, void *user_data) {
 #define N_PARSER(name) hammer_x_## name()
 #define N_REF(name) hammer_##name()
 #define N_CHOICE(inner) h_choice(inner NULL)
-#define N_OPTION(name,inner) h_action(inner,N_act_choice_tag,(void *) name),
+#define N_OPTION(name,inner) h_action(h_name(#name,inner),N_act_choice_tag,(void *) name),
 #define N_DEFPARSER(name,inner) static HParser *hammer_x_ ## name(){      \
                 static HParser *ret=NULL;                               \
                 if(!ret){                                               \
-                        ret = h_indirect();                             \
+                        ret = h_name(#name,h_indirect());               \
                         h_bind_indirect(ret,h_name(#name,inner));       \
                 }                                                       \
                 return ret;                                             \

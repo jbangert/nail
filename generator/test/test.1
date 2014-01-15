@@ -1,16 +1,2 @@
-
-N_DEFPARSER(dns_header,
-N_STRUCT(N_FIELD(id, N_SCALAR(UINT,uint16_t,h_bits(16,false)))
-         N_FIELD(qr, N_SCALAR(UINT,bool,h_bits(1,false)))
-         N_FIELD(opcode, N_SCALAR(UINT,char,h_bits(4,false)))
-         N_FIELD(aa, N_SCALAR(UINT,bool,h_bits(1,false)))
-         N_FIELD(tc, N_SCALAR(UINT,bool,h_bits(1,false)))
-         N_FIELD(rd, N_SCALAR(UINT,bool,h_bits(1,false)))
-         N_FIELD(ra, N_SCALAR(UINT,bool,h_bits(1,false)))
-         N_FIELD(Z, N_SCALAR(UINT,char,h_bits(3,false)))
-         N_FIELD(rcode, N_SCALAR(UINT,char,h_bits(4,false)))
-         N_FIELD(question_count, N_SCALAR(UINT,size_t,h_uint16()))
-         N_FIELD(answer_count, N_SCALAR(UINT,size_t,h_uint16()))
-         N_FIELD(authority_count, N_SCALAR(UINT,size_t,h_uint16()))
-         N_FIELD(additional_count,N_SCALAR(UINT,size_t,h_uint16()))
-        ))
+N_DEFPARSER(dns_question,
+            N_STRUCT(N_FIELD(labels,NX_LENGTHVALUE_HACK(h_uint8(),N_SCALAR(UINT,char,h_uint8())),h_many1)))  

@@ -11,6 +11,9 @@
 #undef N_REF
 #undef N_SEPBY
 #define N_SEPBY(inner,seperator) N_ARRAY(inner,_COMPILE_ERROR)
+
+#undef NX_STRING
+#define NX_STRING(char,combinator) N_ARRAY(N_UINT(uint8_t,char),combinator)
 #undef NX_LENGTHVALUE_HACK
 #undef NX_HRULE
 #define NX_HRULE(name, inner)

@@ -14,7 +14,9 @@ int main()
     inputsize = fread(input, 1, sizeof(input), stdin);
     fprintf(stderr, "inputsize=%zu\ninput=", inputsize);
     fwrite(input, 1, inputsize, stderr);  
-    result =  parse_grammar(input,inputsize);
+    //  print_struct_elem(parse_struct_elem(input,inputsize),stdout,0);
+    // exit(0);
+     result =  parse_grammar(input,inputsize);
 
     if(result) {
             print_grammar(result,stdout,0);
