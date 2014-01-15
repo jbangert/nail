@@ -8,6 +8,9 @@
 #define N_OPTIONAL(inner) inner
 #define N_CHOICE(inner) inner
 #define N_OPTION(name,inner) ,name
+#define N_DISCARD(inner)
+#define N_PARSER(name)
+#define N_REF(inner)
 #define N_DEFPARSER(name,internal) ,_TT_ ## name internal
 #define NX_LENGTHVALUE_HACK(lengthp,elemp) elemp
 enum HMacroTokenType_  {

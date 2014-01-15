@@ -9,9 +9,10 @@
 #undef N_CHOICE
 #undef N_OPTION
 #undef N_REF
+#undef N_SEPBY
+#define N_SEPBY(inner,seperator) N_ARRAY(inner,_COMPILE_ERROR)
 #undef NX_LENGTHVALUE_HACK
 #undef NX_HRULE
-
 #define NX_HRULE(name, inner)
 
 #undef h_bits
