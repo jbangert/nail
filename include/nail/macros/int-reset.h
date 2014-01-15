@@ -6,8 +6,11 @@
 #undef N_OPTIONAL
 #undef N_DISCARD
 #undef N_PARSER
+#undef N_CHOICE
+#undef N_OPTION
 #undef NX_LENGTHVALUE_HACK
 #undef NX_HRULE
+
 #define NX_HRULE(name, inner)
 
 #undef h_bits

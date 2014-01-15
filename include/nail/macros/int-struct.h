@@ -8,4 +8,5 @@
 #define N_OPTIONAL(inner) inner *
 #define N_DEFPARSER(name,inner) typedef inner name;
 #define N_PARSER(name) name
-
+#define N_CHOICE(inner) struct {HTokenType N_type; union{ inner } ; }
+#define N_OPTION(name,inner) inner name;

@@ -36,6 +36,23 @@
         }                                                       \
         N__PRINTIND("]")                                           \
         }
+
+#define N_CHOICE(inner){                                                \
+        __typeof__(val) choice = val;                                   \
+        switch(choice->N_type){                                            \
+        inner                                                           \
+        default:                                                        \
+                assert("We have a bug");                                \
+                        }                                               \
+        }
+
+#define N_OPTION(name,inner)                                            \
+        case name:{                                                     \
+                __typeof__(choice->name) *val = &choice->name;          \
+                N__PRINTIND("(%s)->",#name);                            \
+                inner;                                                  \
+        }                                                               \
+        break;
 #define NX_LENGTHVALUE_HACK(lenp,elemp) N_ARRAY(elemp,h_length_value)
 #define N_OPTIONAL(inner) {                             \
         __typeof__(*val) opt = *val;                      \
@@ -51,5 +68,3 @@
 #define N__CAST(cast,x) TOKENPASTE(N__CAST_,cast)(x) 
 #define N__FMT(cast) TOKENPASTE(N__FORMAT_,cast)
 #define N_SCALAR(cast,type,parser) fprintf(out,N__FMT(cast),N__CAST(cast,*val))
-
-

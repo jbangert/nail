@@ -23,6 +23,25 @@
              inner                                     \
            }                                            \
         }
+#define N_CHOICE(inner)                                                 \
+        {                                                               \
+          __typeof__(out) choice = out;                                 \
+          const HParsedToken *choose = (const HParsedToken *)val->user;  \
+          choice->N_type = val->token_type;                             \
+           {                                                            \
+                   const HParsedToken *val= choose;                      \
+                   switch(choice->N_type){                              \
+                           inner                                        \
+                   default:                                             \
+                           assert("This parser generator has a bug.");  \
+                   }                                                    \
+           }                                                            \
+        }
+#define N_OPTION(name,inner)                                            \
+        case name:                                                      \
+        {__typeof__(choice->name) * out = &choice->name;                \
+                inner}                                                  \
+        break;
 
 #define NX_LENGTHVALUE_HACK(lengthp,elemp) N_ARRAY(elemp,h_length_value)
 
@@ -37,6 +56,7 @@
                 inner;                                                  \
                 }                                                       \
         }
+
 #define N_PARSER(name) bind_##name(p,val,out);
 #define N_DEFPARSER(name,inner)                         \
         static void bind_##name (const HParseResult *p,const HParsedToken *val, name *out) { \
@@ -46,7 +66,7 @@
                 name * out= H_ALLOC(name);                              \
                 const HParsedToken *val = p->ast;                       \
                 bind_## name(p,val,out);                                \
-                return h_make(p->arena,(HTokenType)TT_ ## name,out);    \
+                return h_make(p->arena,(HTokenType)_TT_ ## name,out);    \
         }
 
 

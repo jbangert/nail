@@ -1,3 +1,6 @@
+HParsedToken *N_act_choice_tag(const HParseResult *p, void *user_data) {
+        return h_make(p->arena,(HTokenType)user_data,p->ast); /* Wrap pointer in a thin struct*/
+}
 #define N_SCALAR(cast,type,parser) parser
 #define N_OPTIONAL(inner) h_optional(inner)
 
@@ -10,6 +13,8 @@
 #undef NX_HRULE
 #define NX_HRULE(name,inner) H_RULE(name, inner);
 #define N_PARSER(name) hammer_x_ ## name()
+#define N_CHOICE(inner) h_choice(inner NULL)
+#define N_OPTION(name,inner) h_action(inner,N_act_choice_tag,(void *) name),
 #define N_DEFPARSER(name,inner) static HParser *hammer_x_ ## name(){      \
                 static HParser *ret=NULL;                               \
                 if(!ret){                                               \
@@ -31,6 +36,7 @@
                 else                                                    \
                         return NULL;                                    \
         }
+
 
 
 
