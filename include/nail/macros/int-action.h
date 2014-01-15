@@ -58,6 +58,7 @@
         }
 
 #define N_PARSER(name) bind_##name(p,val,out);
+#define N_REF(name) out = H_CAST(name,val);
 #define N_DEFPARSER(name,inner)                         \
         static void bind_##name (const HParseResult *p,const HParsedToken *val, name *out) { \
                 inner;                                                  \

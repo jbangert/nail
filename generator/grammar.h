@@ -1,13 +1,15 @@
+#include <nail/macros.h>
+#define N_CONSTANT N_DISCARD
 #define al_num N_UNION(h_ch_range('a','z'), h_ch_range('A','Z'), h_ch_range('0','9'), h_ch('_'))
 #define space_token(x)                     \
         N_CONSTANT(h_token(x))             \
         N_CONSTANT(h_whitespace())
-#define nonparen N_ARRAY(h_not_in("()",2),h_many)
+
 
 N_DEFPARSER(balanced_paren,
-            N_ARRAY(N_CHOICE(N_OPTION(P_CHAR, h_not_in("()",2))
+            N_ARRAY(N_CHOICE(N_OPTION(P_CHAR, N_UINT(uint8_t,h_not_in("()",2)))
                      N_OPTION(P_NEST, N_STRUCT(N_CONSTANT(h_ch('('))
-                                               N_FIELD(contents,N_PARSER(balanced_paren))
+                                               N_FIELD(contents,N_REF(balanced_paren))
                                                N_CONSTANT(h_ch(')'))))),h_many))
 N_DEFPARSER(identifier, N_ARRAY(h_alnum, h_many1))
 N_DEFPARSER(parser_parameters,
@@ -62,9 +64,9 @@ N_DEFPARSER(struct_rule,
             N_STRUCT(
                     space_token("N_STRUCT")
                     space_token("(")
-                    N_FIELD(fields,N_ARRAY(N_PARSER(struct_elems,h_many1)))
+                    N_FIELD(fields,N_ARRAY(N_PARSER(struct_elems),h_many1))
                     space_token(")")
-                    )
+                    ))
 
 N_DEFPARSER(parser_definition,
 N_STRUCT(N_CONSTANT(h_whitespace)
@@ -75,8 +77,13 @@ N_STRUCT(N_CONSTANT(h_whitespace)
          N_FIELD(rule, N_PARSER(parserrule))
          space_token(")")))
 
-                    
-N_DEFPARSER(parserrule,
-            N_CHOICE)
-        )
+
+N_DEFPARSER(grammar, N_ARRAY(N_PARSER(parser_definition),h_many))
+
  
+
+#include <nail/macros_end.h>
+
+#ifndef N_INCLUDE_DONE
+#include "grammar.h"
+#endif

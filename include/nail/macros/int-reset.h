@@ -8,6 +8,7 @@
 #undef N_PARSER
 #undef N_CHOICE
 #undef N_OPTION
+#undef N_REF
 #undef NX_LENGTHVALUE_HACK
 #undef NX_HRULE
 
