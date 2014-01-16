@@ -1,7 +1,7 @@
 /* Structure definitions  */
 #define N_SCALAR(cast,type,parser) type 
 #define N_FIELD(name,inner) inner name;
-#define N_DISCARD(inner)
+#define N_CONSTANT(inner)
 #define N_ARRAY(inner,combinator) struct { inner *elem; size_t count;  } 
 #define NX_LENGTHVALUE_HACK(lengthp,elemp) N_ARRAY(elemp, h_length_value)
 #define N_STRUCT(inner) struct { inner }

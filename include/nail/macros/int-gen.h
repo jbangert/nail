@@ -54,7 +54,7 @@ static void writebits(n_outbuf *out, size_t size, void *data)
 //#define NX_LENGTHVALUE_HACK(lengthp,elemp) N_ARRAY(elemp,h_length_value)
 
 
-#define N_DISCARD(inner) inner;
+#define N_CONSTANT(inner) inner;
 #define N_SCALAR(cast,type,parser) parser val)
 #define N_OPTIONAL(inner) if(val){inner;}
 #define N_PARSER(name) write_buf_ ## name(out,val);

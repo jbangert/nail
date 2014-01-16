@@ -68,7 +68,7 @@
                 }                                       \
         }
 #define N_REF(inner) N_OPTIONAL(N_PARSER(inner))
-#define N_DISCARD(inner)
+#define N_CONSTANT(inner)
 #define N__CAST(cast,x) TOKENPASTE(N__CAST_,cast)(x) 
 #define N__FMT(cast) TOKENPASTE(N__FORMAT_,cast)
 #define N_SCALAR(cast,type,parser) fprintf(out,N__FMT(cast),N__CAST(cast,*val))

@@ -1,19 +1,25 @@
 #include <nail/macros.h>
-#define N_CONSTANT N_DISCARD
 #define al_num h_choice(h_ch_range('a','z'), h_ch_range('A','Z'), h_ch_range('0','9'), h_ch('_'), NULL)
-#define space_token(x)                          \
-        N_CONSTANT(h_whitespace(h_token(x,strlen(x))))  
-#define comma space_token(",")                     \
-        N_CONSTANT(h_whitespace(h_token("",0)))
+#define space_token(x)  N_CONSTANT(h_whitespace(h_token(x,strlen(x))))  
+#define whitespace      N_CONSTANT(h_whitespace(h_token("",0)))
+#define comma space_token(",") whitespace
+               
 #define identifier NX_STRING(al_num, h_many1)
+
+
 N_DEFPARSER(parser_parameters,
             N_STRUCT(space_token("(")
-                     N_FIELD(parameters,N_SEPBY(N_REF(parser_invocation),h_whitespace(h_ch(','))))
+                     whitespace
+                     N_FIELD(parameters,N_SEPBY(N_REF(parser_invocation),h_ch(',')))
+                     whitespace
                      space_token(")")
                                      ))
 N_DEFPARSER(parser_invocation,  
-            N_STRUCT(N_FIELD(name,NX_STRING(h_not_in("(),",3),h_many))
+            N_STRUCT(whitespace
+                     N_FIELD(name,identifier)
+                     whitespace
                      N_FIELD(parameters, N_OPTIONAL(N_PARSER(parser_parameters)))
+                     whitespace
                     ))
 N_DEFPARSER(scalar_rule,
             N_STRUCT(space_token("N_SCALAR")

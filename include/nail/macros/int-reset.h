@@ -4,7 +4,7 @@
 #undef N_SCALAR
 #undef N_DEFPARSER
 #undef N_OPTIONAL
-#undef N_DISCARD
+#undef N_CONSTANT
 #undef N_PARSER
 #undef N_CHOICE
 #undef N_OPTION

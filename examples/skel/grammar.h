@@ -3,7 +3,7 @@
 N_DEFPARSER(foo, N_STRUCT(
                     N_FIELD(elements,
                             N_ARRAY(N_PARSER(inner_struct),h_many))
-                    N_DISCARD(h_end_p())
+                    N_CONSTANT(h_end_p())
                     ))
 
 #include <nail/macros_end.h>
