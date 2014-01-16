@@ -6,7 +6,7 @@
                
 #define identifier NX_STRING(al_num, h_many1)
 
-
+                                                
 N_DEFPARSER(parser_parameters,
             N_STRUCT(space_token("(")
                      whitespace
