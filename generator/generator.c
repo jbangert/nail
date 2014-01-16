@@ -32,6 +32,8 @@ void rope_print(struct rope *r){
         printf("%.*s",r->len,r->str);
 }
 
+
+static int g_num_iters  = 0; //TODO refactor into state struct
 void write_parser(parser_invocation *p){
         printf("write_%.*s;",p->name.count,p->name.elem);
 }
@@ -62,19 +64,6 @@ void emit_STRUCT(struct_rule *rule,rope *value){
                         break;
                 }
         }
-}
-void emit_ARRAY(array_rule *array,rope *value){
-//TODO: check for many1 - emit check!. Check for other values too!
-        if(strncmp("h_many1",array->parser_combinator.elem,array->parser_combinator.count)){
-                printf("if(0==");
-                rope_print(rope_const(".count)",value));
-                printf("{return NULL;}\n");
-        }
-        printf("FOREACH(iter,");
-        rope_print(value);
-        printf("){\n");
-        emit_parserrule(&array->contents,rope_const("iter",NULL));
-        printf("}\n");
 }
 void emit_REF(ref_rule *ref,rope *value){
         printf("emit_%.*s(*(", ref->name.count, ref->name.elem);
@@ -109,13 +98,28 @@ void emit_CHOICE(choice_rule *choice,rope *value)
         printf("default: return NULL;");
         printf("}");
 } 
-void emit_NX_LENGTH(nx_length_rule *length,rope *value){
-        write_parser_bind(&length->lengthparser, rope_const(".count",value)); //Write out dummy value
-        printf("FOREACH(iter,");
+void emit_foreach(parserrule *inner,rope *value){
+        char buf[20];
+        snprintf(buf,sizeof buf,"iter%d",++g_num_iters);
+        printf("FOREACH(%s,",buf);
         rope_print(value);
         printf("){\n");
-        emit_parserrule(&length->inner,rope_const("iter",NULL));
+        emit_parserrule(inner,rope_const(buf,NULL));
         printf("}\n");
+}
+void emit_ARRAY(array_rule *array,rope *value){
+//TODO: check for many1 - emit check!. Check for other values too!
+        if(strncmp("h_many1",array->parser_combinator.elem,array->parser_combinator.count)){
+                printf("if(0==");
+                rope_print(rope_const(".count)",value));
+                printf("{return NULL;}\n");
+        }
+        emit_foreach(&array->contents,value);
+}
+void emit_NX_LENGTH(nx_length_rule *length,rope *value){
+        write_parser_bind(&length->lengthparser, rope_const(".count",value)); //Write out dummy
+                                                                              //value
+        emit_foreach(&length->inner,value);
 }
 void emit_parserrule(parserrule *rule,rope *value){
         switch(rule->N_type){
