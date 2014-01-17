@@ -31,17 +31,63 @@ void rope_print(struct rope *r){
                 rope_print(r->prev);
         printf("%.*s",r->len,r->str);
 }
+static unsigned long strntoud(unsigned siz,const char *num){
+        unsigned i=0;
+        unsigned long ret=0;
+        for(;i<siz;i++){
+                assert(num[i] >= '0' && num[i] <= '9');
+                ret= 10 * ret+ num[i] - '0';
+        }
+        return ret;
+}
 
 
-static int g_num_iters  = 0; //TODO refactor into state struct
-void write_parser(parser_invocation *p){
-        printf("write_%.*s;",p->name.count,p->name.elem);
+void write_constparser(constparser_invocation *p){
+        switch(p->N_type){
+        case CHAR:
+        {
+                printf("write_bits(8,'%.*s')\n",p_arg(p->CHAR.charcode));
+        }
+        break;
+        }
 }
-void write_parser_bind(parser_invocation *p,rope *value){
-        printf("write_%.*s(",p->name.count,p->name.elem);
-        rope_print(value);
-        printf(")\n");
+void write_parser(parser_invocation *p,rope *value){
+/*TODO*/
+        switch(p->N_type){
+        case BITS:
+        {
+                assert(value);
+                printf("write_bits(%d,",strntoud(p_arg(p->BITS.length)));
+                //TODO: print case
+                assert(strntoud(p_arg(p->BITS.sign)) == 0);
+                rope_print(value);
+                printf(");\n");
+        }                
+                break;
+        case UINT:
+        {
+                assert(value);
+                printf("write_bits(%d,",strntoud(p_arg(p->UINT.width)));
+                //TODO: check that it is 8,16,32,or 64
+                rope_print(value);
+                printf(");\n");
+        }                                
+        break;
+        case INT_RANGE:
+        {
+                assert(value); //TODO: allow INT_RANGE as constant?
+                printf("if(%ul>",strntoud(p_arg(p->INT_RANGE.lower)));
+                rope_print(value);
+                printf("|| %ul<",strntoud(p_arg(p->INT_RANGE.upper)));
+                rope_print(value);
+                printf(") {return NULL;}");
+                write_parser(p->INT_RANGE.inner,value);
+        }
+        break;
+        }
 }
+
+static int g_num_iters  = 0; 
 void emit_parserrule(parserrule *rule,rope *value);
 /*ABI: write_bits, save_bits, write_bits_at*/
 void emit_field(struct_field *field,rope *value)
@@ -50,7 +96,7 @@ void emit_field(struct_field *field,rope *value)
 } 
 void emit_const(struct_const *field)
 {
-        write_parser(&field->contents); 
+        write_constparser(&field->contents); 
 }
 void emit_STRUCT(struct_rule *rule,rope *value){
         FOREACH(struct_elem,rule->fields)
@@ -73,10 +119,10 @@ void emit_REF(ref_rule *ref,rope *value){
 void emit_EMBED(embed_rule *embed,rope *value){
         printf("emit_%.*s(", embed->name.count, embed->name.elem);
         rope_print(value);
-        printf(");");                
+        printf(");");
 }
 void emit_SCALAR(scalar_rule *scalar,rope *value){
-        write_parser_bind(&scalar->parser,value);
+        write_parser(&scalar->parser,value);
 }
 void emit_OPTIONAL(optional_rule *optional,rope *value)
 {
@@ -117,7 +163,7 @@ void emit_ARRAY(array_rule *array,rope *value){
         emit_foreach(&array->contents,value);
 }
 void emit_NX_LENGTH(nx_length_rule *length,rope *value){
-        write_parser_bind(&length->lengthparser, rope_const(".count",value)); //Write out dummy
+        write_parser(&length->lengthparser, rope_const(".count",value)); //Write out dummy
                                                                               //value
         emit_foreach(&length->inner,value);
 }
@@ -139,6 +185,7 @@ void emit_parserrule(parserrule *rule,rope *value){
                             assert("boom");
   }
 }
+
 int main()
 {
       

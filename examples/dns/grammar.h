@@ -21,7 +21,7 @@ N_STRUCT(N_FIELD(id,     N_UINT(uint16_t,h_bits(16,false)))
 N_DEFPARSER(dns_question,
             N_STRUCT(N_FIELD(labels,N_ARRAY(
                                      NX_LENGTHVALUE_HACK(h_int_range(h_uint8(),1,255),N_UINT(char,h_uint8())),h_many1))
-                     N_CONSTANT(h_ch(0))
+                     N_CONSTANT(h_ch('\x00'))
                      N_FIELD(qtype,N_UINT(int, h_choice( h_int_range(h_uint16(), 1, 16), h_int_range(h_uint16(), 252, 255), NULL)))
                      N_FIELD(qclass,N_UINT(int, h_choice(h_int_range(h_uint16(), 1, 4),h_int_range(h_uint16(), 255, 255), NULL)))))
 
