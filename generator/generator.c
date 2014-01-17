@@ -46,7 +46,7 @@ void write_constparser(constparser_invocation *p){
         switch(p->N_type){
         case CHAR:
         {
-                printf("write_bits(8,'%.*s')\n",p_arg(p->CHAR.charcode));
+                printf("write_bits(8,'%.*s');\n",p_arg(p->CHAR.charcode));
         }
         break;
         }
