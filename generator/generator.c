@@ -207,7 +207,7 @@ FILE *infile(int argc,char **argv){
                 fprintf(stderr,"Usage %s <grammar file>\n", argv[0]);
                 exit(-2);
         }
-        snprintf(commandbuffer,sizeof commandbuffer,"cpp -Iinclude -I../include/ < \"%s\" |sed '/^\\#/d'",argv[1]);
+        snprintf(commandbuffer,sizeof commandbuffer,"cpp -I/usr/include/nail/generator < \"%s\" |sed '/^\\#/d'",argv[1]);
         infile = popen(commandbuffer,"r");
     if(!infile){
             fprintf(stderr, "Cannot open pipe\n");
