@@ -1,6 +1,6 @@
 
 
-
+#include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include "generator.h"
@@ -127,12 +127,12 @@ void emit_STRUCT(struct_rule *rule,rope *value){
         }
 }
 void emit_REF(ref_rule *ref,rope *value){
-        printf("if(!gen_%.*s(*(", ref->name.count, ref->name.elem);
+        printf("if(!gen_%.*s(out,*(", ref->name.count, ref->name.elem);
         rope_print(value);
         printf("))){ return NULL;}\n");        
 }
 void emit_EMBED(embed_rule *embed,rope *value){
-        printf("if(!gen_%.*s(", embed->name.count, embed->name.elem);
+        printf("if(!gen_%.*s(out,", embed->name.count, embed->name.elem);
         rope_print(value);
         printf(")){return NULL;}\n");
 }
@@ -187,7 +187,7 @@ void emit_parserrule(parserrule *rule,rope *value){
 #define gen(x) case P_ ## x:                        \
                 emit_## x (rule->P_##x,value);      \
                         break;
-
+                
                             gen(STRUCT);
                             gen(ARRAY);
                             gen(REF);
@@ -200,24 +200,40 @@ void emit_parserrule(parserrule *rule,rope *value){
                             assert("boom");
   }
 }
-
-int main()
+FILE *infile(int argc,char **argv){
+        char commandbuffer[1024];
+        FILE *infile;
+        if(argc<2){
+                fprintf(stderr,"Usage %s <grammar file>\n", argv[0]);
+                exit(-2);
+        }
+        snprintf(commandbuffer,sizeof commandbuffer,"cpp -Iinclude -I../include/ < \"%s\" |sed '/^\\#/d'",argv[1]);
+        infile = popen(commandbuffer,"r");
+    if(!infile){
+            fprintf(stderr, "Cannot open pipe\n");
+            exit(-1);
+    }
+    return infile;
+}
+int main(int argc, char**argv)
 {
-      
     uint8_t input[102400];
     size_t inputsize;
     size_t outputsize;
     char *out;
     const struct grammar *result;
-    inputsize = fread(input, 1, sizeof(input), stdin);
+    inputsize = fread(input, 1, sizeof(input), infile(argc,argv));
     //fprintf(stderr, "inputsize=%zu\ninput=", inputsize);
     //fwrite(input, 1, inputsize, stderr);  
     // print_parser_invocation(parse_parser_invocation(input,inputsize),stdout,0);
     // exit(0);
      result =  parse_grammar(input,inputsize);
-    if(result) {
+     if(result) {
+             printf("#include <hammer/hammer.h>\n");
+             printf("#include \"%s\"\n",argv[1]);
+             printf("#define write_bits(size,val) h_bit_writer_put(out,val,size)");
             FOREACH(definition,result->rules){
-                    printf("char * gen_%.*s(%.*s *val){\n",definition->name.count,definition->name.elem,definition->name.count,definition->name.elem);
+                    printf("char * gen_%.*s(HBitWriter* out,%.*s *val){\n",definition->name.count,definition->name.elem,definition->name.count,definition->name.elem);
                     emit_parserrule(&definition->rule,rope_const("val",NULL));
                     printf("}\n");                    
             }
