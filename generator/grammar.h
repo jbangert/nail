@@ -19,6 +19,7 @@ N_DEFPARSER(parser_invocation,
         N_OPTION(INT_RANGE,N_STRUCT(
                 tok("h_int_range") tok("(") 
                 N_FIELD(inner,N_REF(parser_invocation)) comma N_FIELD(lower,number) comma N_FIELD(upper,number) tok(")")))
+        N_OPTION(CHOICE,N_STRUCT(tok("h_choice") tok("(") N_FIELD(invocations,N_SEPBY(N_REF(parser_invocation),h_ch(','))) comma tok("NULL")tok(")") ))
         ))
 
 N_DEFPARSER(scalar_rule,

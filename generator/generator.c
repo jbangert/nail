@@ -51,12 +51,15 @@ void write_constparser(constparser_invocation *p){
         break;
         }
 }
+void write_parser_inner(parser_invocation *p,rope *value,int graceful_error);
 void write_parser(parser_invocation *p,rope *value){
+        write_parser_inner(p,value,0);
+}
+void write_parser_inner(parser_invocation *p,rope *value,int graceful_error){
 /*TODO*/
         switch(p->N_type){
         case BITS:
         {
-                assert(value);
                 printf("write_bits(%d,",strntoud(p_arg(p->BITS.length)));
                 //TODO: print case
                 assert(strntoud(p_arg(p->BITS.sign)) == 0);
@@ -66,7 +69,6 @@ void write_parser(parser_invocation *p,rope *value){
                 break;
         case UINT:
         {
-                assert(value);
                 printf("write_bits(%d,",strntoud(p_arg(p->UINT.width)));
                 //TODO: check that it is 8,16,32,or 64
                 rope_print(value);
@@ -75,15 +77,28 @@ void write_parser(parser_invocation *p,rope *value){
         break;
         case INT_RANGE:
         {
-                assert(value); //TODO: allow INT_RANGE as constant?
-                printf("if(%ul>",strntoud(p_arg(p->INT_RANGE.lower)));
+                printf("if(%lu<",strntoud(p_arg(p->INT_RANGE.lower)));
                 rope_print(value);
-                printf("|| %ul<",strntoud(p_arg(p->INT_RANGE.upper)));
+                printf("&&  %lu>",strntoud(p_arg(p->INT_RANGE.upper)));
                 rope_print(value);
-                printf(") {return NULL;}");
+                printf("){");
                 write_parser(p->INT_RANGE.inner,value);
+                printf("} else \n");
+                if(!graceful_error)
+                        printf("{return NULL;}\n");
         }
         break;
+        case CHOICE:
+        {
+                FOREACH(parser,p->CHOICE.invocations){
+                        write_parser_inner(*parser,value,1);
+                }
+                printf("{return NULL;}");
+        }
+        break;
+        default:
+                assert(1);
+        
         }
 }
 
@@ -112,14 +127,14 @@ void emit_STRUCT(struct_rule *rule,rope *value){
         }
 }
 void emit_REF(ref_rule *ref,rope *value){
-        printf("emit_%.*s(*(", ref->name.count, ref->name.elem);
+        printf("if(!gen_%.*s(*(", ref->name.count, ref->name.elem);
         rope_print(value);
-        printf("));");        
+        printf("))){ return NULL;}\n");        
 }
 void emit_EMBED(embed_rule *embed,rope *value){
-        printf("emit_%.*s(", embed->name.count, embed->name.elem);
+        printf("if(!gen_%.*s(", embed->name.count, embed->name.elem);
         rope_print(value);
-        printf(");");
+        printf(")){return NULL;}\n");
 }
 void emit_SCALAR(scalar_rule *scalar,rope *value){
         write_parser(&scalar->parser,value);
