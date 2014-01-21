@@ -11,7 +11,7 @@
 
 N_DEFPARSER(constparser_invocation,
     N_CHOICE( N_OPTION(CHAR,N_STRUCT(tok("h_ch") tok("(") tok("'") N_FIELD(charcode,NX_STRING(h_not_in("'",1),h_many)) N_CONSTANT(h_ch('\''))  tok(")") ))
-                ))
+              N_OPTION(ENDP,N_STRUCT(tok("h_end_p") tok("(") tok(")")))))
 N_DEFPARSER(parser_invocation,  
     N_CHOICE(
         N_OPTION(BITS,N_STRUCT(tok("h_bits") tok("(")  N_FIELD(length,number) comma  N_FIELD(sign,number) tok(")"))) //t/f  
