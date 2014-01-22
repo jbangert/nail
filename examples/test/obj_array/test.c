@@ -3,6 +3,15 @@
 
 #define N_MACRO_IMPLEMENT
 #include "grammar.h"
+typedef struct bit_writer{
+        int index,size;
+        int endian_flip;
+        int bit_pos;
+        char *data;        
+} bit_writer;
+int write_bits(struct bit_writer ){
+
+}
 int main()
 {
       

@@ -6,102 +6,106 @@
 #include "server.h"
 #define N_MACRO_IMPLEMENT
 #include "grammar.h"
+extern HAllocator system_allocator;
+#define narray_alloc(arr, aren, cnt) arr.count = cnt; arr.elem= h_arena_malloc(aren,cnt * sizeof(arr.elem[0]))
+#define narray_string(arr,string) arr.count = strlen(string); arr.elem = string;
 
+///
+// Main Program for a Dummy DNS Server, from hammer/example
+///
+
+int start_listening() {
+  // return: fd
+  int sock;
+  struct sockaddr_in addr;
+
+  sock = socket(PF_INET, SOCK_DGRAM, 0);
+  if (sock < 0)
+    err(1, "Failed to open listning socket");
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(53);
+  addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  int optval = 1;
+  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+  if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) < 0)
+    err(1, "Bind failed");
+  return sock;
+}
+char *dns_respond(size_t *len,struct dns_message *query)
+{
+        HArena *arena = h_new_arena(&system_allocator,0);
+        HBitWriter *writer = h_bit_writer_new(&system_allocator);
+        dns_message *response = h_arena_malloc(arena,sizeof(*response));
+        char *retval;
+        int i;
+        response->header.id = query->header.id;
+        response->header.qr = 1;
+        response->header.rd = query->header.rd;
+        response->header.aa = 1;
+        response->header.ra = 0; /* We don't do recursion*/
+        response->header.question_count = query->questions.count;
+        response->header.answer_count = query->questions.count; 
+        response->questions  = query->questions;
+        // We respond CNAME spargelze.it to everyone 
+        narray_alloc(response->rr,arena,query->questions.count);
+        for(i=0;i<query->questions.count;i++){
+                dns_question *q =  &response->questions.elem[i];
+                dns_response *rr = &response->rr.elem[i];
+                rr->labels = q->labels;
+                rr->rtype = 5; //DNS
+                rr->class = 255; //ANY 
+                rr->ttl = 60;
+                {
+                        /* dirty parser nesting. TODO: upgrade grammar*/
+                        dns_labels labels;
+                        HBitWriter *label_buffer = h_bit_writer_new(&system_allocator);
+                        size_t count;
+                        narray_alloc(labels,arena,2);
+                        narray_string(labels.elem[0],"spargelze");
+                        narray_string(labels.elem[1],"it");
+                        assert(gen_dns_labels(label_buffer,&labels));
+                        h_bit_writer_put(label_buffer,0,8);
+                        rr->rdata.elem = h_bit_writer_get_buffer(label_buffer, &count);
+                        rr->rdata.count = count;
+                }
+
+        }
+        if(!gen_dns_message(writer,response))
+                return NULL;
+        return h_bit_writer_get_buffer(writer,len);
+}
 int main(int argc, char** argv) {
-    
-  // set up a listening socket...
-        // int sock = start_listening();
+        
+  int sock = start_listening();
 
   uint8_t packet[8192]; // static buffer for simplicity
   ssize_t packet_size;
   struct sockaddr_in remote;
   socklen_t remote_len;
-
-  while(1){
-          if(feof(stdin))
-                  break;
-          packet_size = fread(packet, 1, sizeof(packet), stdin);
+  while (1) {
+          struct dns_message *message;
+          char *response;
+          size_t len;
+          remote_len = sizeof(remote);
+          packet_size = recvfrom(sock, packet, sizeof(packet), 0, (struct sockaddr*)&remote, &remote_len);
+          // dump the packet...
+          /* for (int i = 0; i < packet_size; i++)
+             printf(".%02hhx", packet[i]);
+             
+             printf("\n");*/
           
-          const struct dns_message *message = parse_dns_message(packet, packet_size);
+          message = parse_dns_message(packet, packet_size);
           if (!message) {
                   printf("Invalid packet; ignoring\n");
                   continue;
           }
-          printf("Parsed\n");
-
           print_dns_message(message,stderr,0);
-  }
+          response = dns_respond(&len,message );
+          assert(response);
+          sendto(sock, response, len, 0, (struct sockaddr*)&remote, remote_len);
+
 }
-#if 0
-
-  while (1) {
-    remote_len = sizeof(remote);
-     packet_size = recvfrom(sock, packet, sizeof(packet), 0, (struct sockaddr*)&remote, &remote_len);
-    // dump the packet...
-    for (int i = 0; i < packet_size; i++)
-      printf(".%02hhx", packet[i]);
-    
-    printf("\n");
-
-    const struct dns_domain *message = parse_domain(packet, packet_size);
-    if (!message) {
-      printf("Invalid packet; ignoring\n");
-      continue;
-    }
-    printf("Parsed");
-    (void)message;
-    for (size_t i = 0; i < message->header.question_count; i++) {
-      struct dns_question *question = &message->questions[i];
-      printf("Recieved %s %s request for ", CLASS_STR[question->qclass], TYPE_STR[question->qtype]);
-      for (size_t j = 0; j < question->qname.qlen; j++)
-	printf("%s.", question->qname.labels[j].label);
-      printf("\n");
-      
-    }
-    printf("%p\n", content);
-
-
-
-
-    
-    // Not much time to actually implement the DNS server for the talk, so here's something quick and dirty. 
-    // Traditional response for this time of year...
-    uint8_t response_buf[4096];
-    uint8_t *rp = response_buf;
-    // write out header...
-    *rp++ = message->header.id >> 8;
-    *rp++ = message->header.id & 0xff;
-    *rp++ = 0x80 | (message->header.opcode << 3) | message->header.rd;
-    *rp++ = 0x0; // change to 0 for no error...
-    *rp++ = 0; *rp++ = 1; // QDCOUNT
-    *rp++ = 0; *rp++ = 1; // ANCOUNT
-    *rp++ = 0; *rp++ = 0; // NSCOUNT
-    *rp++ = 0; *rp++ = 0; // ARCOUNT
-    // encode the first question...
-    {
-      struct dns_question *question = &message->questions[0];
-      format_qname(&question->qname, &rp);
-      *rp++ = (question->qtype >> 8) & 0xff;
-      *rp++ = (question->qtype     ) & 0xff;
-      *rp++ = (question->qclass >> 8) & 0xff;
-      *rp++ = (question->qclass     ) & 0xff;
-
-      // it's a cname...
-      format_qname(&question->qname, &rp);
-      *rp++ = 0; *rp++ = 5;
-      *rp++ = (question->qclass >> 8) & 0xff;
-      *rp++ = (question->qclass     ) & 0xff;
-      *rp++ = 0; *rp++ = 0; *rp++ = 0; *rp++ = 0; // TTL.
-      //const char cname_rd[14] = "\x09spargelze\x02it";
-      *rp++ = 0; *rp++ = 14;
-      memcpy(rp, "\x09spargelze\x02it", 14);
-      rp += 14;
-    }
-    // send response.
-    sendto(sock, response_buf, (rp - response_buf), 0, (struct sockaddr*)&remote, remote_len);
-
-  }
-  return 0;
+return 0;
 }
-#endif
+
 
