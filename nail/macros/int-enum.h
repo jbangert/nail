@@ -5,6 +5,7 @@
 #define N_SCALAR(cast,type,parser) 
 #define N_ARRAY(inner,combinator) inner
 #define N_STRUCT(inner)  inner
+#define N_WRAP(before,inner,after) inner
 #define N_OPTIONAL(inner) inner
 #define N_CHOICE(inner) inner
 #define N_OPTION(name,inner) ,name

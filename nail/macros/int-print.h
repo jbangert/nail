@@ -18,6 +18,9 @@
         indent--;                               \
         N__PRINTIND("}");                             \
         }
+#define N_WRAP(before,inner,after) {            \
+                inner;                          \
+        }
 #define N_FIELD(name,inner) {                   \
         typeof(str->name) *val = &str->name;    \
         N__PRINTIND("\"%s\":",#name);            \

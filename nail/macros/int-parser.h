@@ -5,6 +5,7 @@ HParsedToken *N_act_choice_tag(const HParseResult *p, void *user_data) {
 #define N_OPTIONAL(inner) h_optional(inner)
 
 #define N_STRUCT(inner) h_sequence(inner NULL)
+#define N_WRAP(before,inner,after) h_sequence(before inner,  after NULL)
 #define N_CONSTANT(inner) inner,
 #define N_FIELD(name,inner) h_name(#name, inner ),
 

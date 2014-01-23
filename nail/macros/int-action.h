@@ -7,6 +7,7 @@
                 HParsedToken **fields = h_seq_elements(val);    \
                 inner                                                 \
         }
+#define N_WRAP(before,inner,after) N_STRUCT(before inner after)
 
 
 #define  N_ARRAY(inner,combinator)                                         \

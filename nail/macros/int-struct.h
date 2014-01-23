@@ -11,3 +11,4 @@
 #define N_REF(name) struct name *
 #define N_CHOICE(inner) struct {HTokenType N_type; union{ inner } ; }
 #define N_OPTION(name,inner) inner name;
+#define N_WRAP(before,inner,after) inner
