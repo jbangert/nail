@@ -46,7 +46,8 @@ N_DEFPARSER(parserrule,
         N_OPTION(P_SCALAR, N_REF(scalar_rule))
         N_OPTION(P_OPTIONAL, N_REF(optional_rule))
         N_OPTION(P_CHOICE,N_REF(choice_rule))
-        N_OPTION(P_NX_LENGTH,N_REF(nx_length_rule))))
+        N_OPTION(P_NX_LENGTH,N_REF(nx_length_rule))
+        N_OPTION(P_WRAP,N_REF(wrap_rule))))
 
 
 N_DEFPARSER(optional_rule,
@@ -102,8 +103,18 @@ N_DEFPARSER(struct_rule,
         tok("(")
         N_FIELD(fields,N_ARRAY(N_PARSER(struct_elem),h_many1))
         tok(")")
-        ))
-
+    ))
+N_DEFPARSER(wrap_rule,
+            N_STRUCT(
+                tok("N_WRAP")
+                tok("(")
+                N_FIELD(before,N_ARRAY(N_PARSER(struct_const),h_many))
+                tok(",")
+                N_FIELD(inner,N_PARSER(parserrule))
+                tok(",")
+                N_FIELD(after,N_ARRAY(N_PARSER(struct_const),h_many))
+                tok(")")
+            ))
 N_DEFPARSER(parser_definition,
     N_STRUCT(tok("N_DEFPARSER")
         tok("(")

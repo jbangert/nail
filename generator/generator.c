@@ -211,6 +211,17 @@ void emit_NX_LENGTH(nx_length_rule *length,expr *value){
                                                                               //value
         emit_foreach(&length->inner,value);
 }
+void emit_WRAP(wrap_rule *rule,expr *value){
+        FOREACH(cnst, rule->before){
+                emit_const(cnst);
+        }
+        emit_parserrule(&rule->inner,value);
+        FOREACH(cnst, rule->after){
+                emit_const(cnst);
+        }
+        
+
+}
 void emit_parserrule(parserrule *rule,expr *value){
         switch(rule->N_type){
 #define gen(x) case P_ ## x:                        \
@@ -225,6 +236,7 @@ void emit_parserrule(parserrule *rule,expr *value){
                             gen(OPTIONAL);
                             gen(CHOICE);
                             gen(NX_LENGTH);
+                            gen(WRAP);
                     default:
                             assert("boom");
   }
