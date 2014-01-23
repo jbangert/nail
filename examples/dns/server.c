@@ -64,7 +64,6 @@ char *dns_respond(size_t *len,struct dns_message *query)
                         narray_string(labels.elem[0],"spargelze");
                         narray_string(labels.elem[1],"it");
                         assert(gen_dns_labels(label_buffer,&labels));
-                        h_bit_writer_put(label_buffer,0,8);
                         rr->rdata.elem = h_bit_writer_get_buffer(label_buffer, &count);
                         rr->rdata.count = count;
                 }
