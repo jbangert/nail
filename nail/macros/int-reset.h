@@ -10,8 +10,10 @@
 #undef N_OPTION
 #undef N_REF
 #undef N_SEPBY
-#undef N_WRAP
 #define N_SEPBY(inner,seperator) N_ARRAY(inner,_COMPILE_ERROR)
+#undef N_WRAP
+
+
 
 #undef NX_STRING
 #define NX_STRING(char,combinator) N_ARRAY(N_UINT(uint8_t,char),combinator)

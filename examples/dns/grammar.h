@@ -29,7 +29,7 @@ N_DEFPARSER(dns_question,
 N_DEFPARSER(dns_response,
             N_STRUCT(N_FIELD(labels,N_PARSER(dns_labels))
                      N_FIELD(rtype,N_UINT(uint16_t,h_int_range(h_uint16(),1,16)))
-                     N_FIELD(class,N_UINT(uint16_t,h_int_range(h_uint16(),255,255)))
+                     N_FIELD(class,N_UINT(uint16_t,h_int_range(h_uint16(),1,255)))
                      N_FIELD(ttl,N_UINT(uint32_t,h_uint32()))
                      N_FIELD(rdata,NX_LENGTHVALUE_HACK(h_uint16(),N_UINT(char,h_uint8())))))
 N_DEFPARSER(dns_message,
