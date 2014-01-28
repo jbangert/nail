@@ -127,6 +127,8 @@ N_DEFPARSER(parser_definition,
 N_DEFPARSER(grammar, N_STRUCT(
         N_FIELD(rules,N_ARRAY(N_PARSER(parser_definition),h_many))
         N_CONSTANT(h_whitespace(h_end_p()))))
+
+            
 #include <nail/macros_end.h>
 
 #ifndef N_INCLUDE_DONE

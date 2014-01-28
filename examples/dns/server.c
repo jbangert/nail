@@ -4,8 +4,10 @@
 #include <string.h>
 #include <hammer/hammer.h>
 #include "server.h"
+
 #define N_MACRO_IMPLEMENT
 #include "grammar.h"
+#include "zonefile.h"
 extern HAllocator system_allocator;
 #define narray_alloc(arr, aren, cnt) arr.count = cnt; arr.elem= h_arena_malloc(aren,cnt * sizeof(arr.elem[0]))
 #define narray_string(arr,string) arr.count = strlen(string); arr.elem = string;
