@@ -7,7 +7,7 @@
 
 #define N_MACRO_IMPLEMENT
 #include "grammar.h"
-#include "zonefile.h"
+
 extern HAllocator system_allocator;
 #define narray_alloc(arr, aren, cnt) arr.count = cnt; arr.elem= h_arena_malloc(aren,cnt * sizeof(arr.elem[0]))
 #define narray_string(arr,string) arr.count = strlen(string); arr.elem = string;
@@ -33,7 +33,7 @@ int start_listening() {
     err(1, "Bind failed");
   return sock;
 }
-char *dns_respond(size_t *len,struct dns_message *query)
+const char *dns_respond(size_t *len,struct dns_message *query)
 {
         HArena *arena = h_new_arena(&system_allocator,0);
         HBitWriter *writer = h_bit_writer_new(&system_allocator);
@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
   socklen_t remote_len;
   while (1) {
           struct dns_message *message;
-          char *response;
+          const char *response;
           size_t len;
           remote_len = sizeof(remote);
           packet_size = recvfrom(sock, packet, sizeof(packet), 0, (struct sockaddr*)&remote, &remote_len);

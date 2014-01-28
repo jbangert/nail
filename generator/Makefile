@@ -1,5 +1,5 @@
 all: nail
-nail: main.o grammar.o mk_gen.o
+nail: main.o grammar.o mk_gen.o mk_parser.o
 	cc $(CFLAGS) -o $@ $^
 foo.c: mk_parser.c *.h ../nail/macros/*.h 
 	cpp $(CFLAGS) $< |sed '/^\#/d' > foo.c && astyle foo.c
