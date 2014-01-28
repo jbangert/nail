@@ -1,0 +1,42 @@
+#include <hammer/hammer.h>
+#include "grammar.h"
+#define write_bits(size,val) h_bit_writer_put(out,val,size)char * gen_dns_header(HBitWriter* out,dns_header *val){
+write_bits(16,val->id);
+write_bits(1,val->qr);
+write_bits(4,val->opcode);
+write_bits(1,val->aa);
+write_bits(1,val->tc);
+write_bits(1,val->rd);
+write_bits(1,val->ra);
+write_bits(3,val->Z);
+write_bits(4,val->rcode);
+write_bits(16,val->question_count);
+write_bits(16,val->answer_count);
+write_bits(16,val->authority_count);
+write_bits(16,val->additional_count);
+}
+char * gen_dns_question(HBitWriter* out,dns_question *val){
+        FOREACH(iter1,val->labels){
+                if(1<iter1.count&&  255>iter1.count){write_bits(8,iter1.count);
+                } else 
+                {return NULL;}
+                FOREACH(iter2,iter1){
+                        write_bits(8,iter2);
+                }
+        }
+        write_bits(8,'\x00');
+        if(1<val->qtype&&  16>val->qtype){write_bits(16,val->qtype);
+        } else 
+                if(252<val->qtype&&  255>val->qtype){write_bits(16,val->qtype);
+                } else 
+                {return NULL;}if(1<val->qclass&&  4>val->qclass){write_bits(16,val->qclass);
+        } else 
+                if(255<val->qclass&&  255>val->qclass){write_bits(16,val->qclass);
+                } else 
+                {return NULL;}}
+char * gen_dns_message(HBitWriter* out,dns_message *val){
+        if(!gen_dns_header(out,val->header)){return NULL;}
+        FOREACH(iter3,val->questions){
+                if(!gen_dns_question(out,iter3)){return NULL;}
+        }
+}
