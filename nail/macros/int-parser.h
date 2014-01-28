@@ -34,10 +34,10 @@ HParsedToken *N_act_choice_tag(const HParseResult *p, void *user_data) {
                 }                                                       \
                 return ret;                                             \
         }                                                               \
-        const  name * parse_## name(const uint8_t* input, size_t length){ \
+        name * parse_## name(const uint8_t* input, size_t length){ \
                 HParseResult * ret = h_parse_error(hammer_ ## name (), input,length,stderr); \
                 if(ret && ret->ast)                                     \
-                        return (const  name *)(ret->ast->user);         \
+                        return ( name *)(ret->ast->user);         \
                 else                                                    \
                         return NULL;                                    \
         }

@@ -8,9 +8,10 @@
 extern "C"{
 #include <hammer/hammer.h>
 #include <hammer/glue.h>
-}
 
 #include "grammar.h"
+}
+
 typedef struct expr{
         struct expr *parent;
         const char *str;
@@ -19,5 +20,5 @@ typedef struct expr{
 } expr;
 
 #define FOREACH(val,coll) for(__typeof__((coll).elem[0]) *val=(coll).elem;val<(coll).elem + (coll).count;val++)
-extern void emit_generator(std::ostream *out,grammar *grammar, const char *header)
+extern void emit_generator(std::ostream *out,grammar *grammar, const char *header);
 #endif

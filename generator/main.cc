@@ -1,5 +1,6 @@
 #include "nailtool.h"
-
+#include <cstdio>
+#include <fstream>
 #define error(...) {fprintf(stderr,__VA_ARGS__); exit(-1);}
 FILE *infile(int argc,char **argv){
         char commandbuffer[1024];
@@ -19,7 +20,7 @@ int main(int argc, char**argv)
     size_t inputsize;
     size_t outputsize;
     char *out;
-    const struct grammar *result;
+    struct grammar *result;
     inputsize = fread(input, 1, sizeof(input), infile(argc,argv));
     //fprintf(stderr, "inputsize=%zu\ninput=", inputsize);
     //fwrite(input, 1, inputsize, stderr);  
@@ -27,31 +28,32 @@ int main(int argc, char**argv)
     // exit(0);
      result =  parse_grammar(input,inputsize);
      if(result) {
-       std::ostream *outfile = NULL;
-             int i =0;
-             for(i=2;i<argc;i++){
-                     if(argv[i][0] != '-'){
-                             if(outfile)
-                               delete outfile;
-                             outfile = new std::ofstream(argv[i]);
-                             if(!outfile || !outfile->is_open())
-                                     error("Cannot open output file %s\n",argv[i]);
-                             continue;
-                     }
-                     else if(!strcmp(argv[i],"-header"))
-                     {
-                             error("Not implemented");
-                             //emit_header(outfile,result);
-                     }
-                     else if(!strcmp(argv[i],"-parser_hammer"))
-                             emit_hammer_parser(*outfile,result,argv[1]);
-                     else if(!strcmp(argv[i],"-generator"))
-                             emit_generator(*outfile,result,argv[1]);
-                     else
-                             error("Unknown command line option %s",argv[i]);
-             }
-             return 0;
+       std::ofstream *outfile = NULL;
+       int i =0;
+       for(i=2;i<argc;i++){
+         if(argv[i][0] != '-'){
+           if(outfile)
+             delete outfile;
+           outfile = new std::ofstream(argv[i]);
+           if(!outfile || !outfile->is_open())
+             error("Cannot open output file %s\n",argv[i]);
+           continue;
+         }
+         else if(!strcmp(argv[i],"-header"))
+           {
+             error("Not implemented");
+             //emit_header(outfile,result);
+           }
+         else if(!strcmp(argv[i],"-parser_hammer")){
+           // emit_hammer_parser(*outfile,result,argv[1]);
+         }
+         else if(!strcmp(argv[i],"-generator"))
+           emit_generator(outfile,result,argv[1]);
+         else
+           error("Unknown command line option %s",argv[i]);
+       }
+       return 0;
      } else {
-             return 1;
+       return 1;
      }
 }
