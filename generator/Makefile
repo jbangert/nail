@@ -1,7 +1,8 @@
 all: nail
-nail: main.o grammar.o mk_gen.o
+nail: main.o foo.o mk_gen.o
 	g++ $(CFLAGS) -o $@ $^
-foo.c: mk_parser.c *.h ../nail/macros/*.h 
-	cpp $(CFLAGS) $< |sed '/^\#/d' > foo.c && astyle foo.c
-
-CFLAGS+= -I../ -lhammer -ggdb -std=gnu99
+foo.c: grammar.c *.h ../nail/macros/*.h 
+	cpp $(CFLAGS) $< |sed '/^\#/d' > $@ && astyle $@
+clean: 
+	rm *.o *.orig
+CFLAGS+= -I../ -lhammer -ggdb

@@ -1,7 +1,7 @@
 server: foo.c generator.c
 	cc $(CFLAGS) -o $@ $^
 foo.c: server.c *.h ../../nail/*.h
-	cpp $(CFLAGS) server.c |sed '/^\#/d' > foo.c && astyle foo.c
+	cpp $(CFLAGS) server.c |sed '/^\#/d' > $@ && astyle $@ && rm $@.orig
 generator.c : dns_packet.h	
 	../../generator/generator $< > $@ && astyle $@
 

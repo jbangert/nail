@@ -4,7 +4,7 @@
 struct Expr{
 public:
   virtual int is_ptr() const = 0;
-  virtual void make_ptr();
+  virtual void make_ptr() = 0;
   virtual void print_val(std::ostream &str) const = 0;
   virtual void print_ptr(std::ostream &str) const = 0;
   friend std::ostream & operator<<(std::ostream &stream, const Expr &expr){
