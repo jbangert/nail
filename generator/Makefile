@@ -4,5 +4,6 @@ nail: main.o foo.o mk_gen.o
 foo.c: grammar.c *.h ../nail/macros/*.h 
 	cpp $(CFLAGS) $< |sed '/^\#/d' > $@ && astyle $@
 clean: 
-	rm *.o *.orig
+	rm *.o nail
 CFLAGS+= -I../ -lhammer -ggdb
+CXXFLAGS=$(CFLAGS)

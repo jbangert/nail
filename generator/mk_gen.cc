@@ -1,6 +1,5 @@
 #include "nailtool.h"
 
-#define p_format "%.*s"
 #define p_arg(x) x.count,(const char*)x.elem
 
 #define str(x) std::string((const char *)x.elem,x.count)
@@ -44,7 +43,7 @@ void GenGenerator::write_constparser(constparser_invocation *p){
         switch(p->N_type){
         case CHAR:
         {
-          out<< "write_bits(8,'" << str(p->CHAR.charcode) << ");\n";
+          out<< "write_bits(8,'" << str(p->CHAR.charcode) << "');\n";
         }
         break;
         case ENDP:
@@ -62,15 +61,15 @@ void GenGenerator::write_parser_inner(parser_invocation *p,Expr &value,int grace
         switch(p->N_type){
         case BITS:
           assert(strntoud(p_arg(p->BITS.sign)) == 0);
-          out << "write_bits(" << strntoud(p_arg(p->BITS.length)) << value << ");\n";
+          out << "write_bits(" << strntoud(p_arg(p->BITS.length)) << ","<< value << ");\n";
           break;
         case UINT:
   //TODO: check that it is 8,16,32,or 64
-          out << "write_bits("<< strntoud(p_arg(p->UINT.width)) << value  <<");\n";
+          out << "write_bits("<< strntoud(p_arg(p->UINT.width)) << ","<<  value  <<");\n";
           break;
         case INT_RANGE:
           out<< "if(" << strntoud(p_arg(p->INT_RANGE.lower))<< "<= "<< value ;
-          out << "&& " << value << strntoud(p_arg(p->INT_RANGE.upper)) << "){";
+          out << "&& " << value << "<=" << strntoud(p_arg(p->INT_RANGE.upper)) << "){";
           write_parser(p->INT_RANGE.inner,value);
           out << "} else \n";
           if(!graceful_error)
@@ -115,7 +114,7 @@ void GenGenerator::emit_REF(ref_rule *ref,Expr &value){
   out<< value << ")){ return 0;}\n";        
 }
 void GenGenerator::emit_EMBED(embed_rule *embed,Expr &value){
-  out << "if(!gen_%.*s(out,&(" <<str(embed->name) << value << "))){return 0;}\n";
+  out << "if(!gen_"<< str(embed->name) <<"(out,&(" << value << "))){return 0;}\n";
 }
 void GenGenerator::emit_SCALAR(scalar_rule *scalar,Expr &value){
   write_parser(&scalar->parser,value);
@@ -139,9 +138,9 @@ void GenGenerator::emit_CHOICE(choice_rule *choice,Expr &value)
 } 
 void GenGenerator::emit_foreach(parserrule *inner,Expr &value){
         char buf[20];
-        ValExpr itername(buf,NULL,1);
         snprintf(buf,sizeof buf,"iter%d",++num_iters);
-        out<<"FOREACH("<<buf<<value<<"){\n";
+        ValExpr itername(buf,NULL,1);
+        out<<"FOREACH("<<buf<<","<<value<<"){\n";
         emit_parserrule(inner,itername);
         out<<"}\n";
 }
@@ -196,7 +195,7 @@ void GenGenerator::emit_grammar( grammar *grammar)
   out<<"#define FOREACH(val,coll) for(__typeof__((coll).elem[0]) *val=(coll).elem;val<(coll).elem + (coll).count;val++)\n";
   FOREACH(definition,grammar->rules){
     ValExpr outfield("val",NULL,1);
-    out<<"int gen_"<<str(definition->name)<<"(HBitWriter* out,struct"<<str(definition->name)<<"  *val){\n";
+    out<<"int gen_"<<str(definition->name)<<"(HBitWriter* out,struct "<<str(definition->name)<<"  *val){\n";
     emit_parserrule(&definition->rule,outfield);
     out<<"success: return 1;}\n"<< std::endl;                    
   }

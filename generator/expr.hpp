@@ -9,6 +9,7 @@ public:
   virtual void print_ptr(std::ostream &str) const = 0;
   friend std::ostream & operator<<(std::ostream &stream, const Expr &expr){
     expr.print_val(stream);
+    return stream;
   }  
 };
 class ValExpr : public Expr{
