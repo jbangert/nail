@@ -27,14 +27,14 @@ int main(int argc, char**argv)
     // exit(0);
      result =  parse_grammar(input,inputsize);
      if(result) {
-             FILE *outfile = NULL;
+       std::ostream *outfile = NULL;
              int i =0;
              for(i=2;i<argc;i++){
                      if(argv[i][0] != '-'){
                              if(outfile)
-                                     fclose(outfile);
-                             outfile = fopen(argv[i],"w");
-                             if(!outfile)
+                               delete outfile;
+                             outfile = new std::ofstream(argv[i]);
+                             if(!outfile || !outfile->is_open())
                                      error("Cannot open output file %s\n",argv[i]);
                              continue;
                      }
@@ -44,9 +44,9 @@ int main(int argc, char**argv)
                              //emit_header(outfile,result);
                      }
                      else if(!strcmp(argv[i],"-parser_hammer"))
-                             emit_hammer_parser(outfile,result,argv[1]);
+                             emit_hammer_parser(*outfile,result,argv[1]);
                      else if(!strcmp(argv[i],"-generator"))
-                             emit_generator(outfile,result,argv[1]);
+                             emit_generator(*outfile,result,argv[1]);
                      else
                              error("Unknown command line option %s",argv[i]);
              }
