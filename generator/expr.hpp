@@ -50,14 +50,44 @@ public:
 };
 class ArrayElemExpr : public Expr{
   const Expr *_parent;
-  int _elem;
+  const Expr *_index;
+  int free_index;
 public:
-  ArrayElemExpr(const Expr *parent,int elem): _parent(parent), _elem(elem){}
-  virtual int is_ptr(){
+  ArrayElemExpr(const Expr *parent, const Expr *index): _parent(parent), _index(index),free_index(0){}
+  ArrayElemExpr(const Expr *parent,int elem): _parent(parent), _index(new ValExpr(std::to_string(elem),NULL,0)), free_index(1){} 
+  ~ArrayElemExpr(){
+    if(free_index)
+      delete _index;
+  }
+  virtual int is_ptr() const {
     return 0;
   }
   virtual void print_val(std::ostream &str) const{
-    str << _parent << "[" << _elem << "]";
+    str << *_parent << "[" << *_index << "]";
+  }
+  virtual void print_ptr(std::ostream &s) const{
+    assert("false");
+  }              
+  virtual void make_ptr() { 
+    assert("false");
+  }
+};
+class HammerSeqElem : public Expr {
+  const Expr *_parent;
+  const Expr *_index;
+  int free_index;
+public:
+  HammerSeqElem(const Expr *parent, const Expr *index): _parent(parent), _index(index),free_index(0){}
+  HammerSeqElem(const Expr *parent,int elem): _parent(parent), _index(new ValExpr(std::to_string(elem),NULL,0)), free_index(1){} 
+  ~HammerSeqElem(){
+    if(free_index)
+      delete _index;
+  }
+  virtual int is_ptr() const {
+    return 0;
+  }
+  virtual void print_val(std::ostream &str) const{
+    str << "h_seq_index("<< *_parent << "," << *_index << ")";
   }
   virtual void print_ptr(std::ostream &s) const{
     assert("false");

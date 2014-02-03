@@ -1,3 +1,4 @@
+all: server
 server: foo.c generator.c
 	cc $(CFLAGS) -o $@ $^
 foo.c: server.c *.h ../../nail/*.h
