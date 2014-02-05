@@ -1,9 +1,13 @@
 #include "nailtool.h"
+#include <hammer/hammer.h>
 #define MAP(f,collection) FOREACH(iter,collection){ f(*iter);}
 
 #define str(x) std::string((const char *)x.elem,x.count)
+extern HAllocator system_allocator;
 class GenHammer{
-#define ELEM(x) void gen(x &param,Expr &in,Expr &outval); 
+#define ELEM(x) void action(x &param,Expr &in,Expr &outval);    \
+  void parser(x &param);                 
+  
   ELEM(struct_rule);
   ELEM(nx_length_rule);
   ELEM(array_rule);
@@ -15,14 +19,39 @@ class GenHammer{
   ELEM(scalar_rule);
   ELEM(wrap_rule);
   int numiter;
-  std::ostream &_action;
+  std::ostream &_out;
   std::string header_filename;
-  void gen(parser_definition &def);
+  void action(parser_definition &def);
+  std::string parser(parser_invocation &parser){
+    size_t len;
+    const uint8_t* p;
+    HBitWriter *bw = h_bit_writer_new(&system_allocator);
+    //  if(!gen_parser_invocation(bw,&parser))
+      return NULL;
+    p = h_bit_writer_get_buffer(bw, &len);
+    return std::string((const char*)p,len);
+  }
+  std::string parser(constparser_invocation &parser){
+    size_t len;
+    const uint8_t* p;
+    HBitWriter *bw = h_bit_writer_new(&system_allocator);
+    // if(!gen_constparser_invocation(bw,&parser))
+      return NULL;
+    p = h_bit_writer_get_buffer(bw, &len);
+    return std::string((const char*)p,len);
+  }
 public:
-  GenHammer(std::ostream &_out, const char *_header_filename ) : _action(_out),header_filename(_header_filename), numiter(0){}
-  void gen(grammar *grammar);
+
+  GenHammer(std::ostream &parserf , const char *_header_filename ) : _out(parserf),header_filename(_header_filename), numiter(0){}
+  void action(grammar *grammar);
 };
-void GenHammer::gen(scalar_rule &rule, Expr &in, Expr &outval){
+
+
+void GenHammer::parser(scalar_rule &rule){
+  _out << parser(rule.parser);
+}
+
+void GenHammer::action(scalar_rule &rule, Expr &in, Expr &outval){
   std::string cast;
   if(str(rule.cast) == "UINT")
     cast = "H_CAST_UINT";
@@ -30,66 +59,119 @@ void GenHammer::gen(scalar_rule &rule, Expr &in, Expr &outval){
     cast = "H_CAST_SINT";
   else 
     assert("Invalid cast");
-  _action<< outval << "="<<cast<< "("<< in<<");\n";
+  _out<< outval << "="<<cast<< "("<< in<<");\n";
 }
-void GenHammer::gen(nx_length_rule &rule, Expr &in, Expr &outval){
-  gen(rule.inner,in,outval);
+void GenHammer::parser(nx_length_rule &rule){
+  _out << "h_length_value("<< parser(rule.lengthparser) << ",";
+  parser(rule.inner);
+  _out << ")";  
 }
-void GenHammer::gen(embed_rule &rule, Expr &in, Expr &outval){
-  _action<< outval << "= bind_" << str(rule.name) << "();\n";
+void GenHammer::action(nx_length_rule &rule, Expr &in, Expr &outval){
+  action(rule.inner,in,outval);
 }
-void GenHammer::gen(ref_rule &rule, Expr &in, Expr &outval){
+void GenHammer::parser(embed_rule &rule){
+  _out << "hammer_x_" << str(rule.name) << "()";
+}
+void GenHammer::action(embed_rule &rule, Expr &in, Expr &outval){
+  _out<< outval << "= bind_" << str(rule.name) << "();\n";
+}
+void GenHammer::parser(ref_rule &rule){
+  _out <<  "hammer_" << str(rule.name) << "()";
+}
+void GenHammer::action(ref_rule &rule, Expr &in, Expr &outval){
   outval.make_ptr();
-  _action<< outval << "=H_CAST("<< str(rule.name) << ","<<in<<");\n";  
+  _out<< outval << "=H_CAST("<< str(rule.name) << ","<<in<<");\n";  
 }
-
-void GenHammer::gen(wrap_rule &rule,Expr&in, Expr &outval ){
+void GenHammer::parser(wrap_rule &rule){
+  _out << "h_sequence(";
+  FOREACH(r,rule.before){
+    parser(r->contents);
+    _out << ",";    
+  }
+  parser(rule.inner);
+  _out << ",";  
+  FOREACH(r,rule.after){
+    parser(r->contents);
+    _out << ",";    
+  }  
+  _out << "NULL)";
+}
+void GenHammer::action(wrap_rule &rule,Expr&in, Expr &outval ){
   HammerSeqElem inval(&in,rule.before.count);
-  gen(rule.inner,inval,outval);
+  action(rule.inner,inval,outval);
 }
-/*
-void GenHammer::gen(ref_rule &rule, Expr &in, Expr &outval){
-  _action<< outval << "=" << str(rule.cast) << "("<<in<<")";
-}  */
-void GenHammer::gen(choice_rule &rule, Expr &in, Expr &outval){
+void GenHammer::parser(choice_rule &rule){
+  _out << "h_choice(";
+  FOREACH(r,rule.options){
+    parser(r->inner);
+    _out << ",";
+  }
+  _out << "NULL)";
+}
+void GenHammer::action(choice_rule &rule, Expr &in, Expr &outval){
   ValExpr typeexpr("N_TYPE",&outval,0);
   ValExpr token_type("token_type",&in,0);
-  _action<< typeexpr << "=" << token_type<< ";\n";
-  _action<< "switch("<<typeexpr<<"){\n";
+  _out<< typeexpr << "=" << token_type<< ";\n";
+  _out<< "switch("<<typeexpr<<"){\n";
   FOREACH(option,rule.options){
     ValExpr outexpr(str(option->tag),&outval,0);
-    _action<< "case "<< str(option->tag) << ":\n";
-    gen(option->inner,in,outexpr);
-    _action<< "break;\n";
+    _out<< "case "<< str(option->tag) << ":\n";
+    action(option->inner,in,outexpr);
+    _out<< "break;\n";
   }
-  _action<< "}";
+  _out<< "}";
 }
-void GenHammer::gen(optional_rule &rule, Expr &in, Expr &outexpr){
+void GenHammer::parser(optional_rule &rule){
+  _out << "h_optional(";
+  parser(rule.inner);
+  _out << ")";
+}
+void GenHammer::action(optional_rule &rule, Expr &in, Expr &outexpr){
   ValExpr token_type("token_type",&in,0);
-  _action<< "if("<<token_type<<"==TT_NONE)";
-  _action<< outexpr << "=NULL;";
-  _action<< "else {";
-  _action<< outexpr << "=h_arena_malloc(p->arena,sizeof(*" << outexpr << "));\n";
+  _out<< "if("<<token_type<<"==TT_NONE)";
+  _out<< outexpr << "=NULL;";
+  _out<< "else {";
+  _out<< outexpr << "=h_arena_malloc(p->arena,sizeof(*" << outexpr << "));\n";
   outexpr.make_ptr();
-  gen(rule.inner,in,outexpr);
-  _action<< "}";
+  action(rule,in,outexpr);
+  _out<< "}";
 }
-void GenHammer::gen(array_rule &rule,Expr &in,Expr &outexpr){
-
+void GenHammer::parser(array_rule &rule){
+  _out << str(rule.parser_combinator) << "(";
+  parser(rule.contents);
+  _out << ")";
+}
+void GenHammer::action(array_rule &rule,Expr &in,Expr &outexpr){
   ValExpr elem("elem",&outexpr,0);
-  _action << "{int i; HParsedToken **seq = h_seq_elements("<< in<<");\n"
+  _out << "{int i; HParsedToken **seq = h_seq_elements("<< in<<");\n"
      << ValExpr("count",&outexpr,0) << "= h_seq_len("<<in<<")\n";
-  _action << "if(" << ValExpr("count",&outexpr,0) << ">0){\n"
+  _out << "if(" << ValExpr("count",&outexpr,0) << ">0){\n"
       <<  elem << "=  (void*)h_arena_malloc(p->arena,sizeof(" <<elem<< "[0])*count);\n}\n"
       << "for(i=0;i<"<<ValExpr("count",&outexpr,0)<<";i++){\n";
   ValExpr i("i",NULL,0);
   ArrayElemExpr elemi(&elem,&i);
   ValExpr seqi("seq[i]",NULL,1);
-  gen(rule.contents,seqi,elemi);
-  _action<< "}}";
+  action(rule.contents,seqi,elemi);
+  _out<< "}}";
 }
-
-void GenHammer::gen(struct_rule &rule,Expr &in, Expr &out){
+void GenHammer::parser(struct_rule &rule){
+  _out << "h_sequence(";
+  FOREACH(struct_elem,rule.fields){
+    switch(struct_elem->N_type){
+      case S_FIELD:
+        _out << "h_name(\""<<str(struct_elem->S_FIELD.name)<<"\", ";
+        parser(struct_elem->S_FIELD.contents);
+        _out <<  "),";
+        break;
+        case S_CONST:
+          parser(struct_elem->S_CONST.contents);
+          _out <<  ",";
+          break;
+    }
+  }
+  _out<<"NULL)";
+}
+void GenHammer::action(struct_rule &rule,Expr &in, Expr &out){
   int struct_off = 0;
   FOREACH(struct_elem,rule.fields)
     {
@@ -99,7 +181,7 @@ void GenHammer::gen(struct_rule &rule,Expr &in, Expr &out){
         {
         struct_field &field  = struct_elem->S_FIELD;
         ValExpr outfield(str(field.name), &out,0);
-        gen(field.contents,val,outfield);
+        action(field.contents,val,outfield);
         }
         break;
       case S_CONST:
@@ -109,11 +191,32 @@ void GenHammer::gen(struct_rule &rule,Expr &in, Expr &out){
       struct_off++;
     }
 }
-void GenHammer::gen(parserrule &rule,Expr &in, Expr &out){
+void GenHammer::parser(parserrule &rule){ 
+  switch(rule.N_type){
+#undef ELEM
+#define ELEM(x) case P_ ## x:                        \
+    parser(*rule.P_##x);                            \
+    break;                
+    ELEM(STRUCT);
+    ELEM(ARRAY);
+    ELEM(REF);
+    ELEM(EMBED);
+    ELEM(SCALAR);
+    ELEM(OPTIONAL);
+    ELEM(CHOICE);
+    ELEM(NX_LENGTH);
+    ELEM(WRAP);
+  default:
+    assert("boom");
+    exit(-1);
+    break;
+  }  
+}
+void GenHammer::action(parserrule &rule,Expr &in, Expr &out){
       switch(rule.N_type){
 #undef ELEM
 #define ELEM(x) case P_ ## x:                        \
-        gen(*rule.P_##x,in,out);                 \
+        action(*rule.P_##x,in,out);                 \
         break;                
         ELEM(STRUCT);
         ELEM(ARRAY);
@@ -130,30 +233,30 @@ void GenHammer::gen(parserrule &rule,Expr &in, Expr &out){
         break;
       }  
 }
-void GenHammer::gen(parser_definition &def){
+void GenHammer::action(parser_definition &def){
   std::string name(str(def.name));
   ValExpr outexpr("out",NULL,1);
   ValExpr in("val",NULL,1);
-  _action<< "static void bind_" << name << "(const HParseResult *p, const HParsedToken *val,"<< name << " *out){";
-  gen(def.rule,in,outexpr);
-  _action<< "}\n"
+  _out<< "static void bind_" << name << "(const HParseResult *p, const HParsedToken *val,"<< name << " *out){";
+  action(def.rule,in,outexpr);
+  _out<< "}\n"
       << "HParsedToken *act_" << name << "(const HParseResult *p, void *user_data) {"
       << name<<" * out= H_ALLOC("<<name<<");"
       <<"  const HParsedToken *val = p->ast;"
       <<"  bind_"<< name <<"(p,val,out);"
       <<"   h_make(p->arena,(HTokenType)TT_ " << name <<",out);}";
 }
-void GenHammer::gen(grammar *grammar)
+void GenHammer::action(grammar *grammar)
 {
-  _action<< "#include <hammer/hammer.h>\n";
-  _action<< "#include <hammer/glue.h>\n";
-  MAP(gen,grammar->rules);
-  _action<< std::endl;
+  _out<< "#include <hammer/hammer.h>\n";
+  _out<< "#include <hammer/glue.h>\n";
+  MAP(action,grammar->rules);
+  _out<< std::endl;
 }
 
 void emit_hammer_parser(std::ostream *out, grammar *grammar, const char *header){
   assert(out->good());
   GenHammer g(*out,header);
-  g.gen(grammar);
+  g.action(grammar);
  
 }
