@@ -1,0 +1,92 @@
+#define t(x) WHITE;many uint8 = x
+lower = uint8 |  'a'..'z'
+upper = uint8 |  'A'..'Z' 
+seperator = uint8 | [';','\n']
+digit = uint8 | '0' .. '9'
+number = many1 digit
+varidentifier   = <WHITE; many1 lower>
+constidentifier = many1 upper
+WHITE = many uint8 = ' ' || uint8 = '\n'
+SEPERATOR = uint8 = '\n' || uint8 = ';'
+intconstant = <WHITE;  choose {
+            NUMBER= number
+            ASCII= <t("'") 
+                   choose{
+                     escape= <uint8 = '\\'; uint8>
+                     direct= uint8
+                    } 
+                     t("'")>
+            }>
+
+int = choose{
+          UNSIGNED = { t("uint")
+                       length  many1 digit}
+          SIGNED =   { t("int")
+                       length many1 uint8 | '0' .. '9'}
+}  
+constint = { parser int
+             t("=")
+             value intconstant }          
+intconstraint  = choose {
+               RANGE = { t("["); lower optional intconstant; t(".."); upper optional intconstant;  t("]")}
+               SET = < t("[");  sepBy1 uint8 = ','  intconstant ; t("]") >
+               NEGATE = < t("!")intconstraint>
+               }
+constrainedint = {
+                int int
+                constraint optional <t("|")  intconstraint  >  
+}
+structparser = <t("{"); sepBy SEPERATOR choose{
+              const = constfield                      
+              field = { name varidentifier;  parser *parser }
+              } 
+         t("}")>
+wrapparser = {t("<"); const_before optional <sepBy1 SEPERATOR constfield; SEPERATOR>
+                      parser parser
+                      const_after sepBy SEPERATOR constfield
+                      t(">") }
+                      
+choiceparser = < t("choose"); t("{"); many {tag varidentifier; t("="); parser  parser }; t("}") >
+arrayparser =   choose{
+                MANY=  < t("many"); parser>               
+                MANYONE= < t("many1"); parser>
+                SEPBY= { t("sepBy") ; seperator parser; inner parser}
+                SEPBYONE={ t("sepBy1"); seperator parser; inner parser}
+                }
+arrayvalue = choose {  // We could use a push-choose operator here.... 
+           STRING= < WHITE uint8 = '"' many uint8 | !['"'] uint8 = '"' > 
+           VALUES= < t("[") many intconstant t("]")> 
+           }    
+constarray = { t("many");parser int;  t("="); value arrayvalue}
+constfield = choose{   
+            ARRAY=            constarray
+            INT=              constint
+            REF=              constidentifier
+}         
+
+parser =  choose {
+                INT= constrainedint
+                STRUCT= structparser
+                WRAP = wrapparser
+                CHOICE= choiceparser
+                OPTIONAL= <t("optional") parser>
+                UNION = sepBy1 t("||") parser
+                REF   =  <t("*") varidentifier >
+                NAME  =  varidentifier
+         } || < t("(") parser t(")")>
+
+definition = choose {
+           PARSER = {name  varidentifier
+                     WHITE
+                     uint8 = '='
+                     WHITE
+                     definition parser }
+           CONST = {
+                 name constidentifier 
+                 WHITE
+                 uint8 = '='
+                 WHITE 
+                 definition parser 
+           }          
+           }
+grammar = many definition
