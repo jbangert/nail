@@ -50,6 +50,11 @@ void GenGenerator::write_constparser(constparser_invocation *p){
         {
           out << "goto success;\n";
         }
+        case WHITE:
+        {
+          out << "write_bits(8,' ');\n";
+          write_constparser(p->WHITE.inner);
+         }
         break;
         }
 }

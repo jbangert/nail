@@ -1,0 +1,128 @@
+
+#include <cstdio>
+#include <cstring>
+#include "stdlib.h"
+#include "assert.h"
+#include "old2new.h"
+#include "shared.h"
+//based on a sample, as I lost the previous DDS compiler
+
+typedef unsigned int uint;
+typedef unsigned char uchar;
+
+#define BSIZE	8192
+typedef struct Scanner
+{
+		unsigned char   buffer[BSIZE];
+        FILE                    *fp;
+        unsigned char   *cur, *tok, *lim, *eof,*mrk;
+        unsigned int line;
+        int res;
+} Scanner;
+
+
+#define YYCTYPE         unsigned char
+#define YYCURSOR        cursor
+#define YYLIMIT         s->lim
+#define YYMARKER        s->mrk
+#define YYFILL(n)       { if(s->res>=0) if(s->lim - cursor <= 0) goto out;  else if(s->lim - cursor < n)  s->res=fill(s,n); }
+
+int fill(Scanner *s, int len)
+{
+        if (!len)
+        {
+                s->cur = s->tok = s->lim = s->mrk = s->buffer;
+                s->eof = 0;
+        }
+        if (!s->eof)
+        {
+                int got, cnt = s->tok - s->buffer;
+
+                if (cnt > 0)
+                {
+                        memcpy(s->buffer, s->tok, s->lim - s->tok);
+                        s->tok -= cnt;
+                        s->cur -= cnt;
+                        s->lim -= cnt;
+                        s->mrk -= cnt;
+                }
+                cnt = BSIZE - cnt;
+                if ((got = fread(s->lim, 1, cnt, s->fp)) != cnt)
+                {
+                        s->eof = &s->lim[got];
+                }
+                s->lim += got;
+        }
+        else if (s->cur + len > s->eof)
+        {
+                return 0; /* not enough input data */
+        }
+        return -1;
+}
+
+
+static Token * lex(Scanner * s)
+{
+	Token retval;
+    uchar *cursor = s->cur;
+in:
+	retval.type = 0;
+	s->tok = cursor;
+	/*!re2c
+'uint' 	        {retval.type= UINT;		goto out;}
+'=' 	        {retval.type= EQUAL;		goto out;}
+"'\\" .  "'"    {retval.type= INT;              goto out;}
+"'". "'"        {retval.type= INT; goto out;}
+'||'            {retval.type= OR; goto out;}
+'|'[^|]         {retval.type= BAR; goto out;}
+'{' 	        {retval.type= LCURL;		goto out;}
+'}'             {retval.type= RCURL;		goto out;}
+'['             {retval.type= LBRACKET;		goto out;}
+']'             {retval.type= RBRACKET;		goto out;}
+'<' 		{retval.type= LEDGE; 			goto out;}
+'>'  	        {retval.type= REDGE;		goto out;}
+'..'		{retval.type= DOTS;		goto out;}
+'!'		{retval.type= NEG;		goto out;}
+'many1'         {retval.type= MANY1;	goto out;}
+'many'		{retval.type= MANY;			goto out;}
+'sepby'		{retval.type= SEPBY;			goto out;}
+'sepby1'	{retval.type= SEPBY1;			goto out;}
+'optional'	{retval.type= OPTIONAL;			goto out;}
+'choose'	{retval.type= CHOOSE;			goto out;}
+'*'	        {retval.type= REF;			goto out;}
+'('	        {retval.type= LPAREN;			goto out;}
+')'	        {retval.type= RPAREN;			goto out;}
+','	        {retval.type= COMMA;			goto out;}
+'"'  [^\"]* '"' {retval.type= STRING;			goto out;}
+[A-Z\_]+          {retval.type= CONSTIDENTIFIER;  goto out;}
+[a-z\_]+          {retval.type= VARIDENTIFIER;  goto out;}
+[0-9]+ 		{retval.type= INT; 		goto out;}
+"\n"	{  if(cursor == s->eof) {retval.type=0; goto out;}
+                retval.type = SEPERATOR;                goto out;}
+';'          {retval.type= SEPERATOR;  goto out;}
+
+[ \t\v\f]+              { goto in; }
+[\000-\377]	{fprintf(stderr,"Unknown  char %c",*s->tok); return NULL;}
+	*/
+	out:
+	s->cur = cursor;
+	retval.data = std::string((char*)s->tok, YYCURSOR - s->tok);
+	return new Token(retval);
+}
+std::list<Token *>* lexer(FILE *file)
+{
+	Scanner s ;
+	Token *tok;
+	s.fp = file;
+	 fill(&s,0);
+	std::list<Token *>*retval = new std::list<Token *>();
+	do
+	{
+		tok = lex(&s);
+		if(!tok)
+			break;
+		retval->push_back(tok);
+		//puts(tok->data);
+	}while(tok->type);
+	return retval;
+}
