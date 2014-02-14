@@ -69,7 +69,7 @@ in:
 	retval.type = 0;
 	s->tok = cursor;
 	/*!re2c
-'uint' 	        {retval.type= UINT;		goto out;}
+"uint" 	        {retval.type= UINT;		goto out;}
 '=' 	        {retval.type= EQUAL;		goto out;}
 "'\\" .  "'"    {retval.type= INT;              goto out;}
 "'". "'"        {retval.type= INT; goto out;}
@@ -83,12 +83,12 @@ in:
 '>'  	        {retval.type= REDGE;		goto out;}
 '..'		{retval.type= DOTS;		goto out;}
 '!'		{retval.type= NEG;		goto out;}
-'many1'         {retval.type= MANY1;	goto out;}
-'many'		{retval.type= MANY;			goto out;}
-'sepby'		{retval.type= SEPBY;			goto out;}
-'sepby1'	{retval.type= SEPBY1;			goto out;}
-'optional'	{retval.type= OPTIONAL;			goto out;}
-'choose'	{retval.type= CHOOSE;			goto out;}
+"many1"        {retval.type= MANY1;	goto out;}
+"many"		{retval.type= MANY;			goto out;}
+"sepBy"		{retval.type= SEPBY;			goto out;}
+"sepBy1"	{retval.type= SEPBY1;			goto out;}
+"optional"	{retval.type= OPTIONAL;			goto out;}
+"choose"	{retval.type= CHOOSE;			goto out;}
 '*'	        {retval.type= REF;			goto out;}
 '('	        {retval.type= LPAREN;			goto out;}
 ')'	        {retval.type= RPAREN;			goto out;}

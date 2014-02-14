@@ -42,3 +42,9 @@
 .cproject
 .project
 /examples/dns/action.c
+/generator/tools/test.nail
+/generator/tools/old2new.c
+/generator/tools/old2new.out
+/generator/tools/old2new
+/generator/tools/bootstrap.c
+/generator/tools/bootstrap.cc
