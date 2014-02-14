@@ -98,10 +98,10 @@ in:
 [a-z\_]+          {retval.type= VARIDENTIFIER;  goto out;}
 [0-9]+ 		{retval.type= INT; 		goto out;}
 "\n"	{  if(cursor == s->eof) {retval.type=0; goto out;}
-                retval.type = SEPERATOR;                goto out;}
-';'          {retval.type= SEPERATOR;  goto out;}
+                 s->line++;
+                goto in;}
 
-[ \t\v\f]+              { goto in; }
+[ \t\v\f;]+              { goto in; }
 [\000-\377]	{fprintf(stderr,"Unknown  char %c",*s->tok); return NULL;}
 	*/
 	out:

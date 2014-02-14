@@ -35,6 +35,7 @@ parser(x) ::= LCURL struct_contents(c) RCURL. {x=new sstr(); *x<< "N_STRUCT("<<c
 constfields(A) ::= constfields(B) constfield(C). {A=new sstr(); *A<< B<<" "<< C;}
 constfields(A) ::= constfield(C). {A=C;}
 parser(X)  ::= LEDGE constfields(before) parser(parser) constfields(after) REDGE. {X=new sstr(); *X<< "N_WRAP(" << before << "," << parser << ","<< after << ")";}
+parser(X)  ::= LEDGE parser(parser) constfields(after) REDGE. {X=new sstr(); *X<< "N_WRAP(," << parser << ","<< after << ")";}
 parser(X) ::= LEDGE constfields(before) parser(parser) REDGE.{X=new sstr(); *X<< "N_WRAP(" << before << "," << parser << "," << ")";}
 
 
