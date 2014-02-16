@@ -35,6 +35,7 @@
 /generator/test/test.3
 /generator/test/test1.c
 /generator/test/test2.c
+/generator/testbin/*
 /nail/macros/#int-struct.h#
 /generator/nail
 /examples/dns/generator.c.old
