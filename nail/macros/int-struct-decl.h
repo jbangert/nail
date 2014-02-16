@@ -1,7 +1,7 @@
 #define N_SCALAR(cast,type,parser) 
 #define N_FIELD(name,inner)
 #define N_CONSTANT(inner)
-#define N_ARRAY(inner,combinator)
+#define N_ARRAY(combinator,inner)
 #define NX_LENGTHVALUE_HACK(lengthp,elemp)
 #define N_STRUCT(inner) 
 #define N_OPTIONAL(inner)

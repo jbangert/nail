@@ -14,7 +14,7 @@ N_STRUCT(N_FIELD(id,     N_UINT(uint16_t,h_bits(16,false)))
          N_FIELD(additional_count,N_UINT(size_t,h_uint16()))
         ))
 N_DEFPARSER(dns_labels,N_WRAP(
-                    ,N_ARRAY(NX_LENGTHVALUE_HACK(h_int_range(h_uint8(),1,255),N_UINT(char,h_uint8())),h_many1),
+                    ,N_ARRAY(h_many1,NX_LENGTHVALUE_HACK(h_int_range(h_uint8(),1,255),N_UINT(char,h_uint8()))),
                     N_CONSTANT(h_ch('\x00'))))
 N_DEFPARSER(dns_question,
             N_STRUCT(N_FIELD(labels,N_PARSER(dns_labels))
@@ -29,8 +29,8 @@ N_DEFPARSER(dns_response,
                      N_FIELD(rdata,NX_LENGTHVALUE_HACK(h_uint16(),N_UINT(char,h_uint8())))))
 N_DEFPARSER(dns_message,
             N_STRUCT( N_FIELD(header,N_PARSER(dns_header))
-                      N_FIELD(questions,N_ARRAY(N_PARSER(dns_question),h_many))
-                      N_FIELD(rr,N_ARRAY(N_PARSER(dns_response),h_many))
+                      N_FIELD(questions,N_ARRAY(h_many,N_PARSER(dns_question)))
+                      N_FIELD(rr,N_ARRAY(h_many,N_PARSER(dns_response)))
                       N_CONSTANT(h_end_p())
                     ))
   

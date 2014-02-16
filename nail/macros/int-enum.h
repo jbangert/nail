@@ -3,12 +3,13 @@
 /* Enum - the second include*/
 #define N_FIELD(name,...)  __VA_ARGS__
 #define N_SCALAR(cast,type,parser) 
-#define N_ARRAY(...) __VA_ARGS__
+#define N_ARRAY(combinator,...) __VA_ARGS__
 
 #define N_STRUCT(...)  __VA_ARGS__
-#define N_WRAP(...) __VA_ARGS__
+#define N_WRAP(a,b,c) b
 #define N_OPTIONAL(...) __VA_ARGS__
 #define N_CHOICE(...) __VA_ARGS__
+#define N_UNION(first,...) first
 #define N_OPTION(name,...) ,name
 #define N_CONSTANT(inner)
 #define N_PARSER(name)

@@ -21,7 +21,7 @@
         }
 
 
-#define  N_ARRAY(inner,combinator)                                         \
+#define  N_ARRAY(combinator,inner)                                           \
         {                                                               \
            __typeof__(out) arr =out;                                        \
            int i;                                                       \
@@ -49,13 +49,14 @@
                    }                                                    \
            }                                                            \
         }
+#define N_UNION(first,...)  first
 #define N_OPTION(name,inner)                                            \
         case name:                                                      \
         {__typeof__(choice->name) * out = &choice->name;                \
                 inner}                                                  \
         break;
 
-#define NX_LENGTHVALUE_HACK(lengthp,elemp) N_ARRAY(elemp,h_length_value)
+#define NX_LENGTHVALUE_HACK(lengthp,elemp) N_ARRAY(h_length_value,elemp)
 
 #define N_FIELD(name,inner) {const HParsedToken *val=fields[i]; __typeof__(str->name) *out = &(str->name); inner; i++;}
 #define N_CONSTANT(inner) i++;

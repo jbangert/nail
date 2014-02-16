@@ -9,7 +9,7 @@ N_DEFPARSER(inner_struct, N_STRUCT(
                     N_CONSTANT(h_end_p()))) */
 N_DEFPARSER(obj_array, N_STRUCT(
                     N_FIELD(elements,
-                            N_ARRAY(N_PARSER(inner_struct),h_many))
+                            N_ARRAY(h_many,N_PARSER(inner_struct)))
                     N_CONSTANT(h_end_p())
                     ))
 

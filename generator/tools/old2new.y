@@ -25,7 +25,7 @@ constrainedint(A) ::=  int(len) BAR NEG LBRACKET commaset(b) RBRACKET. {eql_asse
 constparser(A)::=  MANY int(len) EQUAL STRING(value).{eql_assert(len->str(),"h_bits(8,false)"); A=new sstr(); *A<<"h_tok("<<value<<")";}
 constparser(a)::= constint(b). {a= b ;}
 constparser(A)::= CONSTIDENTIFIER(name). {A=new sstr(); *A<< "N_PARSER("<<name<<")";}
-constparser(A)::= MANY constparser(b). {A=new sstr(); *A<<"N_ARRAY("<<b<<",h_many)";}
+constparser(A)::= MANY constparser(b). {A=new sstr(); *A<<"N_ARRAY(h_many,"<<b<<")";}
         
 constparser(A)::= constparser(a) OR constint(b). {A=new sstr(); *A<<"N_CHOICE(N_OPTION(U1,"<<a<<") N_OPTION(U2,"<<b<<"))";}
 constparser(A)::= LCURL constfields(a) RCURL. {A=new sstr(); *A<<"N_STRUCT("<<a<<")";}
@@ -48,10 +48,10 @@ option(X) ::= VARIDENTIFIER(name) EQUAL parser(p). {X=new sstr(); *X<< "N_OPTION
 options(X) ::= options(A) option(B). {X=new sstr(); *X<<A<<B;}
 options(X) ::= option(B). {X=B;}                
 parser(X) ::= CHOOSE LCURL options(opt) RCURL. {X=new sstr(); *X<<"N_CHOICE("<< opt<<")";}
-parser(X) ::= MANY parser(p). {X=new sstr(); *X<<"N_ARRAY("<<p<<",h_many)";}
-parser(X) ::= MANY1 parser(p). {X=new sstr(); *X<<"N_ARRAY("<<p<<",h_many1)";}
-parser(X) ::= SEPBY constparser(seperator) parser(p). {X=new sstr(); *X<<"N_SEPBY("<<p<<","<<seperator<<")";}
-parser(X) ::= SEPBY1 constparser(seperator) parser(p). {X=new sstr(); *X<<"N_SEPBY1("<<p<<","<<seperator<<")";}
+parser(X) ::= MANY parser(p). {X=new sstr(); *X<<"N_ARRAY(h_many,"<<p<<")";}
+parser(X) ::= MANY1 parser(p). {X=new sstr(); *X<<"N_ARRAY(h_many,"<<p<<")";}
+parser(X) ::= SEPBY constparser(seperator) parser(p). {X=new sstr(); *X<<"N_SEPBY("<<seperator<<","<<p<<")";}
+parser(X) ::= SEPBY1 constparser(seperator) parser(p). {X=new sstr(); *X<<"N_SEPBY1("<<seperator<<","<<p<<")";}
 parser(X) ::= constrainedint(A). {X=new sstr(); *X<<"N_UINT(uint8_t,"<<A<<")";}
 parser(X) ::= int(A).{X=new sstr(); *X<<"N_UINT(uint8_t,"<<A<<")";}
 parser(X) ::= OPTIONAL parser(p). {X=new sstr(); *X<<"N_OPTIONAL("<<p<<")";}

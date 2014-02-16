@@ -9,12 +9,12 @@ N_DEFPARSER(auth, N_STRUCT(
                     N_FIELD(label,N_PARSER(label))
                     tok("auth")
                     tok("{")
-                    N_FIELD(many,N_ARRAY(N_PARSER(auth_records)),h_many1
+                    N_FIELD(many,N_ARRAY(h_many1,N_PARSER(auth_records))
                     tok("}")
                     ))
 */
 
-N_DEFPARSER(domain, N_SEPBY(N_PARSER(label),'.'))
+N_DEFPARSER(domain, N_SEPBY(h_token("."),N_PARSER(label)))
 N_DEFPARSER(rr_ns, N_STRUCT(N_CONSTANT(h_token("NS:"))
                             N_FIELD(domain,N_PARSER(domain))))
 N_DEFPARSER(rr_mx, N_STRUCT(N_CONSTANT(h_token("MX:"))

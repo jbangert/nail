@@ -39,7 +39,7 @@ static void writebits(n_outbuf *out, size_t size, void *data)
         }
 #define N_FIELD(name,inner) {const typeof(str->name) *val = &str->name; inner;}
 
-#define  N_ARRAY(inner,combinator)                                      \
+#define  N_ARRAY(combinator,inner)                                      \
         {                                                               \
         int i;                                                        \
         __typeof__(val->elem) elem =val ;                                   \

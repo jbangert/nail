@@ -27,7 +27,7 @@
         inner;                                  \
         fprintf(out,",");                      \
         }
-#define N_ARRAY(inner,combinator){                              \
+#define N_ARRAY(combinator,inner){                                   \
         __typeof__(val) arr = val;                              \
         int i;                                                  \
         N__PRINTIND("[")                                           \
@@ -40,7 +40,7 @@
         N__PRINTIND("]")                                           \
         }
 #undef NX_STRING
-#define NX_STRING(inner,combinator){            \
+#define NX_STRING(combinator,inner){                                 \
                 fprintf(out,"\"%.*s\"",val->count,val->elem);   \
                         }
 #define N_CHOICE(inner){                                                \
@@ -51,7 +51,7 @@
                 assert("We have a bug");                                \
                         }                                               \
         }
-
+#define N_UNION(first,...)  first
 #define N_OPTION(name,inner)                                            \
         case name:{                                                     \
                 __typeof__(choice->name) *val = &choice->name;          \
@@ -59,7 +59,7 @@
                 inner;                                                  \
         }                                                               \
         break;
-#define NX_LENGTHVALUE_HACK(lenp,elemp) N_ARRAY(elemp,h_length_value)
+#define NX_LENGTHVALUE_HACK(lenp,elemp) N_ARRAY(h_length_value,elemp)
 #define N_OPTIONAL(inner) {                             \
         __typeof__(*val) opt = *val;                      \
                 if(opt){                                \
