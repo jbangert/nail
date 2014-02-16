@@ -4,5 +4,5 @@
 #include "grammar.h"
 
 #define N_MACRO_IMPLEMENT
-//#include "grammar.h"
+#include "grammar.h"
  

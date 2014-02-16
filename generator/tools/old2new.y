@@ -22,7 +22,7 @@ commaset(A) ::=  commaset(b) COMMA INT(value). {A=new sstr(); *A<< value<< "," <
 commaset(A) ::= INT(value). {A=value;}
 constrainedint(A) ::= int(len) BAR LBRACKET commaset(b) RBRACKET. {eql_assert(len->str(),"h_bits(8,false)"); A=new sstr(); *A<<"h_in((char []){"<<b << "}, strlen((char[]){"<<b<<"}))";}
 constrainedint(A) ::=  int(len) BAR NEG LBRACKET commaset(b) RBRACKET. {eql_assert(len->str(),"h_bits(8,false)"); A=new sstr(); *A<<"h_not_in((char []){"<<b<< "}, strlen((char[]){"<<b<<"}))";}
-constparser(A)::=  MANY int(len) EQUAL STRING(value).{eql_assert(len->str(),"h_bits(8,false)"); A=new sstr(); *A<<"h_tok("<<value<<")";}
+constparser(A)::=  MANY int(len) EQUAL STRING(value).{eql_assert(len->str(),"h_bits(8,false)"); A=new sstr(); *A<<"h_token("<<value<<",strlen("<<value<<"))";}
 constparser(a)::= constint(b). {a= b ;}
 constparser(A)::= CONSTIDENTIFIER(name). {A=new sstr(); *A<< "N_PARSER("<<name<<")";}
 constparser(A)::= MANY constparser(b). {A=new sstr(); *A<<"N_ARRAY(h_many,"<<b<<")";}

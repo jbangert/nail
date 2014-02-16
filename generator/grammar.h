@@ -1,5 +1,6 @@
 #include <nail/macros.h>
 #define N_SEPBY1 N_SEPBY
+#define false 0
 #include "newgrammar.h"
 #include <nail/macros_end.h>
 

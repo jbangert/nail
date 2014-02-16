@@ -1,13 +1,12 @@
 #define t(x) {WHITE;many uint8 = x}
 #define lower  (uint8 |  'a'..'z')
 #define upper (uint8 |  'A'..'Z') 
-// #define seperator  (uint8 | [';','\n'])
 #define digit  (uint8 | '0' .. '9')
 number = many1 digit
 varidentifier   = <WHITE; many1 lower>
 constidentifier = many1 upper
 WHITE = many uint8 = ' ' || uint8 = '\n'
-SEPERATOR = uint8 = '\n' || uint8 = ';'
+SEPERATOR = many uint8 = '\n' || uint8 = ';'
 intconstant = <WHITE;  choose {
             NUMBER= number
             ASCII= <t("'") 
@@ -32,9 +31,9 @@ constint = { parser intp
            }    
 constarray = { t("many");parser intp;  t("="); value arrayvalue}
 constfield = choose{   
-            ARRAY=            constarray
-            INT=              constint
-            REF=              constidentifier
+            CARRAY=            constarray
+            CINT=              constint
+            CREF=              constidentifier
 }         
 intconstraint  = choose {
                RANGE = { t("["); min optional intconstant; t(".."); max optional intconstant;  t("]")}
