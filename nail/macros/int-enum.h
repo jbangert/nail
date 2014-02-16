@@ -1,18 +1,19 @@
 /*Define the TT_ enum*/
 #define N_MACROS_END_CURLY
 /* Enum - the second include*/
-#define N_FIELD(name,inner)  inner
+#define N_FIELD(name,...)  __VA_ARGS__
 #define N_SCALAR(cast,type,parser) 
-#define N_ARRAY(inner,combinator) inner
-#define N_STRUCT(inner)  inner
-#define N_WRAP(before,inner,after) inner
-#define N_OPTIONAL(inner) inner
-#define N_CHOICE(inner) inner
-#define N_OPTION(name,inner) ,name
+#define N_ARRAY(...) __VA_ARGS__
+
+#define N_STRUCT(...)  __VA_ARGS__
+#define N_WRAP(...) __VA_ARGS__
+#define N_OPTIONAL(...) __VA_ARGS__
+#define N_CHOICE(...) __VA_ARGS__
+#define N_OPTION(name,...) ,name
 #define N_CONSTANT(inner)
 #define N_PARSER(name)
 #define N_REF(inner)
-#define N_DEFPARSER(name,internal) ,TT_ ## name internal
+#define N_DEFPARSER(name,...) ,TT_ ## name __VA_ARGS__
 #define NX_LENGTHVALUE_HACK(lengthp,elemp) elemp
 enum HMacroTokenType_  {
         TT_Macro_unused = TT_USER

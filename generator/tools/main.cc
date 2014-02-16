@@ -22,10 +22,10 @@ int main(int argc, char **argv)
   int i =0;
   void *parser = ParseAlloc(malloc);
   std::string out;
-  ParseTrace(stderr,"p");
+  ParseTrace(stderr,">");
   for(auto &x : *lex){
-    if(i++ % 10 == 0) printf("\n");
-    //printf("%s ",tokennames[x->type]);
+    //if(i++ % 10 == 0) printf("\n");
+    fprintf(stderr,"%s\n ",x->data.c_str());
     Parse(parser,x->type,new std::stringstream(x->data),&out);
   }
   //Parse(parser,0,NULL,&out);

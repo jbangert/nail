@@ -1,8 +1,8 @@
-#define t(x) WHITE;many uint8 = x
-lower = uint8 |  'a'..'z'
-upper = uint8 |  'A'..'Z' 
-seperator = uint8 | [';','\n']
-digit = uint8 | '0' .. '9'
+#define t(x) {WHITE;many uint8 = x}
+#define lower  (uint8 |  'a'..'z')
+#define upper (uint8 |  'A'..'Z') 
+// #define seperator  (uint8 | [';','\n'])
+#define digit  (uint8 | '0' .. '9')
 number = many1 digit
 varidentifier   = <WHITE; many1 lower>
 constidentifier = many1 upper
@@ -18,22 +18,22 @@ intconstant = <WHITE;  choose {
                      t("'")>
             }>
 
-int = choose{
+intp = choose{
           UNSIGNED = { t("uint")
                        length  many1 digit}
           SIGNED =   { t("int")
                        length many1 uint8 | '0' .. '9'}
 }  
-constint = { parser int
+constint = { parser intp
              t("=")
              value intconstant }          
 intconstraint  = choose {
-               RANGE = { t("["); lower optional intconstant; t(".."); upper optional intconstant;  t("]")}
+               RANGE = { t("["); min optional intconstant; t(".."); max optional intconstant;  t("]")}
                SET = < t("[");  sepBy1 uint8 = ','  intconstant ; t("]") >
-               NEGATE = < t("!")intconstraint>
+               NEGATE = < t("!") *intconstraint>
                }
 constrainedint = {
-                int int
+                parser intp
                 constraint optional <t("|")  intconstraint  >  
 }
 structparser = <t("{"); sepBy SEPERATOR choose{
@@ -57,7 +57,7 @@ arrayvalue = choose {  // We could use a push-choose operator here....
            STRING= < WHITE uint8 = '"' many uint8 | !['"'] uint8 = '"' > 
            VALUES= < t("[") many intconstant t("]")> 
            }    
-constarray = { t("many");parser int;  t("="); value arrayvalue}
+constarray = { t("many");parser intp;  t("="); value arrayvalue}
 constfield = choose{   
             ARRAY=            constarray
             INT=              constint
