@@ -6,11 +6,11 @@
 #define N_ARRAY(combinator,...) __VA_ARGS__
 
 #define N_STRUCT(...)  __VA_ARGS__
-#define N_WRAP(a,b,c) b
+#define N_WRAP(a,b,c) a b c
 #define N_OPTIONAL(...) __VA_ARGS__
 #define N_CHOICE(...) __VA_ARGS__
 #define N_UNION(first,...) first
-#define N_OPTION(name,...) ,name
+#define N_OPTION(name,...) ,name __VA_ARGS__
 #define N_CONSTANT(inner)
 #define N_PARSER(name)
 #define N_REF(inner)

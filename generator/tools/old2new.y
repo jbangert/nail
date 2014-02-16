@@ -27,7 +27,7 @@ constparser(a)::= constint(b). {a= b ;}
 constparser(A)::= CONSTIDENTIFIER(name). {A=new sstr(); *A<< "N_PARSER("<<name<<")";}
 constparser(A)::= MANY constparser(b). {A=new sstr(); *A<<"N_ARRAY(h_many,"<<b<<")";}
         
-constparser(A)::= constparser(a) OR constint(b). {A=new sstr(); *A<<"N_CHOICE(N_OPTION(U1,"<<a<<") N_OPTION(U2,"<<b<<"))";}
+constparser(A)::= constparser(a) OR constint(b). {A=new sstr(); *A<<"N_UNION("<<a<<","<<b<<")";}
 constparser(A)::= LCURL constfields(a) RCURL. {A=new sstr(); *A<<"N_STRUCT("<<a<<")";}
 constfields(A) ::= constfields(B) constparser(C). {A=new sstr(); *A<< B<<" N_CONSTANT("<< C<<")";}
         constfields(A) ::= constparser(C). {A= new sstr(); *A<<"N_CONSTANT("<<C<<")";}
@@ -57,8 +57,8 @@ parser(X) ::= int(A).{X=new sstr(); *X<<"N_UINT(uint8_t,"<<A<<")";}
 parser(X) ::= OPTIONAL parser(p). {X=new sstr(); *X<<"N_OPTIONAL("<<p<<")";}
 parser(X) ::= REF VARIDENTIFIER(r). {X=new sstr(); *X<<"N_REF("<<r<<")";}
 parser(X) ::= VARIDENTIFIER(r). {X=new sstr(); *X<<"N_PARSER("<<r<<")";}
-punion(X) ::= parser(p1) OR parser(p2). {X=new sstr(); *X << "N_OPTION(PICK1,"<<p1 << ") N_OPTION(PICK2," <<  p2 << ")";}
-parser(X) ::= punion(p). {X=new sstr(); *X<<"N_CHOICE("<<p<<")";}
+punion(X) ::= parser(p1) OR parser(p2). {X=new sstr(); *X <<p1 << "," <<  p2;}
+parser(X) ::= punion(p). {X=new sstr(); *X<<"N_UNION("<<p<<")";}
 parser(X) ::= LPAREN parser(p) RPAREN. {X=p;}
 
 statement(X) ::= VARIDENTIFIER(name) EQUAL parser(def). {X=new sstr(); *X<<"N_DEFPARSER("<<name<<","<<def<<")";}
