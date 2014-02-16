@@ -48,3 +48,4 @@
 /generator/tools/old2new
 /generator/tools/bootstrap.c
 /generator/tools/bootstrap.cc
+/generator/newgrammar.h
