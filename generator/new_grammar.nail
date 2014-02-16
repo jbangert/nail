@@ -4,17 +4,17 @@
 #define digit  (uint8 | '0' .. '9')
 number = many1 digit
 varidentifier   = <WHITE; many1 lower>
-constidentifier = many1 upper
+constidentifier = <WHITE; many1 upper>
 WHITE = many uint8 = ' ' || uint8 = '\n'
 SEPERATOR = many uint8 = '\n' || uint8 = ';'
 intconstant = <WHITE;  choose {
-            NUMBER= number
-            ASCII= <t("'") 
+            ASCII= <uint8 = '\''
                    choose{
                      escape= <uint8 = '\\'; uint8>
                      direct= uint8
                     } 
-                     t("'")>
+                     uint8 = '\''>
+            NUMBER= number
             }>
 
 intp = choose{
@@ -36,7 +36,7 @@ constfield = choose{
             CREF=              constidentifier
 }         
 intconstraint  = choose {
-               RANGE = { t("["); min optional intconstant; t(".."); max optional intconstant;  t("]")}
+               RANGE = { min optional intconstant; t(".."); max optional intconstant}
                SET = < t("[");  sepBy1 uint8 = ','  intconstant ; t("]") >
                NEGATE = < t("!") *intconstraint>
                }
@@ -56,11 +56,11 @@ wrapparser = {t("<"); const_before optional <sepBy1 SEPERATOR constfield; SEPERA
                       t(">") }
                       
 choiceparser = < t("choose"); t("{"); many {tag varidentifier; t("="); parser  *parser }; t("}") >
-arrayparser =   choose{
-                MANY=  < t("many"); *parser>               
+arrayparser =   choose{         
                 MANYONE= < t("many1"); *parser>
+                MANY=  < t("many"); *parser>  
+                SEPBYONE={ t("sepBy1"); seperator *parser; inner *parser}    
                 SEPBY= { t("sepBy") ; seperator *parser; inner *parser}
-                SEPBYONE={ t("sepBy1"); seperator *parser; inner *parser}
                 }
 
 parser =  choose {
@@ -72,7 +72,7 @@ parser =  choose {
                 UNION = sepBy1 t("||") *parser
                 REF   =  <t("*") varidentifier >
                 NAME  =  varidentifier
-         } || < t("(") *parser t(")")>
+         } ||  < t("(") *parser t(")")>
 
 definition = choose {
            PARSER = {name  varidentifier

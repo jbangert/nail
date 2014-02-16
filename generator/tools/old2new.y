@@ -49,7 +49,7 @@ options(X) ::= options(A) option(B). {X=new sstr(); *X<<A<<B;}
 options(X) ::= option(B). {X=B;}                
 parser(X) ::= CHOOSE LCURL options(opt) RCURL. {X=new sstr(); *X<<"N_CHOICE("<< opt<<")";}
 parser(X) ::= MANY parser(p). {X=new sstr(); *X<<"N_ARRAY(h_many,"<<p<<")";}
-parser(X) ::= MANY1 parser(p). {X=new sstr(); *X<<"N_ARRAY(h_many,"<<p<<")";}
+parser(X) ::= MANY1 parser(p). {X=new sstr(); *X<<"N_ARRAY(h_many1,"<<p<<")";}
 parser(X) ::= SEPBY constparser(seperator) parser(p). {X=new sstr(); *X<<"N_SEPBY("<<seperator<<","<<p<<")";}
 parser(X) ::= SEPBY1 constparser(seperator) parser(p). {X=new sstr(); *X<<"N_SEPBY1("<<seperator<<","<<p<<")";}
 parser(X) ::= constrainedint(A). {X=new sstr(); *X<<"N_UINT(uint8_t,"<<A<<")";}

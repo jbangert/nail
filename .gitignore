@@ -50,3 +50,6 @@
 /generator/tools/bootstrap.c
 /generator/tools/bootstrap.cc
 /generator/newgrammar.h
+/examples/test/union/foo.c
+/examples/test/union/test
+/generator/mk_parser.cc~

@@ -1,0 +1,4 @@
+choose {
+       test = uint8
+       bar  = < uint8 >
+}
