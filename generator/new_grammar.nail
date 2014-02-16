@@ -26,34 +26,7 @@ intp = choose{
 }  
 constint = { parser intp
              t("=")
-             value intconstant }          
-intconstraint  = choose {
-               RANGE = { t("["); min optional intconstant; t(".."); max optional intconstant;  t("]")}
-               SET = < t("[");  sepBy1 uint8 = ','  intconstant ; t("]") >
-               NEGATE = < t("!") *intconstraint>
-               }
-constrainedint = {
-                parser intp
-                constraint optional <t("|")  intconstraint  >  
-}
-structparser = <t("{"); sepBy SEPERATOR choose{
-              const = constfield                      
-              field = { name varidentifier;  parser *parser }
-              } 
-         t("}")>
-wrapparser = {t("<"); const_before optional <sepBy1 SEPERATOR constfield; SEPERATOR>
-                      parser parser
-                      const_after sepBy SEPERATOR constfield
-                      t(">") }
-                      
-choiceparser = < t("choose"); t("{"); many {tag varidentifier; t("="); parser  parser }; t("}") >
-arrayparser =   choose{
-                MANY=  < t("many"); parser>               
-                MANYONE= < t("many1"); parser>
-                SEPBY= { t("sepBy") ; seperator parser; inner parser}
-                SEPBYONE={ t("sepBy1"); seperator parser; inner parser}
-                }
-arrayvalue = choose {  // We could use a push-choose operator here.... 
+             value intconstant }arrayvalue = choose {  // We could use a push-choose operator here.... 
            STRING= < WHITE uint8 = '"' many uint8 | !['"'] uint8 = '"' > 
            VALUES= < t("[") many intconstant t("]")> 
            }    
@@ -63,17 +36,44 @@ constfield = choose{
             INT=              constint
             REF=              constidentifier
 }         
+intconstraint  = choose {
+               RANGE = { t("["); min optional intconstant; t(".."); max optional intconstant;  t("]")}
+               SET = < t("[");  sepBy1 uint8 = ','  intconstant ; t("]") >
+               NEGATE = < t("!") *intconstraint>
+               }
+constrainedint = {
+                parser intp
+                constraint optional <t("|")  intconstraint  >  
+}
+
+structparser = <t("{"); sepBy SEPERATOR choose{
+              constant = constfield                      
+              field= { name varidentifier;  parser *parser }
+              } 
+         t("}")>
+wrapparser = {t("<"); const_before optional <sepBy1 SEPERATOR constfield; SEPERATOR>
+                      parser *parser
+                      const_after sepBy SEPERATOR constfield
+                      t(">") }
+                      
+choiceparser = < t("choose"); t("{"); many {tag varidentifier; t("="); parser  *parser }; t("}") >
+arrayparser =   choose{
+                MANY=  < t("many"); *parser>               
+                MANYONE= < t("many1"); *parser>
+                SEPBY= { t("sepBy") ; seperator *parser; inner *parser}
+                SEPBYONE={ t("sepBy1"); seperator *parser; inner *parser}
+                }
 
 parser =  choose {
                 INT= constrainedint
                 STRUCT= structparser
                 WRAP = wrapparser
                 CHOICE= choiceparser
-                OPTIONAL= <t("optional") parser>
-                UNION = sepBy1 t("||") parser
+                OPTIONAL= <t("optional") *parser>
+                UNION = sepBy1 t("||") *parser
                 REF   =  <t("*") varidentifier >
                 NAME  =  varidentifier
-         } || < t("(") parser t(")")>
+         } || < t("(") *parser t(")")>
 
 definition = choose {
            PARSER = {name  varidentifier
