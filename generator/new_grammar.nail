@@ -63,17 +63,16 @@ arrayparser =   choose{
                 SEPBY= { t("sepBy") ; seperator *parser; inner *parser}
                 }
 
-parser =  choose {
+parser = sepBy1 t("||") parserelem
+parserelem = < optional t("("); choose {// because we don't do left recursive grammars yet
                 INT= constrainedint
                 STRUCT= structparser
                 WRAP = wrapparser
                 CHOICE= choiceparser
                 OPTIONAL= <t("optional") *parser>
-                UNION = sepBy1 t("||") *parser
                 REF   =  <t("*") varidentifier >
                 NAME  =  varidentifier
-         } ||  < t("(") *parser t(")")>
-
+         } ; optional t(")") > // replace with a proper wrap
 definition = choose {
            PARSER = {name  varidentifier
                      WHITE

@@ -1,4 +1,4 @@
-all: nail parser_invocationn
+all: nail parser_invocation
 newgrammar.h: tools/*.c tools/*.h tools/*.y
 	$(cd tools; make; make; ./old2new ../new_grammar.nail  2&>/dev/null > ../newgrammar.h)
 nail: main.o foo.o mk_gen.o mk_parser.o
