@@ -55,9 +55,9 @@ structparser = <t("{"); sepBy SEPERATOR choose{
               field= { name varidentifier;  parser *parser }
               } 
          t("}")>
-wrapparser = {t("<"); const_before optional <sepBy1 SEPERATOR constparser; SEPERATOR>
+wrapparser = {t("<"); constbefore optional <sepBy1 SEPERATOR constparser; SEPERATOR>
                       parser *parser
-                      const_after optional <SEPERATOR;sepBy SEPERATOR constparser>
+                      constafter optional <SEPERATOR;sepBy SEPERATOR constparser>
                       t(">") }
 // choiceidentifier = || varidentifier || constidentifier                      
 choiceparser = < t("choose"); t("{"); many {tag  || varidentifier || constidentifier; t("="); parser  *parser }; t("}") >

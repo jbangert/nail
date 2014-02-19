@@ -1,0 +1,14 @@
+number = many1 (uint8 | '0' .. '9')
+varidentifier = <WHITE; many1 (uint8 | 'a'..'z')>
+constidentifier = <WHITE; many1 (uint8 | 'A'..'Z')>
+WHITE = many || uint8 = ' ' || uint8 = '\n'
+SEPERATOR = many || uint8 = '\n' || uint8 = ';'
+intconstant = <WHITE; choose {
+            ASCII= <uint8 = '\''
+                   choose{
+                     escape= <uint8 = '\\'; uint8>
+                     direct= uint8
+                    }
+                     uint8 = '\''>
+            NUMBER= number
+            }>

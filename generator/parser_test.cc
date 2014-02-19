@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include "nailtool.h"
-
+#include <stdio.h>
 
 #define CAT(x,y) TOKENPASTE(x,y)
 int main()
@@ -15,7 +15,7 @@ int main()
     inputsize = fread(input, 1, sizeof(input), stdin);
     fprintf(stderr, "inputsize=%zu\ninput=", inputsize);
     fwrite(input, 1, inputsize, stderr);
-    X * test =CAT(parse_,X)(input,inputsize);
+    X * test =CAT(parse_trace_,X)(input,inputsize,stderr,"HAMMER>");
     if(!test)
       exit(-1);
     CAT(print_,X) ( test,stdout,0);

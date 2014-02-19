@@ -1,0 +1,8 @@
+constparser = choose{
+            CARRAY= constarray
+            CREPEAT= <{WHITE;many uint8 = "many "} *constparser>
+            CINT= constint
+            CREF= constidentifier
+            CSTRUCT = < {WHITE;many uint8 = "{"}; constfields ;{WHITE;many uint8 = "}"}>
+            CUNION = many1 <{WHITE;many uint8 = "||"} constparser>
+}

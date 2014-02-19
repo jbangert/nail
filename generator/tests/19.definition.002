@@ -1,0 +1,4 @@
+wrapparser = {{WHITE;many uint8 = "<"}; constbefore optional <sepBy1 SEPERATOR constparser; SEPERATOR>
+                      parser *parser
+                      constafter sepBy SEPERATOR constparser
+                      {WHITE;many uint8 = ">"} }
