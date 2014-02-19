@@ -5,8 +5,8 @@
 number = many1 digit
 varidentifier   = <WHITE; many1 lower>
 constidentifier = <WHITE; many1 upper>
-WHITE = many uint8 = ' ' || uint8 = '\n'
-SEPERATOR = many uint8 = '\n' || uint8 = ';'
+WHITE = many || uint8 = ' ' || uint8 = '\n'
+SEPERATOR = {many uint8=' '; many || uint8 = '\n' || uint8 = ';'}
 intconstant = <WHITE;  choose {
             ASCII= <uint8 = '\''
                    choose{
@@ -25,12 +25,13 @@ intp = choose{
 }  
 constint = { parser intp
              t("=")
-             value intconstant }arrayvalue = choose {  // We could use a push-choose operator here.... 
+             value intconstant }
+arrayvalue = choose {  // We could use a push-choose operator here.... 
            STRING= < WHITE uint8 = '"' many uint8 | !['"'] uint8 = '"' > 
            VALUES= < t("[") many intconstant t("]")> 
            }    
 constarray = { t("many ");parser intp;  t("="); value arrayvalue}
-constfields = many1 constparser
+constfields = sepBy1 SEPERATOR constparser
 constparser = choose{   
             CARRAY=            constarray
             CREPEAT=           <t("many ") *constparser>
@@ -56,15 +57,15 @@ structparser = <t("{"); sepBy SEPERATOR choose{
          t("}")>
 wrapparser = {t("<"); const_before optional <sepBy1 SEPERATOR constparser; SEPERATOR>
                       parser *parser
-                      const_after sepBy SEPERATOR constparser
+                      const_after optional <SEPERATOR;sepBy SEPERATOR constparser>
                       t(">") }
-                      
-choiceparser = < t("choose"); t("{"); many {tag varidentifier; t("="); parser  *parser }; t("}") >
+// choiceidentifier = || varidentifier || constidentifier                      
+choiceparser = < t("choose"); t("{"); many {tag  || varidentifier || constidentifier; t("="); parser  *parser }; t("}") >
 arrayparser =   choose{         
-                MANYONE= < t("many1 "); *parser>
-                MANY=  < t("many "); *parser>  
-                SEPBYONE={ t("sepBy1 "); seperator *parser; inner *parser}    
-                SEPBY= { t("sepBy ") ; seperator *parser; inner *parser}
+                MANYONE= < t("many1"); *parser>
+                MANY=  < t("many"); *parser>  
+                SEPBYONE={ t("sepBy1"); seperator constparser; inner *parser}    
+                SEPBY= { t("sepBy") ; seperator constparser; inner *parser}
                 }
 
 parserinner =  choose {// because we don't do left recursive grammars yet
@@ -82,10 +83,8 @@ parser = choose {PAREN=<t("(") parserinner t(")")>
                  PR= parserinner}
 definition = choose {
            PARSER = {name  varidentifier
-                     WHITE
-                     uint8 = '='
-                     WHITE
-                     definition parser }
+                    t("=")
+                    definition parser }
            CONST = {
                  name constidentifier 
                  WHITE
@@ -94,4 +93,4 @@ definition = choose {
                  definition constparser
            }          
            }
-grammar = many definition
+grammar = <many1 definition; WHITE>
