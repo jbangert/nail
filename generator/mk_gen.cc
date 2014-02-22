@@ -1,5 +1,5 @@
 #include "nailtool.h"
-
+#if 0 
 #define p_arg(x) x.count,(const char*)x.elem
 
 #define str(x) std::string((const char *)x.elem,x.count)
@@ -206,7 +206,9 @@ void GenGenerator::emit_grammar( grammar *grammar)
   }
 
 }
+#endif
 void emit_generator(std::ostream *out, grammar *grammar, const char *header){
-  GenGenerator g(*out,header);
-  g.emit_grammar(grammar);
+return 
+
 }
+

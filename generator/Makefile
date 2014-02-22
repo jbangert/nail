@@ -1,7 +1,7 @@
 all: nail parser_invocation
 newgrammar.h: new_grammar.nail
 	tools/old2new new_grammar.nail  2&>/dev/null > newgrammar.h
-nail: main.o foo.o mk_gen.o mk_parser.o
+nail: main.o foo.o mk_parser.o
 	g++ $(CFLAGS) -o $@ $^
 parser_invocation: foo.o parser_invocation.o
 	g++ $(CFLAGS) -o $@ $^

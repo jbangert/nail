@@ -8,8 +8,7 @@ class GenHammer{
 #define ELEM(x) void action(x &param,Expr &in,Expr &outval);    \
   void parser(x &param);                 
   
-  ELEM(struct_rule);
-  ELEM(nx_length_rule);
+  ELEM(structparser);
   ELEM(array_rule);
   ELEM(choice_rule);
   ELEM(optional_rule);
@@ -154,7 +153,7 @@ void GenHammer::action(array_rule &rule,Expr &in,Expr &outexpr){
   action(rule.contents,seqi,elemi);
   _out<< "}}";
 }
-void GenHammer::parser(struct_rule &rule){
+void GenHammer::parser(structparser &rule){
   _out << "h_sequence(";
   FOREACH(struct_elem,rule.fields){
     switch(struct_elem->N_type){
@@ -171,7 +170,7 @@ void GenHammer::parser(struct_rule &rule){
   }
   _out<<"NULL)";
 }
-void GenHammer::action(struct_rule &rule,Expr &in, Expr &out){
+void GenHammer::action(structparser &rule,Expr &in, Expr &out){
   int struct_off = 0;
   FOREACH(struct_elem,rule.fields)
     {
