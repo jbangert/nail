@@ -27,9 +27,8 @@ int main(int argc, char**argv)
     // print_parser_invocation(parse_parser_invocation(input,inputsize),stdout,0);
     // exit(0);
     result =  parse_grammar(input,inputsize);
-    if(result)
-      print_grammar(result, stderr,0);
-    exit(1);
+    //    if(result)
+    //      print_grammar(result, stderr,0);    exit(1);
      if(result) {
        std::ofstream *outfile = NULL;
        int i =0;
@@ -50,8 +49,8 @@ int main(int argc, char**argv)
          else if(!strcmp(argv[i],"-parser_hammer")){
             emit_hammer_parser(outfile,result,argv[1]);
          }
-         else if(!strcmp(argv[i],"-generator"))
-           emit_generator(outfile,result,argv[1]);
+         // else if(!strcmp(argv[i],"-generator"))
+         //           emit_generator(outfile,result,argv[1]);
          else
            error("Unknown command line option %s",argv[i]);
        }

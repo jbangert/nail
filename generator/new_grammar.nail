@@ -18,10 +18,10 @@ intconstant = <WHITE;  choose {
             }>
 
 intp = choose{
-          UNSIGNED = { t("uint")
-                       length  many1 digit}
-          SIGNED =   { t("int")
-                       length many1 uint8 | '0' .. '9'}
+          UNSIGNED = < t("uint")
+                      many1 digit>
+          SIGNED =   < t("int")
+                      many1 uint8 | '0' .. '9'>
 }  
 constint = { parser intp
              t("=")
