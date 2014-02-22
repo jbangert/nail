@@ -60,22 +60,23 @@ void emit_type(std::ostream &out, const parser &outer,const std::string name =""
     emit_type(out,*p.WRAP.parser);
     break;
   case CHOICE:{
-    out << "struct" << name<< "{\n enum {";
+    out << "struct " << name<< "{\n enum  {";
     int idx=0;
     FOREACH(option, p.CHOICE){
       if(idx++ >0) 
         out << ',';
       out << mk_str(option->tag);
     }
-    out << "} N_tag; \n N_tag N_type; \n";
-    out << "union {";
+    out << "} N_type; \n";
+    out << "union {\n";
     FOREACH(option, p.CHOICE){
       emit_type(out,*option->parser);
       out << " "<<  mk_str(option->tag) << ";\n";
     }
-    out<< "}\n}\n";
+    out<< "};\n}";
   }
     break;
+  
   case ARRAY:
     out << "struct "<< name <<"{\n";
     switch(p.ARRAY.N_type){
@@ -89,7 +90,7 @@ void emit_type(std::ostream &out, const parser &outer,const std::string name =""
       break;
     }
     out << "*elem;\n size_t count;\n";
-    out << "}" << std::endl;
+    out << "}" ;
     break;
   case OPTIONAL:
     emit_type(out,*p.OPTIONAL);
@@ -131,9 +132,10 @@ void emit_type_definition(std::ostream &out, const parser &p,const std::string n
   case ARRAY:
   case CHOICE:
     emit_type(out,p,name);
+    out << ";" << std::endl;
     break;
   case WRAP:
-    emit_type(out,*p.PR.WRAP.parser,name);
+    emit_type_definition(out,*p.PR.WRAP.parser,name);
     break;
   default:
     break; //Other definitions don't need a type
@@ -149,7 +151,7 @@ void emit_type(std::ostream &out, const definition &def){
 void emit_parser(std::ostream *out, grammar *grammar, const char *header){
   try{
   assert(out->good());
-
+  *out << "#include <stdint.h>\n #include <string.h>\n";
   //Emit forward declarations
   FOREACH(definition,*grammar){
     if(definition->N_type!=PARSER)
