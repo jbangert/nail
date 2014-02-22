@@ -40,7 +40,114 @@ std::string typedef_type(const parser &p, std::string name){
  
   }
 }
-void emit_hammer_parser(std::ostream *out, grammar *grammar, const char *header){
+void emit_type(std::ostream &out, const parser &outer,const std::string name =""){
+  const parserinner &p = outer.PR;
+  switch(p.N_type){
+  case INT:
+    out << int_type(p.INT.parser);
+    break;
+  case STRUCT:
+    out<<"struct " << name << "{\n";
+    FOREACH(field,p.STRUCT){
+      if(field->N_type != FIELD)
+        continue;
+      emit_type(out, *field->FIELD.parser);
+      out << " " << mk_str(field->FIELD.name) << ";\n";
+    }
+    out << "}" << std::endl;
+    break;
+  case WRAP:
+    emit_type(out,*p.WRAP.parser);
+    break;
+  case CHOICE:{
+    out << "struct" << name<< "{\n enum {";
+    int idx=0;
+    FOREACH(option, p.CHOICE){
+      if(idx++ >0) 
+        out << ',';
+      out << mk_str(option->tag);
+    }
+    out << "} N_tag; \n N_tag N_type; \n";
+    out << "union {";
+    FOREACH(option, p.CHOICE){
+      emit_type(out,*option->parser);
+      out << " "<<  mk_str(option->tag) << ";\n";
+    }
+    out<< "}\n}\n";
+  }
+    break;
+  case ARRAY:
+    out << "struct "<< name <<"{\n";
+    switch(p.ARRAY.N_type){
+    case MANY:
+    case MANYONE:
+      emit_type(out,*p.ARRAY.MANY);
+      break;
+    case SEPBY:
+    case SEPBYONE:
+      emit_type(out,*p.ARRAY.SEPBY.inner);
+      break;
+    }
+    out << "*elem;\n size_t count;\n";
+    out << "}" << std::endl;
+    break;
+  case OPTIONAL:
+    emit_type(out,*p.OPTIONAL);
+    out << "*";
+    break;
+  case UNION:
+    {
+      std::string first;
+      int idx=0;
+      FOREACH(elem, p.UNION){
+        std::stringstream tmp;
+        emit_type(tmp,**elem);
+        if(idx++==0)
+          first = tmp.str();
+        else{
+          //TODO: Perform in-depth checking
+          //         if(first!= tmp.str()){
+          //        throw std::runtime_error(boost::str(boost::format("UNION elements do not induce the same type\n %s \n %s") % tmp.str() % first)); //Be more
+                                                                                    //descriptive
+          //    }
+        }
+      }
+      out << first;
+    }
+    break;
+  case REF:
+    out << mk_str(p.REF)<<"* ";
+    break;
+  case NAME:
+    out << mk_str(p.NAME);
+    break;
+  }
+}
+void emit_type_definition(std::ostream &out, const parser &p,const std::string name)
+{
+
+  switch(p.PR.N_type){
+  case STRUCT:
+  case ARRAY:
+  case CHOICE:
+    emit_type(out,p,name);
+    break;
+  case WRAP:
+    emit_type(out,*p.PR.WRAP.parser,name);
+    break;
+  default:
+    break; //Other definitions don't need a type
+  }
+}
+void emit_type(std::ostream &out, const definition &def){
+  if(def.N_type != PARSER)
+    return;
+  std::string name(mk_str(def.PARSER.name));
+  emit_type_definition(out,def.PARSER.definition,name);
+}
+
+void emit_parser(std::ostream *out, grammar *grammar, const char *header){
+  try{
   assert(out->good());
 
   //Emit forward declarations
@@ -51,13 +158,11 @@ void emit_hammer_parser(std::ostream *out, grammar *grammar, const char *header)
     *out << "typedef "<< typedef_type(definition->PARSER.definition,name)<< " " << name << ";" << std::endl;
   }
   FOREACH(definition, *grammar){
-    switch(definition->N_type){
-    case PARSER:
-      
-      break;
-    case CONST:
-      break;
-    }
+    emit_type(*out,*definition);
   }
- 
+  *out<< std::endl;
+  } catch(std::exception &e){
+    std::cerr << "Exception while generating parser" << e.what()<<std::endl;
+    exit(-1);
+  }
 }

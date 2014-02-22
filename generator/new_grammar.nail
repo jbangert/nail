@@ -51,8 +51,8 @@ constrainedint = {
 }
 
 structparser = <t("{"); sepBy SEPERATOR choose{
-              constant = constparser                      
-              field= { name varidentifier;  parser *parser }
+              CONSTANT = constparser                      
+              FIELD= { name varidentifier;  parser *parser }
               } 
          t("}")>
 wrapparser = {t("<"); constbefore optional <sepBy1 SEPERATOR constparser; SEPERATOR>

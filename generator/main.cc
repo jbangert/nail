@@ -47,7 +47,7 @@ int main(int argc, char**argv)
              //emit_header(outfile,result);
            }
          else if(!strcmp(argv[i],"-parser_hammer")){
-            emit_hammer_parser(outfile,result,argv[1]);
+            emit_parser(outfile,result,argv[1]);
          }
          // else if(!strcmp(argv[i],"-generator"))
          //           emit_generator(outfile,result,argv[1]);
