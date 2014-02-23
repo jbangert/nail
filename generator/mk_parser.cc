@@ -151,7 +151,7 @@ class CDataModel{
     std::string name(mk_str(def.PARSER.name));
     emit_type_definition(out,def.PARSER.definition,name);
   }
-
+public:
   void emit_parser( grammar *grammar){
     try{
       assert(out.good());
@@ -172,10 +172,11 @@ class CDataModel{
       exit(-1);
     }
   }
-  CDataModel(std::ostream *os) : out(*out){}
+
+  CDataModel(std::ostream *os) : out(*os){}
   
-}
+};
   void emit_parser(std::ostream *out, grammar *grammar){
-    CDataModel data(*out);
-    out.emit_parser(grammar);
+    CDataModel data(out);
+    data.emit_parser(grammar);
   }
