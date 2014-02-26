@@ -210,15 +210,15 @@ class CPrimitiveParser{
     out << fail << "\n";
     out << success_label <<":\n";
   }
-  void packrat_repeat(const parser &p, const std::string &fail, size_t min, const constparser *seperator){
+  void packrat_repeat(const parser &p, const std::string &fail, size_t min, const constparser *separator){
     std::string gotofail=(boost::format("goto fail_repeat_%d;") % nr_many).str();
     out << "{\n";
     out << "pos many = n_tr_memo_many(n_trace *trace);\n"
         << "pos count = 0;"
         << "succ_optional_" << nr_many << ":";
-    if(seperator != NULL){
+    if(separator != NULL){
       out << "if(count>0){\n";
-      packrat(*seperator,gotofail);
+      packrat(*separator,gotofail);
       out << "}\n";
     }
     packrat(p, gotofail);
@@ -240,10 +240,10 @@ class CPrimitiveParser{
       packrat_repeat(*array.MANY,fail, 0,NULL);
       break;
     case SEPBYONE:
-      packrat_repeat(*array.SEPBYONE.inner,fail, 1,&array.SEPBYONE.seperator);
+      packrat_repeat(*array.SEPBYONE.inner,fail, 1,&array.SEPBYONE.separator);
       break;
     case SEPBY:
-      packrat_repeat(*array.SEPBY,fail, 0, &array.SEPBY.seperator);
+      packrat_repeat(*array.SEPBY,fail, 0, &array.SEPBY.separator);
       break;
     }
     arrayparser

@@ -64,8 +64,8 @@ choiceparser = < t("choose"); t("{"); many {tag  || varidentifier || constidenti
 arrayparser =   choose{         
                 MANYONE= < t("many1"); *parser>
                 MANY=  < t("many"); *parser>  
-                SEPBYONE={ t("sepBy1"); seperator constparser; inner *parser}    
-                SEPBY= { t("sepBy") ; seperator constparser; inner *parser}
+                SEPBYONE={ t("sepBy1"); separator constparser; inner *parser}    
+                SEPBY= { t("sepBy") ; separator constparser; inner *parser}
                 }
 
 parserinner =  choose {// because we don't do left recursive grammars yet
