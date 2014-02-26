@@ -11,7 +11,7 @@ HParsedToken *N_act_choice_tag(const HParseResult *p, void *user_data) {
 
 #define N_ARRAY(combinator,inner) combinator(inner)
 #undef N_SEPBY
-#define N_SEPBY(seperator,inner) h_sepBy(inner,seperator)
+#define N_SEPBY(separator,inner) h_sepBy(inner,separator)
 #define NX_LENGTHVALUE_HACK(lengthp, elemp) h_length_value(lengthp,elemp)
 #undef NX_HRULE
 #define NX_HRULE(name,inner) H_RULE(name, inner);

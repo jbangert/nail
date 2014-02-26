@@ -10,7 +10,7 @@
 #undef N_OPTION
 #undef N_REF
 #undef N_SEPBY
-#define N_SEPBY(seperator,inner) N_ARRAY(_COMPILE_ERROR,inner)
+#define N_SEPBY(separator,inner) N_ARRAY(_COMPILE_ERROR,inner)
 #undef N_WRAP
 
 
