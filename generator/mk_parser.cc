@@ -177,23 +177,149 @@ public:
   CDataModel(std::ostream *os) : out(*os){}
   
 };
+
+std::string intconstant_value(const intconstant &val){
+  switch(val.N_type){
+  case ASCII:
+    if(val.ASCII.N_type == escape)
+      return boost::str(boost::format("'\\%c'") % val.ASCII.escape);
+    else
+      return boost::str(boost::format("'%c'") % val.ASCII.direct);
+    break;
+  case NUMBER:
+    return mk_str(val.NUMBER);
+  }
+}
 class CPrimitiveParser{
   std::ostream &out;
   int nr_choice,nr_option;
   int nr_many;
-  CPrimitiveParser(std::ostream *os) : out(*os), nr_choice(1),nr_many(0){}
+  int nr_const;
+  
+  int bit_offset = 0; // < 0 = unknown alignment, 0 == byte aligned, 1 = byte + 1, etc 
+  CPrimitiveParser(std::ostream *os) : out(*os), nr_choice(1),nr_many(0),nr_const(0){}
   std::string choice_label(){return  (boost::format("choice_%u_%u") % nr_choice %n_option++).str();}
   /*Packrat pass emits a light-weight trace of data structure*/
+  //TODO: Keep track of bit alignment
+  void check_int(unsigned int width, const std::string &fail){
+    out << "if(off + "<< width <<">= max) {fail}";
+  }
+  std::string int_expr(unsigned int width){
+    if(width>=64){
+      throw std::runtime_error("More than 64 bits in integer");
+    }
+    //TODO: x
+    // TODO: Make big endian. Flip n bytes
+    return boost::str(boost::format("BITSLICE(*(uint64_t *)(data+(off % ~7)),off & 7 + %d, off&7)") % bytes);
+  }
+  void constraint( const intconstraint &constraint){
+      switch(constraint.N_type){
+      case RANGE:
+        out << "val>"<<intconstant_value(constraint.RANGE.max) << "|| val < "<<intconstant_value(constraint.RANGE.min);
+        break;
+      case SET:
+        {
+          int first = 0;
+          FOREACH(val,constraint.SET){
+            if(first++ != 0)
+              out << " && ";
+            out << "val != "<<intconstant_value(val);
+          }
+        }
+        break;
+      case NEGATE:
+        out << "!(";
+        constraint(!constraint.NEGATE);
+        out << ")";
+        break;
+      }
+  }
+  
   void packrat(const constrainedint &c, const std::string &fail){
-    
+    int width = boost::lexical_cast<int>(mk_str(c.parser.UNSIGNED));
+    check_int(width,fail);
+    if(c.constraint != NULL){
+      out << "{\n uint64 val = "<< int_expr(width) << ";\n";
+      out << "if(";
+      constraint(*c.constraint);
+      out << "){"<<fail<<"}\n";
+      out << "}\n";
+    }
+    out << "pos +="<< width<<";\n";
+  }
+  void packrat_constint(int width, std::string value,std::string &fail){
+      check_int(width,fail);
+      out << "if( "<< int_expr(width) << "!= "<<value"){"<<fail<<"}";
+      out << "off += " << width; //TODO deal with bits
+      out << "end_of_const = pos;"
+  }
+  void packrat_const(const constarray &c, const std::string &fail){
+    switch(c.value.N_type){
+    case STRING:
+      assert(mk_str(c.parser.UNSIGNED) == "8");
+      FOREACH(ch, c.value.STRING){
+        packrat_constint(8,std::string(ch),fail);
+      }
+      break;
+    case VALUES:{
+      int width = boost::lexical_cast<int>(mk_str(c.parser.UNSIGNED));
+      FOREACH(v,c.value.VALUES){
+        packrat_constint(width, intconstant_value(v),fail);
+      }
+      break;
+    }
+      
+    }
+
+  }
+
+  void packrat_const(const constparser &c, const std::string &fail){
+
+    switch(c.N_type){
+    case CARRAY:
+      packrat_const(c.CARRAY);
+      break;
+    case CREPEAT:{
+      std::string retrylabel = (boost::format("constmany_%d_repeat") % nr_const++).str();
+      std::string faillabel = (boost::format("constmany_%d_end") % nr_const++).str();
+      out << retrylabel << ":\n";
+      packrat_const(c.CREPEAT,std::string("goto ")+faillabel+";");
+      out << "goto " << retrylabel << ";\n";
+      out << faillabel << ":\n";
+      break;
+    }
+    case CINT:{
+      int width = boost::lexical_cast<int>(mk_str(c.CINT.parser.UNSIGNED));
+      long long value = boost::lexical_cast<long long>();
+      packrat_constint(width,mk_str(c.CINT.value),fail);
+    }
+    break;
+    case CREF:
+      out << "{\n"
+          <<"pos ext = packrat_const_" << make_str(c.CREF) << "();"
+          <<"if(ext < 0){" << fail << "}\n"
+          << "end_of_const = ext;"
+          << "}";
+      break;
+    case CSTRUCT:
+      FOREACH(field,c.CSTRUCT){
+        packrat_const(field,fail);
+      }
+        break;
+    }
+
   }
   void packrat(const constparser &c, const std::string &fail){
+    out << "{ pos end_of_const = off;";
+    packrat_const(c,fail);
+    out << "if(parser_fail(n_tr_const(trace,end_of_const))){"<<fail<<"}\n"
+    out << "}";    
   }
   typedef  std::list<const parser &> parserlist;
   void packrat_choice(const parserlist &list, const std::string &fail){
     nr_choice++;
     nr_option = 0;
-    out << "{pos backtrack = trace->iter;\n"
+    out << "{pos backtrack = off;\n"
         << "pos choice_begin = n_tr_begin_choice(trace); \n"
         << "pos choice;\n"
         << "if(parser_fail(choice_begin)) {" << fail <<"}\n";
@@ -206,6 +332,7 @@ class CPrimitiveParser{
       packrat(p,fallthrough_goto);
       out << "goto " << success_label<< "\n";
       out << fallthrough_memo << ":\n";
+      out << "trace->iter = backtrack;\n";
     }
     out << fail << "\n";
     out << success_label <<":\n";
@@ -214,7 +341,7 @@ class CPrimitiveParser{
     std::string gotofail=(boost::format("goto fail_repeat_%d;") % nr_many).str();
     out << "{\n";
     out << "pos many = n_tr_memo_many(n_trace *trace);\n"
-        << "pos count = 0;"
+        << "pos count = 0;\n"
         << "succ_optional_" << nr_many << ":";
     if(separator != NULL){
       out << "if(count>0){\n";
@@ -246,7 +373,6 @@ class CPrimitiveParser{
       packrat_repeat(*array.SEPBY,fail, 0, &array.SEPBY.separator);
       break;
     }
-    arrayparser
   }
   void packrat_optional(const parser &p, const std::string &fail){
     out << "{\n";
@@ -306,11 +432,12 @@ class CPrimitiveParser{
         packrat_choice(l,fail);
       }
     case ARRAY:
-      packrat(parser.PR.ARRAY,fail);
+      packrat(parser.PR.ARRAY,fail); 
       break;
     case OPTIONAL:
       packrat(parser.PR.OPTIONAL,fail);
       break;
+      //TODO: Do caching here
     case NAME: // Fallthrough intentional, and kludgy
     case REF: 
       out << "i = packrat_" << parser.PR.REF.name<< "(tmp, trace,data,pos,max);";
