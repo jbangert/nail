@@ -10,7 +10,8 @@ extern "C"{
 #include <hammer/glue.h>
 
 #include "grammar.h"
-        extern char *_binary_parser_template_c_start,*_binary_parser_template_c_end;
+        extern char parser_template_start[] asm("_binary_parser_template_c_start"); 
+        extern char parser_template_end[] asm("_binary_parser_template_c_end");
 }
 
 typedef struct expr{

@@ -8,7 +8,7 @@
 
 
 #define mk_str(x) std::string((const char *)x.elem,x.count)
-static const std::string parser_template(_binary_parser_template_c_start,_binary_parser_template_c_end - _binary_parser_template_c_start);
+//static const std::string parser_template(_binary_parser_template_c_start,_binary_parser_template_c_end - _binary_parser_template_c_start);
 class CDataModel{
   std::ostream &out;
   std::string int_type(const intp &intp ){
@@ -205,7 +205,7 @@ class CPrimitiveParser{
   /*Packrat pass emits a light-weight trace of data structure*/
   //TODO: Keep track of bit alignment
   void check_int(unsigned int width, const std::string &fail){
-    out << "if(off + "<< width <<">= max) {fail}";
+    out << "if(off + "<< width <<">= max) {"<<fail<<"}\n";
   }
   std::string int_expr(unsigned int width){
     if(width>=64){
@@ -213,7 +213,7 @@ class CPrimitiveParser{
     }
     //TODO: x
     // TODO: Make big endian. Flip n bytes
-    return boost::str(boost::format("BITSLICE(*(uint64_t *)(data+(off % ~7)),off & 7 + %d, off&7)") % width);
+    return boost::str(boost::format("BITSLICE(*(uint64_t *)(data+(off %% ~7)),off & 7 + %d, off&7)") % width);
   }
   void constraint(  intconstraint &c){
       switch(c.N_type){
@@ -242,19 +242,18 @@ class CPrimitiveParser{
     int width = boost::lexical_cast<int>(mk_str(c.parser.UNSIGNED));
     check_int(width,fail);
     if(c.constraint != NULL){
-      out << "{\n uint64 val = "<< int_expr(width) << ";\n";
+      out << "{\n uint64_t val = "<< int_expr(width) << ";\n";
       out << "if(";
       constraint(*c.constraint);
       out << "){"<<fail<<"}\n";
       out << "}\n";
     }
-    out << "pos +="<< width<<";\n";
+    out << "off +="<< width<<";\n";
   }
   void packrat_constint(int width, const std::string value,const std::string &fail){
       check_int(width,fail);
       out << "if( "<< int_expr(width) << "!= "<<value<<"){"<<fail<<"}";
-      out << "off += " << width; //TODO deal with bits
-      out << "end_of_const = pos;\n";
+      out << "off += " << width << ";\n"; //TODO deal with bits
   }
   void packrat_const(const constarray &c, const std::string &fail){
     switch(c.value.N_type){
@@ -298,54 +297,73 @@ class CPrimitiveParser{
     break;
     case CREF:
       out << "{\n"
-          <<"pos ext = packrat_const_" << mk_str(c.CREF) << "();"
+          <<"pos ext = packrat_" << mk_str(c.CREF) << "(data,off,max);\n"
           <<"if(ext < 0){" << fail << "}\n"
-          << "end_of_const = ext;"
-          << "}";
+          << "off = ext;\n"
+          << "}\n";
       break;
     case CSTRUCT:
       FOREACH(field,c.CSTRUCT){
         packrat_const(*field,fail);
       }
         break;
+    case CUNION:{
+      out << "{\n"
+          <<"pos backtrack = off;";
+      int thischoice = nr_choice++;
+      std::string succ_label = boost::str(boost::format("cunion_%d_succ") % thischoice);
+      int n_option = 1;
+      FOREACH(option,c.CUNION){
+        std::string fallthrough_label = boost::str(boost::format("cunion_%d_%d") % thischoice % n_option++);
+        std::string failopt = boost::str(boost::format("goto %s;") % fallthrough_label);
+        packrat_const(*option,failopt);
+        out << "goto " << succ_label << ";\n";
+        out << fallthrough_label << ":\n";
+        out << "off = backtrack;\n";
+      }
+      out << fail << "\n";
+      out << succ_label << ":;\n";
+      out << "}\n";
+    }
+      
+      break;
     }
 
   }
   void packrat(const constparser &c, const std::string &fail){
-    out << "{ pos end_of_const = off;";
     packrat_const(c,fail);
-    out << "if(parser_fail(n_tr_const(trace,end_of_const))){"<<fail<<"}\n";
-    out << "}";    
+    out << "if(parser_fail(n_tr_const(trace,off))){"<<fail<<"}\n";
   }
   typedef  std::list<const parser *> parserlist;
   void packrat_choice(const parserlist &list, const std::string &fail){
-    nr_choice++;
-    int nr_option = 0;
+    int this_choice = nr_choice++;
+    int nr_option = 1;
     out << "{pos backtrack = off;\n"
         << "pos choice_begin = n_tr_begin_choice(trace); \n"
         << "pos choice;\n"
         << "if(parser_fail(choice_begin)) {" << fail <<"}\n";
     int i=0;
-    std::string success_label = (boost::format("choice_%d_succ") % nr_choice).str();
+    std::string success_label = (boost::format("choice_%d_succ") % this_choice).str();
     
     BOOST_FOREACH(const parser *p, list){
-      std::string fallthrough_memo  =  (boost::format("choice_%u_%u") % nr_choice %nr_option++).str();
-      std::string fallthrough_goto = boost::str(boost::format("goto %s") % fallthrough_memo);
+      std::string fallthrough_memo  =  (boost::format("choice_%u_%u") % this_choice %nr_option++).str();
+      std::string fallthrough_goto = boost::str(boost::format("goto %s;") % fallthrough_memo);
       out << "choice = n_tr_memo_choice(trace);\n";
       packrat(*p,fallthrough_goto);
-      out << "goto " << success_label<< "\n";
+      out << "goto " << success_label<< ";\n";
       out << fallthrough_memo << ":\n";
       out << "trace->iter = backtrack;\n";
     }
     out << fail << "\n";
-    out << success_label <<":\n";
+    out << success_label <<": ;\n";
+    out << "}";
   }
   void packrat_repeat(const parser &p, const std::string &fail, size_t min, const constparser *separator){
     std::string gotofail=(boost::format("goto fail_repeat_%d;") % nr_many).str();
     out << "{\n";
-    out << "pos many = n_tr_memo_many(n_trace *trace);\n"
+    out << "pos many = n_tr_memo_many(trace);\n"
         << "pos count = 0;\n"
-        << "succ_optional_" << nr_many << ":";
+        << "succ_repeat_" << nr_many << ":\n";
     if(separator != NULL){
       out << "if(count>0){\n";
       packrat(*separator,gotofail);
@@ -353,13 +371,15 @@ class CPrimitiveParser{
     }
     packrat(p, gotofail);
     out << "count++;\n";
-    out << " goto succ_optional_"<< nr_many << ";\n";
-    out << "fail_optional_" << nr_many << ":\n";
+    out << " goto succ_repeat_"<< nr_many << ";\n";
+    out << "fail_repeat_" << nr_many << ":\n";
     if(min>0){
-      out << "if(count < min){"<< fail << "}\n";
+      out << "if(count < "<<min<<"){"<< fail << "}\n";
     }
-    out << "n_tr_write_many(trace,many,count);\n";
-    nr_many++;          
+    out << "n_tr_write_many(trace,many,count);\n" 
+        << "}\n";
+    nr_many++;
+    
   }
   void packrat(const arrayparser &array, const std::string &fail){
     switch(array.N_type){
@@ -443,9 +463,9 @@ class CPrimitiveParser{
       //TODO: Do caching here
     case NAME: // Fallthrough intentional, and kludgy
     case REF: 
-      out << "i = packrat_" << mk_str(parser.PR.REF)<< "(tmp, trace,data,pos,max);";
+      out << "i = packrat_" << mk_str(parser.PR.REF)<< "(tmp, trace,data,off,max);";
       out << "if(parser_fail(i)){" << fail << "}\n"
-          << "else{off=i;}";
+          << "else{off=i;}\n";
       break;
     }
   }
@@ -454,17 +474,44 @@ public:
   void packrat(const definition &def) {
     if(def.N_type == PARSER){
       std::string name = mk_str(def.PARSER.name);
-      out <<"static int packrat_" << name <<"(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max){\n";
+      out <<"static pos packrat_" << name <<"(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max){\n";
       out << "pos i;\n"; //Used in name and ref as temp variables
+      packrat(def.PARSER.definition, "goto fail;");
+      out << "return i;\n"
+          << "fail:\n return -1;\n";
       out << "}\n";
     }
-    else{
-      out << "BJOERK!\n";
+    else if(def.N_type == CONST){
+      std::string name = mk_str(def.CONST.name);
+      out << "static pos packrat_" << name << "(const char *data, pos off, pos max){\n";
+      packrat_const(def.CONST.definition, "goto fail;");
+      out << "return off;\n"
+          << "fail: return -1;\n"
+          << "}";
     }
+  }
+  void emit_parser(const grammar &gram){
+    FOREACH(def, gram){
+      //Declaration
+      switch(def->N_type){
+      case PARSER:
+        out << "static pos packrat_" << mk_str(def->PARSER.name) <<"(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);\n";
+        break;
+      case CONST:
+        out << "static pos packrat_" << mk_str(def->CONST.name) <<"(const char *data, pos off, pos max);\n";
+        break;
+      }
+    }
+    FOREACH(def, gram){
+      packrat(*def);
+    }
+    out << std::endl;
   }
 };
 void emit_parser(std::ostream *out, grammar *grammar){
   CDataModel data(out);
   CPrimitiveParser p(out);
+  *out << std::string(parser_template_start,parser_template_end - parser_template_start);
   data.emit_parser(grammar);
+  p.emit_parser(*grammar);
 }
