@@ -205,7 +205,7 @@ class CPrimitiveParser{
   /*Packrat pass emits a light-weight trace of data structure*/
   //TODO: Keep track of bit alignment
   void check_int(unsigned int width, const std::string &fail){
-    out << "if(off + "<< width <<">= max) {"<<fail<<"}\n";
+    out << "if(off + "<< width <<"> max) {"<<fail<<"}\n";
   }
   std::string int_expr(unsigned int width){
     if(width>=64){
@@ -213,7 +213,7 @@ class CPrimitiveParser{
     }
     //TODO: x
     // TODO: Make big endian. Flip n bytes
-    return boost::str(boost::format("BITSLICE(*(uint64_t *)(data+(off %% ~7)),off & 7 + %d, off&7)") % width);
+    return boost::str(boost::format("read_unsigned_bits(data,off,%d)") % width);
   }
   void constraint(  intconstraint &c){
       switch(c.N_type){
@@ -337,22 +337,23 @@ class CPrimitiveParser{
   typedef  std::list<const parser *> parserlist;
   void packrat_choice(const parserlist &list, const std::string &fail){
     int this_choice = nr_choice++;
-    int nr_option = 1;
+    int nr_option = 0;
     out << "{pos backtrack = off;\n"
         << "pos choice_begin = n_tr_begin_choice(trace); \n"
         << "pos choice;\n"
         << "if(parser_fail(choice_begin)) {" << fail <<"}\n";
-    int i=0;
     std::string success_label = (boost::format("choice_%d_succ") % this_choice).str();
     
     BOOST_FOREACH(const parser *p, list){
-      std::string fallthrough_memo  =  (boost::format("choice_%u_%u") % this_choice %nr_option++).str();
+      std::string fallthrough_memo  =  (boost::format("choice_%u_%u") % this_choice %nr_option).str();
       std::string fallthrough_goto = boost::str(boost::format("goto %s;") % fallthrough_memo);
       out << "choice = n_tr_memo_choice(trace);\n";
       packrat(*p,fallthrough_goto);
+      out << "n_tr_pick_choice(trace,choice_begin,"<<nr_option<<",choice);";
       out << "goto " << success_label<< ";\n";
       out << fallthrough_memo << ":\n";
-      out << "trace->iter = backtrack;\n";
+      out << "off = backtrack;\n";
+      nr_option++;
     }
     out << fail << "\n";
     out << success_label <<": ;\n";
@@ -373,11 +374,11 @@ class CPrimitiveParser{
     out << "count++;\n";
     out << " goto succ_repeat_"<< nr_many << ";\n";
     out << "fail_repeat_" << nr_many << ":\n";
+    out << "n_tr_write_many(trace,many,count);\n" ;
     if(min>0){
       out << "if(count < "<<min<<"){"<< fail << "}\n";
     }
-    out << "n_tr_write_many(trace,many,count);\n" 
-        << "}\n";
+    out << "}\n";
     nr_many++;
     
   }
@@ -398,14 +399,15 @@ class CPrimitiveParser{
     }
   }
   void packrat_optional(const parser &p, const std::string &fail){
+    int this_many = nr_many++;
     out << "{\n";
-    out << "pos many = n_tr_memo_many(n_trace *trace);\n";
-    packrat(p, (boost::format("goto fail_optional_%d;") % nr_many).str());
-    out << "n_tr_write_many(trace,many, 1); goto succ_optional_"<< nr_many << ";\n";
-    out << "fail_optional_" << nr_many << ":\n";
+    out << "pos many = n_tr_memo_many(trace);\n";
+    packrat(p, (boost::format("goto fail_optional_%d;") % this_many).str());
+    out << "n_tr_write_many(trace,many, 1); goto succ_optional_"<< this_many << ";\n";
+    out << "fail_optional_" << this_many << ":\n";
     out << "n_tr_write_many(trace,many,0);\n"
-        << "succ_optional_" << nr_many << ":\n";
-    nr_many++;      
+        << "succ_optional_" << this_many << ":;\n";
+    out << "}";
   }
   void packrat(const parser &parser, const std::string &fail ){
     switch(parser.PR.N_type){
@@ -458,7 +460,7 @@ class CPrimitiveParser{
       packrat(parser.PR.ARRAY,fail); 
       break;
     case OPTIONAL:
-      packrat(*parser.PR.OPTIONAL,fail);
+      packrat_optional(*parser.PR.OPTIONAL,fail);
       break;
       //TODO: Do caching here
     case NAME: // Fallthrough intentional, and kludgy
@@ -477,7 +479,7 @@ public:
       out <<"static pos packrat_" << name <<"(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max){\n";
       out << "pos i;\n"; //Used in name and ref as temp variables
       packrat(def.PARSER.definition, "goto fail;");
-      out << "return i;\n"
+      out << "return off;\n"
           << "fail:\n return -1;\n";
       out << "}\n";
     }

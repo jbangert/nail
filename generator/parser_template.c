@@ -1,11 +1,30 @@
 #include <stdint.h>
 #include <stdlib.h>
-#define BITSLICE(x, a, b) ((x) >> (b)) & ((1 << ((a)-(b)+1)) - 1) //http://www.malloc.co/c-tips/c-macro-for-bit-slicing/
+#include <assert.h>
 typedef int32_t pos;
 typedef struct{
         pos *trace;
         pos capacity,iter,grow;
 } n_trace; 
+uint64_t read_unsigned_bits(const char *data, pos pos, unsigned count){    uint64_t retval = 0;
+    unsigned int out_idx=0;
+    //TODO: Implement little endian too
+    //Count LSB to MSB
+    while(count>0) {
+            if((pos & 7) == 0 && (count &7) ==0) {
+            retval|= data[pos >> 3] << out_idx;
+            out_idx+=8;
+            pos += 8;
+            count-=8;
+        }
+        else{
+            assert("BAM!");
+            exit(0);
+        }
+    }
+    return retval;
+}
+#define BITSLICE(x, off, len) read_unsigned_bits(x,off,len)
 /* trace is a minimalistic representation of the AST. Many parsers add a count, choice parsers add
  * two pos parameters (which choice was taken and where in the trace it begins)
  * const parsers emit a new input position  
@@ -51,6 +70,7 @@ static pos n_tr_memo_many(n_trace *trace){
                 if(!n_trace_grow(trace))
                         return -1;
         }
+        trace->trace[trace->iter] = 0xFFFFFFFE;
         return trace->iter++;
 
 }
@@ -69,10 +89,7 @@ static pos n_tr_begin_choice(n_trace *trace){
         return trace->iter - 2;
 }
 static pos n_tr_memo_choice(n_trace *trace){
-        if(trace->capacity -1 < trace->iter)
-                if(!n_trace_grow(trace))
-                        return -1;
-        return trace->iter++;
+        return trace->iter;
 }
 static void n_tr_pick_choice(n_trace *trace, pos where, pos which_choice, pos  choice_begin){
         trace->trace[where] = which_choice;
@@ -103,3 +120,6 @@ typedef struct NailArena_{} NailArena ;
 //Returns the pointer where the taken choice is supposed to go.
 
 #define parser_fail(i) __builtin_expect(i<0,0)
+
+
+
