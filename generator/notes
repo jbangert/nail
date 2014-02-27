@@ -1,0 +1,18 @@
+First-pass: keep a list of 'choices' for each parser (explicitly includes failed ones)
+h_many, h_sepby, h_optional : count (1 int)
+h_choice                    : which choice, then jump to there.   (2 int)
+
+
+Memoization: Only recursive parsers need to be memoized.
+Memoize    : NIL or offset within the table 
+
+Action: work through the list. Free it once we are done.        
+
+
+Find points of no-backtrack and abandon table 
+
+
+-Keep track of output size in recognizer
+
+Hardening the parser:
+In addition to reducing the risk of memory corruption vulnerabilities within the generated parser, our parser generator also hardens against some heap vulnerabilities in non-parser parts of the program. Besides restricting 
