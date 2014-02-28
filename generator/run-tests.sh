@@ -9,7 +9,7 @@ do
         [a-z]* ) const="0";;
         *) echo "Can't determine constness of $var" ; exit 1;;
     esac
-    gcc -ggdb -std=gnu++11 -DXYCONST=$const -DXYZZY=$var -o testbin/$var parser_test.c  || exit -1
+    gcc -ggdb -std=gnu99 -DXYCONST=$const -DXYZZY=$var -o testbin/$var parser_test.c  || exit -1
     echo "RUNNING TEST: " $line
     testbin/$var < tests/$line || exit -1
     echo "SUCCESS"

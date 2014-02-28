@@ -1,10 +1,12 @@
+#ifndef EXPR_H
+#define EXPR_H
 #include <iostream>
 #include <cassert>
 #include <string>
 struct Expr{
 public:
   virtual int is_ptr() const = 0;
-  virtual void make_ptr() = 0;
+  //  virtual void make_ptr() = 0;
   virtual void print_val(std::ostream &str) const = 0;
   virtual void print_ptr(std::ostream &str) const = 0;
   friend std::ostream & operator<<(std::ostream &stream, const Expr &expr){
@@ -41,12 +43,35 @@ protected:
   }
 public: 
   virtual int is_ptr() const{
-    return _ptr_depth > 0;
+    return _ptr_depth ;
   }
   virtual void make_ptr() {
-    _ptr_depth++;
+    assert(false);
+    //    exit(-1);
   }
   ValExpr(const std::string val, const Expr *parent = NULL, int pointer_depth = 0) : _val(val), _ptr_depth(pointer_depth), _parent(parent){}
+};
+class DerefExpr : public Expr{
+  const Expr &par;
+public: 
+  DerefExpr(const Expr &parent): par(parent){}
+  virtual int is_ptr() const{
+    int i = par.is_ptr();
+    if(!i) return 0;
+    else return i-1;
+  }
+  virtual void make_ptr(){
+    assert(false);
+    //    exit(-1);
+  }
+  virtual void print_val(std::ostream &str) const{
+    print_ptr(str);
+    str << "[0]";
+  }
+  virtual void print_ptr(std::ostream &str) const{
+    par.print_val(str);
+  }
+  
 };
 class ArrayElemExpr : public Expr{
   const Expr *_parent;
@@ -98,3 +123,4 @@ public:
 };
 
 
+#endif

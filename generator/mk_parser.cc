@@ -4,6 +4,7 @@
 #include <boost/foreach.hpp>
 
 #include <list>
+#include "expr.hpp"
 #define MAP(f,collection) FOREACH(iter,collection){ f(*iter);}
 
 
@@ -193,6 +194,15 @@ std::string intconstant_value(const intconstant &val){
     return mk_str(val.NUMBER);
   }
 }
+
+static std::string int_expr(unsigned int width){
+    if(width>=64){
+      throw std::runtime_error("More than 64 bits in integer");
+    }
+    //TODO: x
+    // TODO: Make big endian. Flip n bytes
+    return boost::str(boost::format("read_unsigned_bits(data,off,%d)") % width);
+  }
 class CPrimitiveParser{
   std::ostream &out;
   int nr_choice,nr_option;
@@ -201,19 +211,10 @@ class CPrimitiveParser{
   
   int bit_offset = 0; // < 0 = unknown alignment, 0 == byte aligned, 1 = byte + 1, etc 
 
-
   /*Packrat pass emits a light-weight trace of data structure*/
   //TODO: Keep track of bit alignment
   void check_int(unsigned int width, const std::string &fail){
     out << "if(off + "<< width <<"> max) {"<<fail<<"}\n";
-  }
-  std::string int_expr(unsigned int width){
-    if(width>=64){
-      throw std::runtime_error("More than 64 bits in integer");
-    }
-    //TODO: x
-    // TODO: Make big endian. Flip n bytes
-    return boost::str(boost::format("read_unsigned_bits(data,off,%d)") % width);
   }
   void constraint(  intconstraint &c){
       switch(c.N_type){
@@ -510,10 +511,157 @@ public:
     out << std::endl;
   }
 };
+class CAction{
+  std::ostream &out;
+  void action_constparser(){
+          out << "off  = *tr;\n"
+              << "tr++;\n";
+  }
+  void action (const parserinner &p, Expr &lval){
+    switch(p.N_type){
+    case INT:{
+      int width = boost::lexical_cast<int>(mk_str(p.INT.parser.UNSIGNED));
+      out << lval << "=" << int_expr(width) << ";\n";
+      out<< "off += " << width<<";\n";
+    }
+    break;
+    case STRUCT:
+      FOREACH(field, p.STRUCT){
+        switch(field->N_type){
+        case CONSTANT:
+          action_constparser();
+          break;
+        case FIELD:
+          ValExpr fieldname(mk_str(field->FIELD.name),&lval);
+          action(field->FIELD.parser->PR,fieldname);
+          break;
+      }
+      }
+      break;
+    case WRAP:
+      if(p.WRAP.constbefore){
+        FOREACH(c,*p.WRAP.constbefore){
+          action_constparser();
+        }
+      }
+      action(p.WRAP.parser->PR,lval);
+      if(p.WRAP.constafter){
+        FOREACH(c,*p.WRAP.constafter){
+          action_constparser();
+        }
+      }      
+      break;
+    case CHOICE:
+      {
+        int nr_option = 0;
+        out << "switch(*(tr++)){\n";
+        FOREACH(c, p.CHOICE){
+          out << "case " << nr_option++ << ":\n";
+          out << "tr = trace_begin + *tr;\n";
+          ValExpr expr(mk_str(c->tag),&lval);
+          action(c->parser->PR, expr );
+          out << "break;\n";
+        }
+        out << "}";
+      }      
+      break;
+    case UNION:
+      {
+        int nr_option = 0;
+        out << "switch(*(tr++)){\n";
+        FOREACH(c, p.UNION){
+          out << "case " << nr_option++ << ":\n";
+          out << "tr = trace_begin + *tr;\n";
+          action((*c)->PR, lval);
+          out << "break;\n";
+        }
+        out << "}";
+      }
+      break;
+    case ARRAY:
+      {
+        const parser *i;
+        ValExpr count("count", &lval);
+        ValExpr data("elem", &lval);
+        switch(p.ARRAY.N_type){
+        case MANYONE:
+          i = p.ARRAY.MANYONE;break;
+        case MANY:
+          i = p.ARRAY.MANY; break;
+        case SEPBY:
+          i = p.ARRAY.SEPBY.inner; break;
+        case SEPBYONE:
+          i= p.ARRAY.SEPBYONE.inner; break;
+        }
+        out << count << "=" << "*tr;\n"
+            <<" tr++;\n";
+        out <<data << "= " << "malloc(" << count << "* sizeof(*"<<data<<"));\n"
+            << "if(!"<< data<< "){return 0;}\n";
+        out << "for(pos i=0;i<"<<count<<";i++){";
+        ValExpr iexpr("i");
+        ArrayElemExpr elem(&data,&iexpr);
+        action(i->PR,elem);
+        out << "}\n";
+      }
+      break;
+    case OPTIONAL:
+      {
+        out<< "if(*(tr++)) {\n"
+           << lval << "= "<< "malloc(sizeof(*"<<lval<<"));\n";
+        out << "if(!"<<lval<<") return -1;\n";
+        DerefExpr deref(lval);
+        action(p.OPTIONAL->PR,deref);
+        out << "}\n"
+            << "else{"<< lval <<"= NULL;}";
+      }
+      break;
+    case REF:
+      {
+        out << lval << "= malloc(sizeof(*"<<lval<<"));\n"
+            << "if(!"<<lval<<"){return -1;}";
+        out << "off = bind_"<<mk_str(p.REF)<< "(" << lval << ", data,off,&tr,trace_begin);"
+            << "if(parser_fail(off)){return -1;}\n";
+        break;
+      }
+    case NAME:
+      {
+        out << "off = bind_"<<mk_str(p.REF)<< "(&" << lval << ", data,off,&tr,trace_begin);"
+            << "if(parser_fail(off)){return -1;}";
+        break;
+      }
+    }
+  }
+public:
+  CAction(std::ostream *os): out(*os){}
+ 
+  void emit_action(const grammar &grammar){
+    FOREACH(def, grammar){
+      if(def->N_type == PARSER){ 
+        std::string name= mk_str(def->PARSER.name);
+      out << "static pos bind_"<< name<< "(" << name <<"*out,const char *data, pos off,const pos **trace, const pos * trace_begin);";
+      }
+    }
+    FOREACH(def, grammar){
+      if(def->N_type == PARSER){
+        std::string name= mk_str(def->PARSER.name);
+        out << "static pos bind_"<<name<< "(" << name <<"*out,const char *data, pos off, const pos **trace , const pos * trace_begin){\n";
+        out << "const pos *tr = *trace;";
+        //  out << name << "*ret = malloc(sizeof("<<name<<")); if(!ret) return -1;";
+        ValExpr outexpr("out",NULL,1);
+        action(def->PARSER.definition.PR,outexpr);
+        out << "*trace = tr;";
+        out<< "return off;}";
+      }
+    }
+    out << std::endl;
+  }
+};
 void emit_parser(std::ostream *out, grammar *grammar){
   CDataModel data(out);
   CPrimitiveParser p(out);
+  CAction a(out);
   *out << std::string(parser_template_start,parser_template_end - parser_template_start);
   data.emit_parser(grammar);
   p.emit_parser(*grammar);
+  a.emit_action(*grammar);
 }
