@@ -535,7 +535,7 @@ class CAction{
           ValExpr fieldname(mk_str(field->FIELD.name),&lval);
           action(field->FIELD.parser->PR,fieldname);
           break;
-      }
+        }
       }
       break;
     case WRAP:
@@ -638,14 +638,14 @@ public:
     FOREACH(def, grammar){
       if(def->N_type == PARSER){ 
         std::string name= mk_str(def->PARSER.name);
-      out << "static pos bind_"<< name<< "(" << name <<"*out,const char *data, pos off,const pos **trace, const pos * trace_begin);";
+      out << "static pos bind_"<< name<< "(" << name <<"*out,const char *data, pos off, pos **trace,  pos * trace_begin);";
       }
     }
     FOREACH(def, grammar){
       if(def->N_type == PARSER){
         std::string name= mk_str(def->PARSER.name);
-        out << "static pos bind_"<<name<< "(" << name <<"*out,const char *data, pos off, const pos **trace , const pos * trace_begin){\n";
-        out << "const pos *tr = *trace;";
+        out << "static pos bind_"<<name<< "(" << name <<"*out,const char *data, pos off, pos **trace ,  pos * trace_begin){\n";
+        out << " pos *tr = *trace;";
         //  out << name << "*ret = malloc(sizeof("<<name<<")); if(!ret) return -1;";
         ValExpr outexpr("out",NULL,1);
         action(def->PARSER.definition.PR,outexpr);
@@ -656,6 +656,21 @@ public:
     out << std::endl;
   }
 };
+class CPrinter{
+  std::ostream &out;
+public:
+  CPrinter(std::ostream *o) : out(*o){}
+  void emit_printer(grammar *grammar){ FOREACH(def, grammar){
+   
+  }
+}
+class CGenerator{
+  std::ostream &out;
+public:
+  CGenerator(std::ostream *o) : out(*o){}
+  void emit_generator(grammar *grammar){
+  }
+}
 void emit_parser(std::ostream *out, grammar *grammar){
   CDataModel data(out);
   CPrimitiveParser p(out);
@@ -665,3 +680,6 @@ void emit_parser(std::ostream *out, grammar *grammar){
   p.emit_parser(*grammar);
   a.emit_action(*grammar);
 }
+
+
+

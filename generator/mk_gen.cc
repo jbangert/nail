@@ -2,7 +2,7 @@
 #if 0 
 #define p_arg(x) x.count,(const char*)x.elem
 
-#define str(x) std::string((const char *)x.elem,x.count)
+#define mk_str(x) std::string((const char *)x.elem,x.count)
 #define printf(...)  ERROR
 
 static unsigned long strntoud(unsigned siz,const char *num){
@@ -16,34 +16,128 @@ static unsigned long strntoud(unsigned siz,const char *num){
 }
 class GenGenerator{
   std::ostream &out;
-  const char *header_filename;
   int num_iters;
-  void write_constparser(constparser_invocation*p);
-  void write_parser_inner(parser_invocation *p,Expr &value,int graceful_error);
-  void write_parser(parser_invocation *p,Expr &value); 
-  void emit_parserrule(parserrule *rule, Expr &value);
-  void emit_field(struct_field *field,Expr &value);
-  void emit_const(struct_const *field);
-  void emit_STRUCT(struct_rule *rule,Expr& value);
-  void emit_REF(ref_rule *rule,Expr& value);
-  void emit_EMBED(embed_rule *rule,Expr& value);
-  void emit_SCALAR(scalar_rule *rule,Expr& value);
-  void emit_OPTIONAL(optional_rule *rule,Expr& value);
-  void emit_CHOICE(choice_rule *rule,Expr& value);
-  void emit_foreach(parserrule *inner,Expr& value);
-  void emit_ARRAY(array_rule *array,Expr& value);
-  void emit_NX_LENGTH(nx_length_rule *length,Expr& value);
-  void emit_WRAP(wrap_rule *rule, Expr& value);
 public:
   GenGenerator(std::ostream &_out, const char *_header_filename ) : out(_out),header_filename(_header_filename), num_iters(0){ 
   }
-  void emit_grammar( grammar *gramm);
+  void generator(parserinner p,Expr val){
+    switch(p.N_type){
+    case INT:
+      int width = boost::lexical_cast<int>(mk_str(p.INT.parser.UNSIGNED));
+      out << "h_bit_writer_put(out,"<<value<<","<< width << ");";
+      break;
+    case STRUCT:
+      FOREACH(field, p.STRUCT){
+        switch(field->N_type){
+        case CONSTANT:
+          generator(field->CONSTANT);
+          break;
+        case FIELD:
+          ValExpr fieldname(mk_str(field->FIELD.name),&val);
+          generator(field->FIELD.parser->PR,fieldname);
+          break;
+        }
+      }
+      break;
+    case WRAP:
+      if(p.WRAP.constbefore){
+        FOREACH(c,*p.WRAP.constbefore){
+          generator(*c);
+        }
+      }
+      generator(c,val);
+      if(p.WRAP.constafter){
+        FOREACH(c,*p.WRAP.constafter){
+          generator(*c);
+        }
+      }      
+      break;
+
+    case CHOICE:
+      {
+        out << "switch("<< ValExpr("N_type",val)<<"){\n";
+        FOREACH(c, p.CHOICE){
+          std::string tag = mk_str(c->tag);
+          out << "case " << tag << ":\n";
+          ValExpr expr(tag,val);
+          generator(c->parser->PR, expr );
+          out << "break;\n";
+        }
+        out << "}";
+      }      
+      break;
+    case UNION:
+      {
+        //What to do with UNION? Is union a bijection - 
+        // Parentheses or the like might be NECESSARY for bijection. For now, fail?
+        fprintf(stderr,"UNION not yet implemented, cannot generate this grammar\n");
+      }
+      break;
+    case ARRAY:
+      {
+        ValExpr count("count", &val);
+        ValExpr data("elem", &val);
+        
+        ValExpr iter(boost::str(boost::format("i%d") % num_iters++));
+        ArrayElemExpr elem(data,iter);
+        out << "for(int "<< iter<<","<<iter << "<" << count << "," << iter << "++){";
+        switch(p.ARRAY.N_type){
+        case MANYONE:
+          generator(*p.ARRAY.MANYONE,elem);break;
+        case MANY:
+          generator(*p.ARRAY.MANY,elem);break;
+        case SEPBY:
+          out << "if("<<iter<<"!= 0){";
+          generator(*p.ARRAY.SEPBY.seperator);
+          out << "}";
+          generator(*p.ARRAY.SEPBY.inner,elem);break;
+        case SEPBYONE:
+          out << "if("<<iter<<"!= 0){";
+          generator(*p.ARRAY.SEPBYONE.seperator);
+          out << "}";
+          generator(*p.ARRAY.SEPBYONE.inner,elem);break;
+        }
+          case 
+        }
+        out << "}";
+      }
+      break;
+  case OPTIONAL:
+    {
+      out << "if(NULL!="<<val << 
+    }
+
+  }
+  void generator( grammar *grammar)
+  {
+    out << "#include <hammer/hammer.h>\n";
+    out<<"#define write_bits(size,val) h_bit_writer_put(out,val,size)\n";
+    out<<"#define FOREACH(val,coll) for(__typeof__((coll).elem[0]) *val=(coll).elem;val<(coll).elem + (coll).count;val++)\n";
+    FOREACH(definition,grammar){
+
+      if(definition.N_type == CONSTANT){
+        std::string name = mk_str(definition.CONSTANT.name);
+        out<<"int gen_"<<mk_str(name)<<"(HBitWriter* out){\n";            out << "}";
+      }
+      else if(definition.N_type==PARSER){
+        std::string name = mk_str(definition.PARSER.name);
+        out << "int gen_" << mk_str(name)<<"(HBitWriter *out,"<< name << " * val){";
+        generator(definition.PARSER.definition.PR,ValExpr("val",NULL,1));
+        out << "}";
+      }
+      ValExpr outfield("val",NULL,1);
+
+    emit_parserrule(&definition->rule,outfield);
+    out<<"success: return 1;}\n"<< std::endl;                    
+  }
+
+}
 };
 void GenGenerator::write_constparser(constparser_invocation *p){
         switch(p->N_type){
         case CHAR:
         {
-          out<< "write_bits(8,'" << str(p->CHAR.charcode) << "');\n";
+          out<< "write_bits(8,'" << mk_str(p->CHAR.charcode) << "');\n";
         }
         break;
         case ENDP:
@@ -93,7 +187,7 @@ void GenGenerator::write_parser_inner(parser_invocation *p,Expr &value,int grace
 /*ABI: write_bits, save_bits, write_bits_at*/
 void GenGenerator::emit_field(struct_field *field,Expr &value)
 {
-  ValExpr name(str(field->name),&value,0);
+  ValExpr name(mk_str(field->name),&value,0);
   emit_parserrule(&field->contents,name);
 } 
 void GenGenerator::emit_const(struct_const *field)
@@ -114,12 +208,12 @@ void GenGenerator::emit_STRUCT(struct_rule *rule,Expr &value){
         }
 }
 void GenGenerator::emit_REF(ref_rule *ref,Expr &value){
-  out<< "if(!gen_" << str(ref->name) << "(out,";
+  out<< "if(!gen_" << mk_str(ref->name) << "(out,";
   value.make_ptr();
   out<< value << ")){ return 0;}\n";        
 }
 void GenGenerator::emit_EMBED(embed_rule *embed,Expr &value){
-  out << "if(!gen_"<< str(embed->name) <<"(out,&(" << value << "))){return 0;}\n";
+  out << "if(!gen_"<< mk_str(embed->name) <<"(out,&(" << value << "))){return 0;}\n";
 }
 void GenGenerator::emit_SCALAR(scalar_rule *scalar,Expr &value){
   write_parser(&scalar->parser,value);
@@ -135,8 +229,8 @@ void GenGenerator::emit_CHOICE(choice_rule *choice,Expr &value)
 {
   out << "switch(" << ValExpr("N_TYPE",&value,0) << "){\n";
   FOREACH(option,choice->options){
-    ValExpr name(str(option->tag),&value,0);
-    out << "case " << str(option->tag) << ":\n";
+    ValExpr name(mk_str(option->tag),&value,0);
+    out << "case " << mk_str(option->tag) << ":\n";
     emit_parserrule(&option->inner,name);
   }
   out<< "default: return 0;\n }\n";
@@ -191,20 +285,6 @@ void GenGenerator::emit_parserrule(parserrule *rule,Expr &value){
                     default:
                             assert("boom");
   }
-}
-void GenGenerator::emit_grammar( grammar *grammar)
-{
-  out << "#include <hammer/hammer.h>\n";
-  out<<"#include \"" << header_filename << "\"\n";
-  out<<"#define write_bits(size,val) h_bit_writer_put(out,val,size)\n";
-  out<<"#define FOREACH(val,coll) for(__typeof__((coll).elem[0]) *val=(coll).elem;val<(coll).elem + (coll).count;val++)\n";
-  FOREACH(definition,grammar->rules){
-    ValExpr outfield("val",NULL,1);
-    out<<"int gen_"<<str(definition->name)<<"(HBitWriter* out,struct "<<str(definition->name)<<"  *val){\n";
-    emit_parserrule(&definition->rule,outfield);
-    out<<"success: return 1;}\n"<< std::endl;                    
-  }
-
 }
 #endif
 void emit_generator(std::ostream *out, grammar *grammar, const char *header){
