@@ -16,12 +16,22 @@ int main(){
 #if XYCONST > 0
     p = CAT(packrat_,XYZZY)(input,0,inputsize);
 #else 
-    p = CAT(packrat_,XYZZY)(NULL,&test, input,0,inputsize);
+            p = CAT(packrat_,XYZZY)(NULL,&test, input,0,inputsize);
+       
 #endif
     
     fprintf(stderr, "pos= %d\n", p);
     fwrite(test.trace,sizeof(pos),test.iter,dump);
     fclose(dump);
+#if XYCONST == 0    
+    if(p==inputsize){
+            XYZZY object;
+            pos *tr = test.trace;
+            pos succ = CAT(bind_,XYZZY)(&object,input, 0, &tr, test.trace);
+            if(succ<0)
+                    exit(-2);
+    }   
+#endif
     if(p!= inputsize )
             exit(-1);
     else
