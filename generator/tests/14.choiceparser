@@ -1,4 +1,4 @@
 choose {
-       test = uint8
-       bar  = < uint8 >
+       TEST = uint8
+       BAR  = < uint8 >
 }

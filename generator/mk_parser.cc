@@ -6,7 +6,7 @@
 #include <list>
 #include "expr.hpp"
 #define MAP(f,collection) FOREACH(iter,collection){ f(*iter);}
-
+#define DEBUG_OUT
 
 #define mk_str(x) std::string((const char *)x.elem,x.count)
 //static const std::string parser_template(_binary_parser_template_c_start,_binary_parser_template_c_end - _binary_parser_template_c_start);
@@ -160,7 +160,7 @@ public:
   void emit_parser( grammar *grammar){
     try{
       assert(out.good());
-      out << "#include <stdint.h>\n #include <string.h>\n";
+      out << "#include <stdint.h>\n #include <string.h>\n#include <assert.h>\n";
       //Emit forward declarations
       FOREACH(definition,*grammar){
         if(definition->N_type!=PARSER)
@@ -335,26 +335,31 @@ class CPrimitiveParser{
     packrat_const(c,fail);
     out << "if(parser_fail(n_tr_const(trace,off))){"<<fail<<"}\n";
   }
-  typedef  std::list<const parser *> parserlist;
+  struct namedparser{
+    const parser *p;
+    std::string name;
+    namedparser(std::string _name, const parser *_p): p(_p), name(_name){}
+  };
+  typedef  std::list<namedparser> parserlist;
   void packrat_choice(const parserlist &list, const std::string &fail){
     int this_choice = nr_choice++;
-    int nr_option = 0;
+  
     out << "{pos backtrack = off;\n"
         << "pos choice_begin = n_tr_begin_choice(trace); \n"
         << "pos choice;\n"
         << "if(parser_fail(choice_begin)) {" << fail <<"}\n";
     std::string success_label = (boost::format("choice_%d_succ") % this_choice).str();
     
-    BOOST_FOREACH(const parser *p, list){
-      std::string fallthrough_memo  =  (boost::format("choice_%u_%u") % this_choice %nr_option).str();
+    BOOST_FOREACH(const namedparser p, list){
+      std::string fallthrough_memo  =  (boost::format("choice_%u_%s_out") % this_choice %p.name).str();
       std::string fallthrough_goto = boost::str(boost::format("goto %s;") % fallthrough_memo);
       out << "choice = n_tr_memo_choice(trace);\n";
-      packrat(*p,fallthrough_goto);
-      out << "n_tr_pick_choice(trace,choice_begin,"<<nr_option<<",choice);";
+      packrat(*p.p,fallthrough_goto);
+      out << "n_tr_pick_choice(trace,choice_begin,"<<p.name<<",choice);";
       out << "goto " << success_label<< ";\n";
       out << fallthrough_memo << ":\n";
       out << "off = backtrack;\n";
-      nr_option++;
+
     }
     out << fail << "\n";
     out << success_label <<": ;\n";
@@ -402,11 +407,11 @@ class CPrimitiveParser{
   void packrat_optional(const parser &p, const std::string &fail){
     int this_many = nr_many++;
     out << "{\n";
-    out << "pos many = n_tr_memo_many(trace);\n";
+    out << "pos many = n_tr_memo_optional(trace);\n";
     packrat(p, (boost::format("goto fail_optional_%d;") % this_many).str());
-    out << "n_tr_write_many(trace,many, 1); goto succ_optional_"<< this_many << ";\n";
+    out << "n_tr_optional_succeed(trace,many); goto succ_optional_"<< this_many << ";\n";
     out << "fail_optional_" << this_many << ":\n";
-    out << "n_tr_write_many(trace,many,0);\n"
+    out << "n_tr_optional_fail(trace,many);\n"
         << "succ_optional_" << this_many << ":;\n";
     out << "}";
   }
@@ -444,7 +449,7 @@ class CPrimitiveParser{
       {
         parserlist l;
         FOREACH(c, parser.PR.CHOICE){
-          l.push_back(c->parser);
+          l.push_back(namedparser(mk_str(c->tag),c->parser));
         }
         packrat_choice(l,fail);
       }
@@ -452,8 +457,10 @@ class CPrimitiveParser{
     case UNION:
       {
         parserlist l;
+        int i = 0;
         FOREACH(c, parser.PR.UNION){
-          l.push_back(*c);
+          i++;
+          l.push_back(namedparser(boost::lexical_cast<std::string>(i),*c));
         }
         packrat_choice(l,fail);
       }
@@ -514,8 +521,11 @@ public:
 class CAction{
   std::ostream &out;
   void action_constparser(){
-          out << "off  = *tr;\n"
-              << "tr++;\n";
+#ifdef DEBUG_OUT
+    out << "fprintf(stderr,\"%d = const %d\\n\",tr-trace_begin, *tr);\n";
+#endif
+    out << "off  = *tr;\n"
+        << "tr++;\n";
   }
   void action (const parserinner &p, Expr &lval){
     switch(p.N_type){
@@ -553,20 +563,28 @@ class CAction{
       break;
     case CHOICE:
       {
-        int nr_option = 0;
+#ifdef DEBUG_OUT
+        out << "fprintf(stderr,\"%d = choice %d %d\\n\",tr-trace_begin, tr[0], tr[1]);";
+#endif
+
         out << "switch(*(tr++)){\n";
         FOREACH(c, p.CHOICE){
-          out << "case " << nr_option++ << ":\n";
+          out << "case " << mk_str(c->tag) << ":\n";
           out << "tr = trace_begin + *tr;\n";
+          out << ValExpr("N_type", &lval) << "= "<< mk_str(c->tag) <<";\n";
           ValExpr expr(mk_str(c->tag),&lval);
           action(c->parser->PR, expr );
           out << "break;\n";
         }
+        out << "default: assert(\"BUG\");";
         out << "}";
       }      
       break;
     case UNION:
       {
+#ifdef DEBUG_OUT
+        out << "fprintf(stderr,\"%d = choice %d %d\\n\",tr-trace_begin, tr[0], tr[1]);\n";
+#endif
         int nr_option = 0;
         out << "switch(*(tr++)){\n";
         FOREACH(c, p.UNION){
@@ -580,6 +598,9 @@ class CAction{
       break;
     case ARRAY:
       {
+#ifdef DEBUG_OUT
+        out << "fprintf(stderr,\"%d = many %d %d\\n\",tr-trace_begin, tr[0], tr[1]);\n";
+#endif
         const parser *i;
         ValExpr count("count", &lval);
         ValExpr data("elem", &lval);
@@ -593,26 +614,34 @@ class CAction{
         case SEPBYONE:
           i= p.ARRAY.SEPBYONE.inner; break;
         }
-        out << count << "=" << "*tr;\n"
-            <<" tr++;\n";
+        out << "{ /*ARRAY*/ \n pos save = 0;";
+        out << count << "=" << "*(tr++);\n"
+            << "save = *(tr++);\n";
         out <<data << "= " << "malloc(" << count << "* sizeof(*"<<data<<"));\n"
             << "if(!"<< data<< "){return 0;}\n";
         out << "for(pos i=0;i<"<<count<<";i++){";
+        if(p.ARRAY.N_type == SEPBY || p.ARRAY.N_type == SEPBYONE){
+          out<< "if(i>0){";
+          action_constparser();
+          out << "}";
+        }
         ValExpr iexpr("i");
         ArrayElemExpr elem(&data,&iexpr);
         action(i->PR,elem);
         out << "}\n";
+        out << "tr = trace_begin + save;\n}";
       }
       break;
     case OPTIONAL:
       {
-        out<< "if(*(tr++)) {\n"
+        out<< "if(*tr<0) /*OPTIONAL*/ {\n"
+           << "tr++;\n"
            << lval << "= "<< "malloc(sizeof(*"<<lval<<"));\n";
         out << "if(!"<<lval<<") return -1;\n";
         DerefExpr deref(lval);
         action(p.OPTIONAL->PR,deref);
         out << "}\n"
-            << "else{"<< lval <<"= NULL;}";
+            << "else{tr = trace_begin + *tr;\n "<< lval <<"= NULL;}";
       }
       break;
     case REF:

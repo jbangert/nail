@@ -124,7 +124,7 @@ class GenGenerator{
         
         ValExpr iter(boost::str(boost::format("i%d") % num_iters++));
         ArrayElemExpr elem(&data,&iter);
-        out << "for(int "<< iter<<";"<<iter << "<" << count << ";" << iter << "++){";
+        out << "for(int "<< iter<<"=0;"<<iter << "<" << count << ";" << iter << "++){";
         switch(p.ARRAY.N_type){
         case MANYONE:
           generator(p.ARRAY.MANYONE->PR,elem);break;
@@ -182,7 +182,9 @@ public:
 
       if(definition->N_type == CONST){
         std::string name = mk_str(definition->CONST.name);
-        out<<"void gen_"<<name<<"(HBitWriter* out){\n";            out << "}";
+        out<<"void gen_"<<name<<"(HBitWriter* out){\n";
+        generator(definition->CONST.definition);
+        out << "}";
       }
       else if(definition->N_type==PARSER){
         std::string name = mk_str(definition->PARSER.name);

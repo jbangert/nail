@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <assert.h>
 typedef int32_t pos;
 typedef struct{
@@ -56,32 +57,50 @@ static int  n_trace_init(n_trace *out,pos size,pos grow){
         out->grow = grow;
         return 1;
 }
-static int n_trace_grow(n_trace *out){
+static int n_trace_grow(n_trace *out, int space){
+        if(out->capacity - space>= out->iter){
+                return 0;
+        }
+
         pos * new_ptr= realloc(out->trace, out->capacity + out->grow);
         if(!new_ptr){
-                return 0;
+                return 1;
         }
         out->trace = new_ptr;
         out->capacity += out->grow;
-        return 1;
+        return 0;
+}
+static pos n_tr_memo_optional(n_trace *trace){
+        if(n_trace_grow(trace,1))
+                return -1;
+        trace->trace[trace->iter] = 0xFFFFFFFD;
+        return trace->iter++;
+}
+static void n_tr_optional_succeed(n_trace * trace, pos where){
+        trace->trace[where] = -1;
+}
+static void n_tr_optional_fail(n_trace * trace, pos where){
+        trace->trace[where] = trace->iter;
 }
 static pos n_tr_memo_many(n_trace *trace){
-        if(trace->capacity - 1 < trace->iter){
-                if(!n_trace_grow(trace))
-                        return -1;
-        }
+        if(n_trace_grow(trace,2))
+                return -1;
         trace->trace[trace->iter] = 0xFFFFFFFE;
-        return trace->iter++;
+        trace->trace[trace->iter+1] = 0xEEEEEEEF;
+        trace->iter +=2;
+        return trace->iter-2;
 
 }
 static void n_tr_write_many(n_trace *trace, pos where, pos count){
         trace->trace[where] = count;
+        trace->trace[where+1] = trace->iter;
+        fprintf(stderr,"%d = many %d %d\n", where, count,trace->iter);
 }
+
 static pos n_tr_begin_choice(n_trace *trace){
-        if(trace->capacity - 2 < trace->iter){
-                if(!n_trace_grow(trace))
-                        return -1;
-        }
+        if(n_trace_grow(trace,2))
+                return -1;
+      
         //Debugging values
         trace->trace[trace->iter] = 0xFFFFFFFF;
         trace->trace[trace->iter+1] = 0xEEEEEEEE;
@@ -94,26 +113,14 @@ static pos n_tr_memo_choice(n_trace *trace){
 static void n_tr_pick_choice(n_trace *trace, pos where, pos which_choice, pos  choice_begin){
         trace->trace[where] = which_choice;
         trace->trace[where + 1] = choice_begin;
-}
-static void n_tr_reset(n_trace *trace){
-        trace->iter = 0;
+        fprintf(stderr,"%d = pick %d %d\n",where, which_choice,choice_begin);
 }
 static int n_tr_const(n_trace *trace,pos newoff){
-        if(trace->capacity - 1 < trace->iter){
-                if(!n_trace_grow(trace))
+        if(n_trace_grow(trace,1))
                         return -1;
-        }
+        fprintf(stderr,"%d = const %d \n",trace->iter, newoff);        
         trace->trace[trace->iter++] = newoff;
         return 0;
-}
-static pos n_tr_get_many(n_trace *trace){
-        // Do we want to be defensive and check for overflow here? We only write these within our code though
-        return trace->trace[trace->iter++];
-}
-static pos n_tr_get_choice(n_trace *trace){
-        pos retval = trace->trace[trace->iter];
-        trace->iter = trace->trace[trace->iter + 1];
-        return retval;
 }
 
 typedef struct NailArena_{} NailArena ;

@@ -6,8 +6,8 @@ SEPERATOR = many || uint8 = '\n' || uint8 = ';'
 intconstant = <WHITE; choose {
             ASCII= <uint8 = '\''
                    choose{
-                     escape= <uint8 = '\\'; uint8>
-                     direct= uint8
+                        ESCAPE= <uint8 = '\\'; uint8>
+                        DIRECT= uint8
                     }
                      uint8 = '\''>
             NUMBER= number
