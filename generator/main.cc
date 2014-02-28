@@ -49,8 +49,8 @@ int main(int argc, char**argv)
          else if(!strcmp(argv[i],"-parser_hammer")){
             emit_parser(outfile,result);
          }
-         // else if(!strcmp(argv[i],"-generator"))
-         //           emit_generator(outfile,result,argv[1]);
+         else if(!strcmp(argv[i],"-generator"))
+            emit_generator(outfile,result);
          else
            error("Unknown command line option %s",argv[i]);
        }

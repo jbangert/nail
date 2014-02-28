@@ -1,31 +1,74 @@
 #include "nailtool.h"
-#if 0 
+#include <boost/format.hpp>
+#include <boost/lexical_cast.hpp>
+
 #define p_arg(x) x.count,(const char*)x.elem
 
 #define mk_str(x) std::string((const char *)x.elem,x.count)
 #define printf(...)  ERROR
 
 static unsigned long strntoud(unsigned siz,const char *num){
-        unsigned i=0;
-        unsigned long ret=0;
-        for(;i<siz;i++){
-                assert(num[i] >= '0' && num[i] <= '9');
-                ret= 10 * ret+ num[i] - '0';
-        }
-        return ret;
+  unsigned i=0;
+  unsigned long ret=0;
+  for(;i<siz;i++){
+    assert(num[i] >= '0' && num[i] <= '9');
+    ret= 10 * ret+ num[i] - '0';
+  }
+  return ret;
 }
 class GenGenerator{
   std::ostream &out;
   int num_iters;
-public:
-  GenGenerator(std::ostream &_out, const char *_header_filename ) : out(_out),header_filename(_header_filename), num_iters(0){ 
+  void constint(int width, std::string value){
+    out << "h_bit_writer_put(out," << value << "," << width << ");\n";
   }
-  void generator(parserinner p,Expr val){
-    switch(p.N_type){
-    case INT:
-      int width = boost::lexical_cast<int>(mk_str(p.INT.parser.UNSIGNED));
-      out << "h_bit_writer_put(out,"<<value<<","<< width << ");";
+  void generator(constarray &c){ 
+    switch(c.value.N_type){
+    case STRING:
+      assert(mk_str(c.parser.UNSIGNED) == "8");
+      FOREACH(ch, c.value.STRING){
+        constint(8,(boost::format("'%c'") % ch).str());
+      }
       break;
+    case VALUES:{
+      int width = boost::lexical_cast<int>(mk_str(c.parser.UNSIGNED));
+      FOREACH(v,c.value.VALUES){
+        constint(width, intconstant_value(*v));
+      }
+      break;
+    }
+    }
+  }
+  void generator(constparser &p){
+    switch(p.N_type){
+    case CARRAY:
+      generator(p.CARRAY); break;
+    case CREPEAT:
+      generator(*p.CREPEAT); break; //Emit just one of the elements
+    case CINT: {
+      int width = boost::lexical_cast<int>(mk_str(p.CINT.parser.UNSIGNED));
+      constint(width, intconstant_value(p.CINT.value));
+    }
+      break;
+    case CREF:
+      out << "gen_"<< mk_str(p.CREF)<<"(out);";break;
+    case CSTRUCT:
+      FOREACH(field,p.CSTRUCT){
+        generator(*field);
+      }
+      break;
+    case CUNION:
+      generator(p.CUNION.elem[0]);
+      break;
+    }
+  }
+  void generator(parserinner &p,Expr &val){
+    switch(p.N_type){
+    case INT:{
+      int width = boost::lexical_cast<int>(mk_str(p.INT.parser.UNSIGNED));
+      out << "h_bit_writer_put(out,"<<val<<","<< width << ");";
+      break;
+    }
     case STRUCT:
       FOREACH(field, p.STRUCT){
         switch(field->N_type){
@@ -45,7 +88,7 @@ public:
           generator(*c);
         }
       }
-      generator(c,val);
+      generator(p.WRAP.parser->PR,val);
       if(p.WRAP.constafter){
         FOREACH(c,*p.WRAP.constafter){
           generator(*c);
@@ -55,11 +98,11 @@ public:
 
     case CHOICE:
       {
-        out << "switch("<< ValExpr("N_type",val)<<"){\n";
+        out << "switch("<< ValExpr("N_type",&val)<<"){\n";
         FOREACH(c, p.CHOICE){
           std::string tag = mk_str(c->tag);
           out << "case " << tag << ":\n";
-          ValExpr expr(tag,val);
+          ValExpr expr(tag,&val);
           generator(c->parser->PR, expr );
           out << "break;\n";
         }
@@ -70,7 +113,8 @@ public:
       {
         //What to do with UNION? Is union a bijection - 
         // Parentheses or the like might be NECESSARY for bijection. For now, fail?
-        fprintf(stderr,"UNION not yet implemented, cannot generate this grammar\n");
+        fprintf(stderr,"Warning, UNION is dangerous\n");
+        generator(p.UNION.elem[0]->PR,val);
       }
       break;
     case ARRAY:
@@ -79,216 +123,81 @@ public:
         ValExpr data("elem", &val);
         
         ValExpr iter(boost::str(boost::format("i%d") % num_iters++));
-        ArrayElemExpr elem(data,iter);
-        out << "for(int "<< iter<<","<<iter << "<" << count << "," << iter << "++){";
+        ArrayElemExpr elem(&data,&iter);
+        out << "for(int "<< iter<<";"<<iter << "<" << count << ";" << iter << "++){";
         switch(p.ARRAY.N_type){
         case MANYONE:
-          generator(*p.ARRAY.MANYONE,elem);break;
+          generator(p.ARRAY.MANYONE->PR,elem);break;
         case MANY:
-          generator(*p.ARRAY.MANY,elem);break;
+          generator(p.ARRAY.MANY->PR,elem);break;
         case SEPBY:
           out << "if("<<iter<<"!= 0){";
-          generator(*p.ARRAY.SEPBY.seperator);
+          generator(p.ARRAY.SEPBY.separator);
           out << "}";
-          generator(*p.ARRAY.SEPBY.inner,elem);break;
+          generator(p.ARRAY.SEPBY.inner->PR,elem);break;
         case SEPBYONE:
           out << "if("<<iter<<"!= 0){";
-          generator(*p.ARRAY.SEPBYONE.seperator);
+          generator(p.ARRAY.SEPBYONE.separator);
           out << "}";
-          generator(*p.ARRAY.SEPBYONE.inner,elem);break;
-        }
-          case 
+          generator(p.ARRAY.SEPBYONE.inner->PR,elem);break;
         }
         out << "}";
       }
       break;
-  case OPTIONAL:
-    {
-      out << "if(NULL!="<<val << 
+    case OPTIONAL:
+      {
+        out << "if(NULL!="<<val << "){";
+        DerefExpr opt(val);
+        generator(p.OPTIONAL->PR,opt);
+        out << "}";
+      }
+      break;
+    case REF:
+      out << "gen_" << mk_str(p.REF) << "(out,"<< val << ");";
+      break;
+    case NAME:
+      out << "gen_"<< mk_str(p.NAME) << "(out,&"<< val << ");";
+      break;
     }
-
   }
+
+public:
+  GenGenerator(std::ostream &_out ) : out(_out), num_iters(0){ 
+  }  
   void generator( grammar *grammar)
   {
     out << "#include <hammer/hammer.h>\n";
-    out<<"#define write_bits(size,val) h_bit_writer_put(out,val,size)\n";
-    out<<"#define FOREACH(val,coll) for(__typeof__((coll).elem[0]) *val=(coll).elem;val<(coll).elem + (coll).count;val++)\n";
-    FOREACH(definition,grammar){
+    FOREACH(definition,*grammar){
 
-      if(definition.N_type == CONSTANT){
-        std::string name = mk_str(definition.CONSTANT.name);
-        out<<"int gen_"<<mk_str(name)<<"(HBitWriter* out){\n";            out << "}";
+      if(definition->N_type == CONST){
+        std::string name = mk_str(definition->CONST.name);
+        out<<"void gen_"<<name<<"(HBitWriter* out);";
       }
-      else if(definition.N_type==PARSER){
-        std::string name = mk_str(definition.PARSER.name);
-        out << "int gen_" << mk_str(name)<<"(HBitWriter *out,"<< name << " * val){";
-        generator(definition.PARSER.definition.PR,ValExpr("val",NULL,1));
+      else if(definition->N_type==PARSER){
+        std::string name = mk_str(definition->PARSER.name);
+        out << "void gen_" << (name)<<"(HBitWriter *out,"<< name << " * val);";
+      }          
+    }
+    FOREACH(definition,*grammar){
+
+      if(definition->N_type == CONST){
+        std::string name = mk_str(definition->CONST.name);
+        out<<"void gen_"<<name<<"(HBitWriter* out){\n";            out << "}";
+      }
+      else if(definition->N_type==PARSER){
+        std::string name = mk_str(definition->PARSER.name);
+        out << "void gen_" << (name)<<"(HBitWriter *out,"<< name << " * val){";
+        ValExpr outval("val",NULL,1);
+        generator(definition->PARSER.definition.PR,outval);
         out << "}";
-      }
-      ValExpr outfield("val",NULL,1);
+      }          
+    }
 
-    emit_parserrule(&definition->rule,outfield);
-    out<<"success: return 1;}\n"<< std::endl;                    
   }
-
-}
 };
-void GenGenerator::write_constparser(constparser_invocation *p){
-        switch(p->N_type){
-        case CHAR:
-        {
-          out<< "write_bits(8,'" << mk_str(p->CHAR.charcode) << "');\n";
-        }
-        break;
-        case ENDP:
-        {
-          out << "goto success;\n";
-        }
-        case WHITE:
-        {
-          out << "write_bits(8,' ');\n";
-          write_constparser(p->WHITE.inner);
-         }
-        break;
-        }
-}
-void GenGenerator::write_parser(parser_invocation *p,Expr &value){
-        write_parser_inner(p,value,0);
-}
-void GenGenerator::write_parser_inner(parser_invocation *p,Expr &value,int graceful_error){
-/*TODO*/
-        switch(p->N_type){
-        case BITS:
-          assert(strntoud(p_arg(p->BITS.sign)) == 0);
-          out << "write_bits(" << strntoud(p_arg(p->BITS.length)) << ","<< value << ");\n";
-          break;
-        case UINT:
-  //TODO: check that it is 8,16,32,or 64
-          out << "write_bits("<< strntoud(p_arg(p->UINT.width)) << ","<<  value  <<");\n";
-          break;
-        case INT_RANGE:
-          out<< "if(" << strntoud(p_arg(p->INT_RANGE.lower))<< "<= "<< value ;
-          out << "&& " << value << "<=" << strntoud(p_arg(p->INT_RANGE.upper)) << "){";
-          write_parser(p->INT_RANGE.inner,value);
-          out << "} else \n";
-          if(!graceful_error)
-            out << "{return 0;}\n";
-          break;
-        case CHOICE:
-          FOREACH(parser,p->CHOICE.invocations){
-            write_parser_inner(*parser,value,1);
-          }
-          out<<"{return 0;}";
-          break;
-        default:
-                assert(1);
-        }
-}
-/*ABI: write_bits, save_bits, write_bits_at*/
-void GenGenerator::emit_field(struct_field *field,Expr &value)
-{
-  ValExpr name(mk_str(field->name),&value,0);
-  emit_parserrule(&field->contents,name);
-} 
-void GenGenerator::emit_const(struct_const *field)
-{
-        write_constparser(&field->contents); 
-}
-void GenGenerator::emit_STRUCT(struct_rule *rule,Expr &value){
-        FOREACH(struct_elem,rule->fields)
-        {
-                switch(struct_elem->N_type){
-                case S_FIELD:
-                        emit_field(&struct_elem->S_FIELD,value);
-                        break;
-                case S_CONST:
-                        emit_const(&struct_elem->S_CONST);
-                        break;
-                }
-        }
-}
-void GenGenerator::emit_REF(ref_rule *ref,Expr &value){
-  out<< "if(!gen_" << mk_str(ref->name) << "(out,";
-  value.make_ptr();
-  out<< value << ")){ return 0;}\n";        
-}
-void GenGenerator::emit_EMBED(embed_rule *embed,Expr &value){
-  out << "if(!gen_"<< mk_str(embed->name) <<"(out,&(" << value << "))){return 0;}\n";
-}
-void GenGenerator::emit_SCALAR(scalar_rule *scalar,Expr &value){
-  write_parser(&scalar->parser,value);
-}
-void GenGenerator::emit_OPTIONAL(optional_rule *optional,Expr &value)
-{
-  out << "if(" << value << "){";
-  value.make_ptr();
-  emit_parserrule(&optional->inner,value);
-  out << "}";
-}
-void GenGenerator::emit_CHOICE(choice_rule *choice,Expr &value)
-{
-  out << "switch(" << ValExpr("N_TYPE",&value,0) << "){\n";
-  FOREACH(option,choice->options){
-    ValExpr name(mk_str(option->tag),&value,0);
-    out << "case " << mk_str(option->tag) << ":\n";
-    emit_parserrule(&option->inner,name);
-  }
-  out<< "default: return 0;\n }\n";
-} 
-void GenGenerator::emit_foreach(parserrule *inner,Expr &value){
-        char buf[20];
-        snprintf(buf,sizeof buf,"iter%d",++num_iters);
-        ValExpr itername(buf,NULL,1);
-        out<<"FOREACH("<<buf<<","<<value<<"){\n";
-        emit_parserrule(inner,itername);
-        out<<"}\n";
-}
-void GenGenerator::emit_ARRAY(array_rule *array,Expr &value){
-//TODO: check for many1 - emit check!. Check for other values too!
-  if(!strncmp("h_many1",(char *)array->parser_combinator.elem,array->parser_combinator.count)){
-          out<<"if(0=="<<ValExpr("count",&value,0)<<"){return 0;}\n";
-        }
-        emit_foreach(&array->contents,value);
-}
-void GenGenerator::emit_NX_LENGTH(nx_length_rule *length,Expr &value){
-  ValExpr lengthfield("count",&value,0);
-        write_parser(&length->lengthparser, lengthfield); //Write out dummy
-                                                                              //value
-        emit_foreach(&length->inner,value);
-}
-void GenGenerator::emit_WRAP(wrap_rule *rule,Expr &value){
-        FOREACH(cnst, rule->before){
-                emit_const(cnst);
-        }
-        emit_parserrule(&rule->inner,value);
-        FOREACH(cnst, rule->after){
-                emit_const(cnst);
-        }
-        
-
-}
-void GenGenerator::emit_parserrule(parserrule *rule,Expr &value){
-        switch(rule->N_type){
-#define gen(x) case P_ ## x:                        \
-                emit_## x (rule->P_##x,value);      \
-                        break;
-                
-                            gen(STRUCT);
-                            gen(ARRAY);
-                            gen(REF);
-                            gen(EMBED);
-                            gen(SCALAR);
-                            gen(OPTIONAL);
-                            gen(CHOICE);
-                            gen(NX_LENGTH);
-                            gen(WRAP);
-                    default:
-                            assert("boom");
-  }
-}
-#endif
-void emit_generator(std::ostream *out, grammar *grammar, const char *header){
-return 
-
+void emit_generator(std::ostream *out, grammar *grammar){
+  GenGenerator g(*out);
+  g.generator(grammar);
+  *out << std::endl;
 }
 

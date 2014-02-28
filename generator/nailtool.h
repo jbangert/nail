@@ -22,6 +22,7 @@ typedef struct expr{
 } expr;
 
 #define FOREACH(val,coll) for(__typeof__((coll).elem[0]) *val=(coll).elem;val<(coll).elem + (coll).count;val++)
-extern void emit_generator(std::ostream *out,grammar *grammar, const char *header);
+extern void emit_generator(std::ostream *out,grammar *grammar);
 extern void emit_parser(std::ostream *out,grammar *grammar);
+std::string intconstant_value(const intconstant &val);
 #endif
