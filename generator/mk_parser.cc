@@ -656,21 +656,6 @@ public:
     out << std::endl;
   }
 };
-class CPrinter{
-  std::ostream &out;
-public:
-  CPrinter(std::ostream *o) : out(*o){}
-  void emit_printer(grammar *grammar){ FOREACH(def, grammar){
-   
-  }
-}
-class CGenerator{
-  std::ostream &out;
-public:
-  CGenerator(std::ostream *o) : out(*o){}
-  void emit_generator(grammar *grammar){
-  }
-}
 void emit_parser(std::ostream *out, grammar *grammar){
   CDataModel data(out);
   CPrimitiveParser p(out);
