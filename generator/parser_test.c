@@ -58,6 +58,13 @@ static int  n_trace_init(n_trace *out,pos size,pos grow) {
     out->grow = grow;
     return 1;
 }
+static void n_trace_release(n_trace *out) {
+    free(out->trace);
+    out->trace =NULL;
+    out->capacity = 0;
+    out->iter = 0;
+    out->grow = 0;
+}
 static int n_trace_grow(n_trace *out, int space) {
     if(out->capacity - space>= out->iter) {
         return 0;
@@ -124,7 +131,54 @@ static int n_tr_const(n_trace *trace,pos newoff) {
     return 0;
 }
 
-typedef struct NailArena_ {} NailArena ;
+typedef struct NailArenaPool {
+    void *iter;
+    void *end;
+    struct NailArenaPool *next;
+} NailArenaPool;
+typedef struct NailArena_ {
+    NailArenaPool *current;
+    size_t blocksize;
+} NailArena ;
+
+void *n_malloc(NailArena *arena, size_t size)
+{
+    void *retval;
+    if(arena->current->end - arena->current->iter <= size) {
+        size_t siz = arena->blocksize;
+        if(size>siz)
+            siz = size + sizeof(NailArenaPool);
+        NailArenaPool *newpool  = malloc(siz);
+        if(!newpool) return NULL;
+        newpool->end = (void *)((char *)newpool + siz);
+        newpool->iter = (void*)(newpool+1);
+        newpool->next = arena->current;
+        arena->current= newpool;
+    }
+    retval = arena->current->iter;
+    arena->current->iter += size;
+    return retval;
+}
+
+int NailArena_init(NailArena *arena, size_t blocksize) {
+    if(blocksize< 2*sizeof(NailArena))
+        blocksize = 2*sizeof(NailArena);
+    arena->current = malloc(blocksize);
+    if(!arena->current) return 0;
+    arena->current->next = NULL;
+    arena->current->iter = arena->current + 1;
+    arena->current->end = (char *) arena->current + blocksize;
+    arena->blocksize = blocksize;
+    return 1;
+}
+int NailArena_release(NailArena *arena) {
+    NailArenaPool *p;
+    while((p= arena->current) ) {
+        arena->current = p->next;
+        free(p);
+    }
+    arena->blocksize = 0;
+}
 //Returns the pointer where the taken choice is supposed to go.
 
 #define parser_fail(i) __builtin_expect(i<0,0)
@@ -363,30 +417,30 @@ struct grammar {
     size_t count;
 };
 
-static pos packrat_number(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_varidentifier(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_constidentifier(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_contextidentifier(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_number(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_varidentifier(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_constidentifier(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_contextidentifier(n_trace *trace, const char *data, pos off, pos max);
 static pos packrat_WHITE(const char *data, pos off, pos max);
 static pos packrat_SEPERATOR(const char *data, pos off, pos max);
-static pos packrat_intconstant(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_intp(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_constint(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_arrayvalue(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_constarray(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_constfields(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_constparser(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_intconstraint(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_constrainedint(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_structparser(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_wrapparser(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_choiceparser(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_arrayparser(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_parserinner(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_parser(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_definition(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_grammar(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max);
-static pos packrat_number(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_intconstant(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_intp(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_constint(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_arrayvalue(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_constarray(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_constfields(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_constparser(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_intconstraint(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_constrainedint(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_structparser(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_wrapparser(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_choiceparser(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_arrayparser(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_parserinner(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_parser(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_definition(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_grammar(n_trace *trace, const char *data, pos off, pos max);
+static pos packrat_number(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {
         pos many = n_tr_memo_many(trace);
@@ -414,7 +468,7 @@ fail_repeat_0:
 fail:
     return -1;
 }
-static pos packrat_varidentifier(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_varidentifier(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {
         pos ext = packrat_WHITE(data,off,max);
@@ -452,7 +506,7 @@ fail_repeat_1:
 fail:
     return -1;
 }
-static pos packrat_constidentifier(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_constidentifier(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {
         pos ext = packrat_WHITE(data,off,max);
@@ -490,7 +544,7 @@ fail_repeat_2:
 fail:
     return -1;
 }
-static pos packrat_contextidentifier(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_contextidentifier(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {
         pos ext = packrat_WHITE(data,off,max);
@@ -616,7 +670,7 @@ constmany_5_end:
 fail:
     return -1;
 }
-static pos packrat_intconstant(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_intconstant(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {
         pos ext = packrat_WHITE(data,off,max);
@@ -698,7 +752,7 @@ choice_4_succ:
 choice_3_ASCII_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
-        i = packrat_number(tmp, trace,data,off,max);
+        i = packrat_number(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_3_NUMBER_out;
         }
@@ -717,7 +771,7 @@ choice_3_succ:
 fail:
     return -1;
 }
-static pos packrat_intp(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_intp(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {   pos backtrack = off;
         pos choice_begin = n_tr_begin_choice(trace);
@@ -856,9 +910,9 @@ choice_5_succ:
 fail:
     return -1;
 }
-static pos packrat_constint(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_constint(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
-    i = packrat_intp(tmp, trace,data,off,max);
+    i = packrat_intp(trace,data,off,max);
     if(parser_fail(i)) {
         goto fail;
     }
@@ -882,7 +936,7 @@ static pos packrat_constint(NailArena *tmp,n_trace *trace, const char *data, pos
     if(parser_fail(n_tr_const(trace,off))) {
         goto fail;
     }
-    i = packrat_intconstant(tmp, trace,data,off,max);
+    i = packrat_intconstant(trace,data,off,max);
     if(parser_fail(i)) {
         goto fail;
     }
@@ -893,7 +947,7 @@ static pos packrat_constint(NailArena *tmp,n_trace *trace, const char *data, pos
 fail:
     return -1;
 }
-static pos packrat_arrayvalue(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_arrayvalue(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {   pos backtrack = off;
         pos choice_begin = n_tr_begin_choice(trace);
@@ -977,7 +1031,7 @@ choice_6_STRING_out:
             pos many = n_tr_memo_many(trace);
             pos count = 0;
 succ_repeat_7:
-            i = packrat_intconstant(tmp, trace,data,off,max);
+            i = packrat_intconstant(trace,data,off,max);
             if(parser_fail(i)) {
                 goto fail_repeat_7;
             }
@@ -1018,7 +1072,7 @@ choice_6_succ:
 fail:
     return -1;
 }
-static pos packrat_constarray(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_constarray(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {
         pos ext = packrat_WHITE(data,off,max);
@@ -1065,7 +1119,7 @@ static pos packrat_constarray(NailArena *tmp,n_trace *trace, const char *data, p
     if(parser_fail(n_tr_const(trace,off))) {
         goto fail;
     }
-    i = packrat_intp(tmp, trace,data,off,max);
+    i = packrat_intp(trace,data,off,max);
     if(parser_fail(i)) {
         goto fail;
     }
@@ -1089,7 +1143,7 @@ static pos packrat_constarray(NailArena *tmp,n_trace *trace, const char *data, p
     if(parser_fail(n_tr_const(trace,off))) {
         goto fail;
     }
-    i = packrat_arrayvalue(tmp, trace,data,off,max);
+    i = packrat_arrayvalue(trace,data,off,max);
     if(parser_fail(i)) {
         goto fail;
     }
@@ -1100,7 +1154,7 @@ static pos packrat_constarray(NailArena *tmp,n_trace *trace, const char *data, p
 fail:
     return -1;
 }
-static pos packrat_constfields(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_constfields(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {
         pos many = n_tr_memo_many(trace);
@@ -1118,7 +1172,7 @@ succ_repeat_8:
                 goto fail_repeat_8;
             }
         }
-        i = packrat_constparser(tmp, trace,data,off,max);
+        i = packrat_constparser(trace,data,off,max);
         if(parser_fail(i)) {
             goto fail_repeat_8;
         }
@@ -1137,7 +1191,7 @@ fail_repeat_8:
 fail:
     return -1;
 }
-static pos packrat_constparser(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_constparser(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {   pos backtrack = off;
         pos choice_begin = n_tr_begin_choice(trace);
@@ -1146,7 +1200,7 @@ static pos packrat_constparser(NailArena *tmp,n_trace *trace, const char *data, 
             goto fail;
         }
         choice = n_tr_memo_choice(trace);
-        i = packrat_constarray(tmp, trace,data,off,max);
+        i = packrat_constarray(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_7_CARRAY_out;
         }
@@ -1203,7 +1257,7 @@ choice_7_CARRAY_out:
         if(parser_fail(n_tr_const(trace,off))) {
             goto choice_7_CREPEAT_out;
         }
-        i = packrat_constparser(tmp, trace,data,off,max);
+        i = packrat_constparser(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_7_CREPEAT_out;
         }
@@ -1215,7 +1269,7 @@ choice_7_CARRAY_out:
 choice_7_CREPEAT_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
-        i = packrat_constint(tmp, trace,data,off,max);
+        i = packrat_constint(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_7_CINT_out;
         }
@@ -1227,7 +1281,7 @@ choice_7_CREPEAT_out:
 choice_7_CINT_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
-        i = packrat_constidentifier(tmp, trace,data,off,max);
+        i = packrat_constidentifier(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_7_CREF_out;
         }
@@ -1256,7 +1310,7 @@ choice_7_CREF_out:
         if(parser_fail(n_tr_const(trace,off))) {
             goto choice_7_CSTRUCT_out;
         }
-        i = packrat_constfields(tmp, trace,data,off,max);
+        i = packrat_constfields(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_7_CSTRUCT_out;
         }
@@ -1313,7 +1367,7 @@ succ_repeat_9:
             if(parser_fail(n_tr_const(trace,off))) {
                 goto fail_repeat_9;
             }
-            i = packrat_constparser(tmp, trace,data,off,max);
+            i = packrat_constparser(trace,data,off,max);
             if(parser_fail(i)) {
                 goto fail_repeat_9;
             }
@@ -1340,7 +1394,7 @@ choice_7_succ:
 fail:
     return -1;
 }
-static pos packrat_intconstraint(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_intconstraint(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {   pos backtrack = off;
         pos choice_begin = n_tr_begin_choice(trace);
@@ -1351,7 +1405,7 @@ static pos packrat_intconstraint(NailArena *tmp,n_trace *trace, const char *data
         choice = n_tr_memo_choice(trace);
         {
             pos many = n_tr_memo_optional(trace);
-            i = packrat_intconstant(tmp, trace,data,off,max);
+            i = packrat_intconstant(trace,data,off,max);
             if(parser_fail(i)) {
                 goto fail_optional_10;
             }
@@ -1390,7 +1444,7 @@ succ_optional_10:
         }
         {
             pos many = n_tr_memo_optional(trace);
-            i = packrat_intconstant(tmp, trace,data,off,max);
+            i = packrat_intconstant(trace,data,off,max);
             if(parser_fail(i)) {
                 goto fail_optional_11;
             }
@@ -1442,7 +1496,7 @@ succ_repeat_12:
                     goto fail_repeat_12;
                 }
             }
-            i = packrat_intconstant(tmp, trace,data,off,max);
+            i = packrat_intconstant(trace,data,off,max);
             if(parser_fail(i)) {
                 goto fail_repeat_12;
             }
@@ -1496,7 +1550,7 @@ choice_8_SET_out:
         if(parser_fail(n_tr_const(trace,off))) {
             goto choice_8_NEGATE_out;
         }
-        i = packrat_intconstraint(tmp, trace,data,off,max);
+        i = packrat_intconstraint(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_8_NEGATE_out;
         }
@@ -1515,9 +1569,9 @@ choice_8_succ:
 fail:
     return -1;
 }
-static pos packrat_constrainedint(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_constrainedint(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
-    i = packrat_intp(tmp, trace,data,off,max);
+    i = packrat_intp(trace,data,off,max);
     if(parser_fail(i)) {
         goto fail;
     }
@@ -1543,7 +1597,7 @@ static pos packrat_constrainedint(NailArena *tmp,n_trace *trace, const char *dat
         if(parser_fail(n_tr_const(trace,off))) {
             goto fail_optional_13;
         }
-        i = packrat_intconstraint(tmp, trace,data,off,max);
+        i = packrat_intconstraint(trace,data,off,max);
         if(parser_fail(i)) {
             goto fail_optional_13;
         }
@@ -1561,7 +1615,7 @@ succ_optional_13:
 fail:
     return -1;
 }
-static pos packrat_structparser(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_structparser(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {
         pos ext = packrat_WHITE(data,off,max);
@@ -1603,7 +1657,7 @@ succ_repeat_14:
                 goto fail_repeat_14;
             }
             choice = n_tr_memo_choice(trace);
-            i = packrat_constparser(tmp, trace,data,off,max);
+            i = packrat_constparser(trace,data,off,max);
             if(parser_fail(i)) {
                 goto choice_9_CONSTANT_out;
             }
@@ -1615,14 +1669,14 @@ succ_repeat_14:
 choice_9_CONSTANT_out:
             off = backtrack;
             choice = n_tr_memo_choice(trace);
-            i = packrat_contextidentifier(tmp, trace,data,off,max);
+            i = packrat_contextidentifier(trace,data,off,max);
             if(parser_fail(i)) {
                 goto choice_9_CONTEXT_out;
             }
             else {
                 off=i;
             }
-            i = packrat_constrainedint(tmp, trace,data,off,max);
+            i = packrat_constrainedint(trace,data,off,max);
             if(parser_fail(i)) {
                 goto choice_9_CONTEXT_out;
             }
@@ -1634,14 +1688,14 @@ choice_9_CONSTANT_out:
 choice_9_CONTEXT_out:
             off = backtrack;
             choice = n_tr_memo_choice(trace);
-            i = packrat_varidentifier(tmp, trace,data,off,max);
+            i = packrat_varidentifier(trace,data,off,max);
             if(parser_fail(i)) {
                 goto choice_9_FIELD_out;
             }
             else {
                 off=i;
             }
-            i = packrat_parser(tmp, trace,data,off,max);
+            i = packrat_parser(trace,data,off,max);
             if(parser_fail(i)) {
                 goto choice_9_FIELD_out;
             }
@@ -1682,7 +1736,7 @@ fail_repeat_14:
 fail:
     return -1;
 }
-static pos packrat_wrapparser(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_wrapparser(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {
         pos ext = packrat_WHITE(data,off,max);
@@ -1719,7 +1773,7 @@ succ_repeat_16:
                     goto fail_repeat_16;
                 }
             }
-            i = packrat_constparser(tmp, trace,data,off,max);
+            i = packrat_constparser(trace,data,off,max);
             if(parser_fail(i)) {
                 goto fail_repeat_16;
             }
@@ -1751,7 +1805,7 @@ fail_optional_15:
 succ_optional_15:
         ;
     }
-    i = packrat_parser(tmp, trace,data,off,max);
+    i = packrat_parser(trace,data,off,max);
     if(parser_fail(i)) {
         goto fail;
     }
@@ -1786,7 +1840,7 @@ succ_repeat_18:
                     goto fail_repeat_18;
                 }
             }
-            i = packrat_constparser(tmp, trace,data,off,max);
+            i = packrat_constparser(trace,data,off,max);
             if(parser_fail(i)) {
                 goto fail_repeat_18;
             }
@@ -1825,7 +1879,7 @@ succ_optional_17:
 fail:
     return -1;
 }
-static pos packrat_choiceparser(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_choiceparser(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {
         pos ext = packrat_WHITE(data,off,max);
@@ -1900,7 +1954,7 @@ static pos packrat_choiceparser(NailArena *tmp,n_trace *trace, const char *data,
         pos many = n_tr_memo_many(trace);
         pos count = 0;
 succ_repeat_19:
-        i = packrat_constidentifier(tmp, trace,data,off,max);
+        i = packrat_constidentifier(trace,data,off,max);
         if(parser_fail(i)) {
             goto fail_repeat_19;
         }
@@ -1924,7 +1978,7 @@ succ_repeat_19:
         if(parser_fail(n_tr_const(trace,off))) {
             goto fail_repeat_19;
         }
-        i = packrat_parser(tmp, trace,data,off,max);
+        i = packrat_parser(trace,data,off,max);
         if(parser_fail(i)) {
             goto fail_repeat_19;
         }
@@ -1957,7 +2011,7 @@ fail_repeat_19:
 fail:
     return -1;
 }
-static pos packrat_arrayparser(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_arrayparser(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {   pos backtrack = off;
         pos choice_begin = n_tr_begin_choice(trace);
@@ -2011,7 +2065,7 @@ static pos packrat_arrayparser(NailArena *tmp,n_trace *trace, const char *data, 
         if(parser_fail(n_tr_const(trace,off))) {
             goto choice_10_MANYONE_out;
         }
-        i = packrat_parser(tmp, trace,data,off,max);
+        i = packrat_parser(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_10_MANYONE_out;
         }
@@ -2061,7 +2115,7 @@ choice_10_MANYONE_out:
         if(parser_fail(n_tr_const(trace,off))) {
             goto choice_10_MANY_out;
         }
-        i = packrat_parser(tmp, trace,data,off,max);
+        i = packrat_parser(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_10_MANY_out;
         }
@@ -2125,14 +2179,14 @@ choice_10_MANY_out:
         if(parser_fail(n_tr_const(trace,off))) {
             goto choice_10_SEPBYONE_out;
         }
-        i = packrat_constparser(tmp, trace,data,off,max);
+        i = packrat_constparser(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_10_SEPBYONE_out;
         }
         else {
             off=i;
         }
-        i = packrat_parser(tmp, trace,data,off,max);
+        i = packrat_parser(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_10_SEPBYONE_out;
         }
@@ -2189,14 +2243,14 @@ choice_10_SEPBYONE_out:
         if(parser_fail(n_tr_const(trace,off))) {
             goto choice_10_SEPBY_out;
         }
-        i = packrat_constparser(tmp, trace,data,off,max);
+        i = packrat_constparser(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_10_SEPBY_out;
         }
         else {
             off=i;
         }
-        i = packrat_parser(tmp, trace,data,off,max);
+        i = packrat_parser(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_10_SEPBY_out;
         }
@@ -2215,7 +2269,7 @@ choice_10_succ:
 fail:
     return -1;
 }
-static pos packrat_parserinner(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_parserinner(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {   pos backtrack = off;
         pos choice_begin = n_tr_begin_choice(trace);
@@ -2224,7 +2278,7 @@ static pos packrat_parserinner(NailArena *tmp,n_trace *trace, const char *data, 
             goto fail;
         }
         choice = n_tr_memo_choice(trace);
-        i = packrat_constrainedint(tmp, trace,data,off,max);
+        i = packrat_constrainedint(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_11_INT_out;
         }
@@ -2236,7 +2290,7 @@ static pos packrat_parserinner(NailArena *tmp,n_trace *trace, const char *data, 
 choice_11_INT_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
-        i = packrat_structparser(tmp, trace,data,off,max);
+        i = packrat_structparser(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_11_STRUCT_out;
         }
@@ -2248,7 +2302,7 @@ choice_11_INT_out:
 choice_11_STRUCT_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
-        i = packrat_wrapparser(tmp, trace,data,off,max);
+        i = packrat_wrapparser(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_11_WRAP_out;
         }
@@ -2260,7 +2314,7 @@ choice_11_STRUCT_out:
 choice_11_WRAP_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
-        i = packrat_choiceparser(tmp, trace,data,off,max);
+        i = packrat_choiceparser(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_11_CHOICE_out;
         }
@@ -2272,7 +2326,7 @@ choice_11_WRAP_out:
 choice_11_CHOICE_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
-        i = packrat_arrayparser(tmp, trace,data,off,max);
+        i = packrat_arrayparser(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_11_ARRAY_out;
         }
@@ -2322,14 +2376,14 @@ choice_11_ARRAY_out:
         if(parser_fail(n_tr_const(trace,off))) {
             goto choice_11_LENGTH_out;
         }
-        i = packrat_contextidentifier(tmp, trace,data,off,max);
+        i = packrat_contextidentifier(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_11_LENGTH_out;
         }
         else {
             off=i;
         }
-        i = packrat_parser(tmp, trace,data,off,max);
+        i = packrat_parser(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_11_LENGTH_out;
         }
@@ -2414,7 +2468,7 @@ choice_11_LENGTH_out:
         if(parser_fail(n_tr_const(trace,off))) {
             goto choice_11_OPTIONAL_out;
         }
-        i = packrat_parser(tmp, trace,data,off,max);
+        i = packrat_parser(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_11_OPTIONAL_out;
         }
@@ -2454,7 +2508,7 @@ succ_repeat_20:
             if(parser_fail(n_tr_const(trace,off))) {
                 goto fail_repeat_20;
             }
-            i = packrat_parser(tmp, trace,data,off,max);
+            i = packrat_parser(trace,data,off,max);
             if(parser_fail(i)) {
                 goto fail_repeat_20;
             }
@@ -2491,7 +2545,7 @@ choice_11_UNION_out:
         if(parser_fail(n_tr_const(trace,off))) {
             goto choice_11_REF_out;
         }
-        i = packrat_varidentifier(tmp, trace,data,off,max);
+        i = packrat_varidentifier(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_11_REF_out;
         }
@@ -2503,7 +2557,7 @@ choice_11_UNION_out:
 choice_11_REF_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
-        i = packrat_varidentifier(tmp, trace,data,off,max);
+        i = packrat_varidentifier(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_11_NAME_out;
         }
@@ -2522,7 +2576,7 @@ choice_11_succ:
 fail:
     return -1;
 }
-static pos packrat_parser(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_parser(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {   pos backtrack = off;
         pos choice_begin = n_tr_begin_choice(trace);
@@ -2548,7 +2602,7 @@ static pos packrat_parser(NailArena *tmp,n_trace *trace, const char *data, pos o
         if(parser_fail(n_tr_const(trace,off))) {
             goto choice_12_PAREN_out;
         }
-        i = packrat_parserinner(tmp, trace,data,off,max);
+        i = packrat_parserinner(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_12_PAREN_out;
         }
@@ -2577,7 +2631,7 @@ static pos packrat_parser(NailArena *tmp,n_trace *trace, const char *data, pos o
 choice_12_PAREN_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
-        i = packrat_parserinner(tmp, trace,data,off,max);
+        i = packrat_parserinner(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_12_PR_out;
         }
@@ -2596,7 +2650,7 @@ choice_12_succ:
 fail:
     return -1;
 }
-static pos packrat_definition(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_definition(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {   pos backtrack = off;
         pos choice_begin = n_tr_begin_choice(trace);
@@ -2605,7 +2659,7 @@ static pos packrat_definition(NailArena *tmp,n_trace *trace, const char *data, p
             goto fail;
         }
         choice = n_tr_memo_choice(trace);
-        i = packrat_varidentifier(tmp, trace,data,off,max);
+        i = packrat_varidentifier(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_13_PARSER_out;
         }
@@ -2629,7 +2683,7 @@ static pos packrat_definition(NailArena *tmp,n_trace *trace, const char *data, p
         if(parser_fail(n_tr_const(trace,off))) {
             goto choice_13_PARSER_out;
         }
-        i = packrat_parser(tmp, trace,data,off,max);
+        i = packrat_parser(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_13_PARSER_out;
         }
@@ -2641,7 +2695,7 @@ static pos packrat_definition(NailArena *tmp,n_trace *trace, const char *data, p
 choice_13_PARSER_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
-        i = packrat_constidentifier(tmp, trace,data,off,max);
+        i = packrat_constidentifier(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_13_CONST_out;
         }
@@ -2678,7 +2732,7 @@ choice_13_PARSER_out:
         if(parser_fail(n_tr_const(trace,off))) {
             goto choice_13_CONST_out;
         }
-        i = packrat_constparser(tmp, trace,data,off,max);
+        i = packrat_constparser(trace,data,off,max);
         if(parser_fail(i)) {
             goto choice_13_CONST_out;
         }
@@ -2697,13 +2751,13 @@ choice_13_succ:
 fail:
     return -1;
 }
-static pos packrat_grammar(NailArena *tmp,n_trace *trace, const char *data, pos off, pos max) {
+static pos packrat_grammar(n_trace *trace, const char *data, pos off, pos max) {
     pos i;
     {
         pos many = n_tr_memo_many(trace);
         pos count = 0;
 succ_repeat_21:
-        i = packrat_definition(tmp, trace,data,off,max);
+        i = packrat_definition(trace,data,off,max);
         if(parser_fail(i)) {
             goto fail_repeat_21;
         }
@@ -2733,35 +2787,35 @@ fail:
     return -1;
 }
 
-static pos bind_number(number*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_varidentifier(varidentifier*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_constidentifier(constidentifier*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_contextidentifier(contextidentifier*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_intconstant(intconstant*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_intp(intp*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_constint(constint*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_arrayvalue(arrayvalue*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_constarray(constarray*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_constfields(constfields*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_constparser(constparser*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_intconstraint(intconstraint*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_constrainedint(constrainedint*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_structparser(structparser*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_wrapparser(wrapparser*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_choiceparser(choiceparser*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_arrayparser(arrayparser*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_parserinner(parserinner*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_parser(parser*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_definition(definition*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_grammar(grammar*out,const char *data, pos off, pos **trace,  pos * trace_begin);
-static pos bind_number(number*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+static pos bind_number(NailArena *arena,number*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_varidentifier(NailArena *arena,varidentifier*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_constidentifier(NailArena *arena,constidentifier*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_contextidentifier(NailArena *arena,contextidentifier*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_intconstant(NailArena *arena,intconstant*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_intp(NailArena *arena,intp*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_constint(NailArena *arena,constint*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_arrayvalue(NailArena *arena,arrayvalue*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_constarray(NailArena *arena,constarray*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_constfields(NailArena *arena,constfields*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_constparser(NailArena *arena,constparser*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_intconstraint(NailArena *arena,intconstraint*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_constrainedint(NailArena *arena,constrainedint*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_structparser(NailArena *arena,structparser*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_wrapparser(NailArena *arena,wrapparser*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_choiceparser(NailArena *arena,choiceparser*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_arrayparser(NailArena *arena,arrayparser*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_parserinner(NailArena *arena,parserinner*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_parser(NailArena *arena,parser*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_definition(NailArena *arena,definition*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_grammar(NailArena *arena,grammar*out,const char *data, pos off, pos **trace,  pos * trace_begin);
+static pos bind_number(NailArena *arena,number*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
     {   /*ARRAY*/
         pos save = 0;
         out->count=*(tr++);
         save = *(tr++);
-        out->elem= malloc(out->count* sizeof(*out->elem));
+        out->elem= n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
             return 0;
         }
@@ -2773,7 +2827,21 @@ static pos bind_number(number*out,const char *data, pos off, pos **trace ,  pos 
     }*trace = tr;
     return off;
 }
-static pos bind_varidentifier(varidentifier*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+number*parse_number(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    number* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_number(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_number(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_varidentifier(NailArena *arena,varidentifier*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     off  = *tr;
@@ -2783,7 +2851,7 @@ static pos bind_varidentifier(varidentifier*out,const char *data, pos off, pos *
         pos save = 0;
         out->count=*(tr++);
         save = *(tr++);
-        out->elem= malloc(out->count* sizeof(*out->elem));
+        out->elem= n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
             return 0;
         }
@@ -2795,7 +2863,21 @@ static pos bind_varidentifier(varidentifier*out,const char *data, pos off, pos *
     }*trace = tr;
     return off;
 }
-static pos bind_constidentifier(constidentifier*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+varidentifier*parse_varidentifier(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    varidentifier* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_varidentifier(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_varidentifier(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_constidentifier(NailArena *arena,constidentifier*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     off  = *tr;
@@ -2805,7 +2887,7 @@ static pos bind_constidentifier(constidentifier*out,const char *data, pos off, p
         pos save = 0;
         out->count=*(tr++);
         save = *(tr++);
-        out->elem= malloc(out->count* sizeof(*out->elem));
+        out->elem= n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
             return 0;
         }
@@ -2817,7 +2899,21 @@ static pos bind_constidentifier(constidentifier*out,const char *data, pos off, p
     }*trace = tr;
     return off;
 }
-static pos bind_contextidentifier(contextidentifier*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+constidentifier*parse_constidentifier(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    constidentifier* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_constidentifier(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_constidentifier(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_contextidentifier(NailArena *arena,contextidentifier*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     off  = *tr;
@@ -2830,7 +2926,7 @@ static pos bind_contextidentifier(contextidentifier*out,const char *data, pos of
         pos save = 0;
         out->count=*(tr++);
         save = *(tr++);
-        out->elem= malloc(out->count* sizeof(*out->elem));
+        out->elem= n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
             return 0;
         }
@@ -2842,7 +2938,23 @@ static pos bind_contextidentifier(contextidentifier*out,const char *data, pos of
     }*trace = tr;
     return off;
 }
-static pos bind_intconstant(intconstant*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+contextidentifier*parse_contextidentifier(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    contextidentifier* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_contextidentifier(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_contextidentifier(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+
+
+static pos bind_intconstant(NailArena *arena,intconstant*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     off  = *tr;
@@ -2882,7 +2994,7 @@ static pos bind_intconstant(intconstant*out,const char *data, pos off, pos **tra
     case NUMBER:
         tr = trace_begin + *tr;
         out->N_type= NUMBER;
-        off = bind_number(&out->NUMBER, data,off,&tr,trace_begin);
+        off = bind_number(arena,&out->NUMBER, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -2892,7 +3004,21 @@ static pos bind_intconstant(intconstant*out,const char *data, pos off, pos **tra
     }*trace = tr;
     return off;
 }
-static pos bind_intp(intp*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+intconstant*parse_intconstant(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    intconstant* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_intconstant(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_intconstant(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_intp(NailArena *arena,intp*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
@@ -2907,7 +3033,7 @@ static pos bind_intp(intp*out,const char *data, pos off, pos **trace ,  pos * tr
             pos save = 0;
             out->UNSIGNED.count=*(tr++);
             save = *(tr++);
-            out->UNSIGNED.elem= malloc(out->UNSIGNED.count* sizeof(*out->UNSIGNED.elem));
+            out->UNSIGNED.elem= n_malloc(arena,out->UNSIGNED.count* sizeof(*out->UNSIGNED.elem));
             if(!out->UNSIGNED.elem) {
                 return 0;
             }
@@ -2929,7 +3055,7 @@ static pos bind_intp(intp*out,const char *data, pos off, pos **trace ,  pos * tr
             pos save = 0;
             out->SIGNED.count=*(tr++);
             save = *(tr++);
-            out->SIGNED.elem= malloc(out->SIGNED.count* sizeof(*out->SIGNED.elem));
+            out->SIGNED.elem= n_malloc(arena,out->SIGNED.count* sizeof(*out->SIGNED.elem));
             if(!out->SIGNED.elem) {
                 return 0;
             }
@@ -2945,22 +3071,50 @@ static pos bind_intp(intp*out,const char *data, pos off, pos **trace ,  pos * tr
     }*trace = tr;
     return off;
 }
-static pos bind_constint(constint*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+intp*parse_intp(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    intp* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_intp(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_intp(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_constint(NailArena *arena,constint*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    off = bind_intp(&out->parser, data,off,&tr,trace_begin);
+    off = bind_intp(arena,&out->parser, data,off,&tr,trace_begin);
     if(parser_fail(off)) {
         return -1;
     }
     fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     off  = *tr;
     tr++;
-    off = bind_intconstant(&out->value, data,off,&tr,trace_begin);
+    off = bind_intconstant(arena,&out->value, data,off,&tr,trace_begin);
     if(parser_fail(off)) {
         return -1;
     }*trace = tr;
     return off;
 }
-static pos bind_arrayvalue(arrayvalue*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+constint*parse_constint(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    constint* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_constint(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_constint(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_arrayvalue(NailArena *arena,arrayvalue*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
@@ -2978,7 +3132,7 @@ static pos bind_arrayvalue(arrayvalue*out,const char *data, pos off, pos **trace
             pos save = 0;
             out->STRING.count=*(tr++);
             save = *(tr++);
-            out->STRING.elem= malloc(out->STRING.count* sizeof(*out->STRING.elem));
+            out->STRING.elem= n_malloc(arena,out->STRING.count* sizeof(*out->STRING.elem));
             if(!out->STRING.elem) {
                 return 0;
             }
@@ -3003,12 +3157,12 @@ static pos bind_arrayvalue(arrayvalue*out,const char *data, pos off, pos **trace
             pos save = 0;
             out->VALUES.count=*(tr++);
             save = *(tr++);
-            out->VALUES.elem= malloc(out->VALUES.count* sizeof(*out->VALUES.elem));
+            out->VALUES.elem= n_malloc(arena,out->VALUES.count* sizeof(*out->VALUES.elem));
             if(!out->VALUES.elem) {
                 return 0;
             }
             for(pos i=0; i<out->VALUES.count; i++) {
-                off = bind_intconstant(&out->VALUES.elem[i], data,off,&tr,trace_begin);
+                off = bind_intconstant(arena,&out->VALUES.elem[i], data,off,&tr,trace_begin);
                 if(parser_fail(off)) {
                     return -1;
                 }
@@ -3024,32 +3178,60 @@ static pos bind_arrayvalue(arrayvalue*out,const char *data, pos off, pos **trace
     }*trace = tr;
     return off;
 }
-static pos bind_constarray(constarray*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+arrayvalue*parse_arrayvalue(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    arrayvalue* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_arrayvalue(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_arrayvalue(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_constarray(NailArena *arena,constarray*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     off  = *tr;
     tr++;
-    off = bind_intp(&out->parser, data,off,&tr,trace_begin);
+    off = bind_intp(arena,&out->parser, data,off,&tr,trace_begin);
     if(parser_fail(off)) {
         return -1;
     }
     fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     off  = *tr;
     tr++;
-    off = bind_arrayvalue(&out->value, data,off,&tr,trace_begin);
+    off = bind_arrayvalue(arena,&out->value, data,off,&tr,trace_begin);
     if(parser_fail(off)) {
         return -1;
     }*trace = tr;
     return off;
 }
-static pos bind_constfields(constfields*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+constarray*parse_constarray(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    constarray* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_constarray(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_constarray(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_constfields(NailArena *arena,constfields*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
     {   /*ARRAY*/
         pos save = 0;
         out->count=*(tr++);
         save = *(tr++);
-        out->elem= malloc(out->count* sizeof(*out->elem));
+        out->elem= n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
             return 0;
         }
@@ -3059,7 +3241,7 @@ static pos bind_constfields(constfields*out,const char *data, pos off, pos **tra
                 off  = *tr;
                 tr++;
             }
-            off = bind_constparser(&out->elem[i], data,off,&tr,trace_begin);
+            off = bind_constparser(arena,&out->elem[i], data,off,&tr,trace_begin);
             if(parser_fail(off)) {
                 return -1;
             }
@@ -3068,14 +3250,28 @@ static pos bind_constfields(constfields*out,const char *data, pos off, pos **tra
     }*trace = tr;
     return off;
 }
-static pos bind_constparser(constparser*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+constfields*parse_constfields(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    constfields* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_constfields(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_constfields(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_constparser(NailArena *arena,constparser*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
     case CARRAY:
         tr = trace_begin + *tr;
         out->N_type= CARRAY;
-        off = bind_constarray(&out->CARRAY, data,off,&tr,trace_begin);
+        off = bind_constarray(arena,&out->CARRAY, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3086,11 +3282,11 @@ static pos bind_constparser(constparser*out,const char *data, pos off, pos **tra
         fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         off  = *tr;
         tr++;
-        out->CREPEAT= malloc(sizeof(*out->CREPEAT));
+        out->CREPEAT= n_malloc(arena,sizeof(*out->CREPEAT));
         if(!out->CREPEAT) {
             return -1;
         }
-        off = bind_constparser(out->CREPEAT, data,off,&tr,trace_begin);
+        off = bind_constparser(arena,out->CREPEAT, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3098,7 +3294,7 @@ static pos bind_constparser(constparser*out,const char *data, pos off, pos **tra
     case CINT:
         tr = trace_begin + *tr;
         out->N_type= CINT;
-        off = bind_constint(&out->CINT, data,off,&tr,trace_begin);
+        off = bind_constint(arena,&out->CINT, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3106,7 +3302,7 @@ static pos bind_constparser(constparser*out,const char *data, pos off, pos **tra
     case CREF:
         tr = trace_begin + *tr;
         out->N_type= CREF;
-        off = bind_constidentifier(&out->CREF, data,off,&tr,trace_begin);
+        off = bind_constidentifier(arena,&out->CREF, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3117,7 +3313,7 @@ static pos bind_constparser(constparser*out,const char *data, pos off, pos **tra
         fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         off  = *tr;
         tr++;
-        off = bind_constfields(&out->CSTRUCT, data,off,&tr,trace_begin);
+        off = bind_constfields(arena,&out->CSTRUCT, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3133,7 +3329,7 @@ static pos bind_constparser(constparser*out,const char *data, pos off, pos **tra
             pos save = 0;
             out->CUNION.count=*(tr++);
             save = *(tr++);
-            out->CUNION.elem= malloc(out->CUNION.count* sizeof(*out->CUNION.elem));
+            out->CUNION.elem= n_malloc(arena,out->CUNION.count* sizeof(*out->CUNION.elem));
             if(!out->CUNION.elem) {
                 return 0;
             }
@@ -3141,7 +3337,7 @@ static pos bind_constparser(constparser*out,const char *data, pos off, pos **tra
                 fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
                 off  = *tr;
                 tr++;
-                off = bind_constparser(&out->CUNION.elem[i], data,off,&tr,trace_begin);
+                off = bind_constparser(arena,&out->CUNION.elem[i], data,off,&tr,trace_begin);
                 if(parser_fail(off)) {
                     return -1;
                 }
@@ -3154,7 +3350,21 @@ static pos bind_constparser(constparser*out,const char *data, pos off, pos **tra
     }*trace = tr;
     return off;
 }
-static pos bind_intconstraint(intconstraint*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+constparser*parse_constparser(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    constparser* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_constparser(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_constparser(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_intconstraint(NailArena *arena,intconstraint*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
@@ -3163,9 +3373,9 @@ static pos bind_intconstraint(intconstraint*out,const char *data, pos off, pos *
         out->N_type= RANGE;
         if(*tr<0) { /*OPTIONAL*/
             tr++;
-            out->RANGE.min= malloc(sizeof(*out->RANGE.min));
+            out->RANGE.min= n_malloc(arena,sizeof(*out->RANGE.min));
             if(!out->RANGE.min) return -1;
-            off = bind_intconstant(&out->RANGE.min[0], data,off,&tr,trace_begin);
+            off = bind_intconstant(arena,&out->RANGE.min[0], data,off,&tr,trace_begin);
             if(parser_fail(off)) {
                 return -1;
             }
@@ -3179,9 +3389,9 @@ static pos bind_intconstraint(intconstraint*out,const char *data, pos off, pos *
         tr++;
         if(*tr<0) { /*OPTIONAL*/
             tr++;
-            out->RANGE.max= malloc(sizeof(*out->RANGE.max));
+            out->RANGE.max= n_malloc(arena,sizeof(*out->RANGE.max));
             if(!out->RANGE.max) return -1;
-            off = bind_intconstant(&out->RANGE.max[0], data,off,&tr,trace_begin);
+            off = bind_intconstant(arena,&out->RANGE.max[0], data,off,&tr,trace_begin);
             if(parser_fail(off)) {
                 return -1;
             }
@@ -3202,7 +3412,7 @@ static pos bind_intconstraint(intconstraint*out,const char *data, pos off, pos *
             pos save = 0;
             out->SET.count=*(tr++);
             save = *(tr++);
-            out->SET.elem= malloc(out->SET.count* sizeof(*out->SET.elem));
+            out->SET.elem= n_malloc(arena,out->SET.count* sizeof(*out->SET.elem));
             if(!out->SET.elem) {
                 return 0;
             }
@@ -3212,7 +3422,7 @@ static pos bind_intconstraint(intconstraint*out,const char *data, pos off, pos *
                     off  = *tr;
                     tr++;
                 }
-                off = bind_intconstant(&out->SET.elem[i], data,off,&tr,trace_begin);
+                off = bind_intconstant(arena,&out->SET.elem[i], data,off,&tr,trace_begin);
                 if(parser_fail(off)) {
                     return -1;
                 }
@@ -3229,11 +3439,11 @@ static pos bind_intconstraint(intconstraint*out,const char *data, pos off, pos *
         fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         off  = *tr;
         tr++;
-        out->NEGATE= malloc(sizeof(*out->NEGATE));
+        out->NEGATE= n_malloc(arena,sizeof(*out->NEGATE));
         if(!out->NEGATE) {
             return -1;
         }
-        off = bind_intconstraint(out->NEGATE, data,off,&tr,trace_begin);
+        off = bind_intconstraint(arena,out->NEGATE, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3243,20 +3453,34 @@ static pos bind_intconstraint(intconstraint*out,const char *data, pos off, pos *
     }*trace = tr;
     return off;
 }
-static pos bind_constrainedint(constrainedint*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+intconstraint*parse_intconstraint(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    intconstraint* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_intconstraint(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_intconstraint(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_constrainedint(NailArena *arena,constrainedint*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    off = bind_intp(&out->parser, data,off,&tr,trace_begin);
+    off = bind_intp(arena,&out->parser, data,off,&tr,trace_begin);
     if(parser_fail(off)) {
         return -1;
     }
     if(*tr<0) { /*OPTIONAL*/
         tr++;
-        out->constraint= malloc(sizeof(*out->constraint));
+        out->constraint= n_malloc(arena,sizeof(*out->constraint));
         if(!out->constraint) return -1;
         fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         off  = *tr;
         tr++;
-        off = bind_intconstraint(&out->constraint[0], data,off,&tr,trace_begin);
+        off = bind_intconstraint(arena,&out->constraint[0], data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3267,7 +3491,21 @@ static pos bind_constrainedint(constrainedint*out,const char *data, pos off, pos
     }*trace = tr;
     return off;
 }
-static pos bind_structparser(structparser*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+constrainedint*parse_constrainedint(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    constrainedint* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_constrainedint(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_constrainedint(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_structparser(NailArena *arena,structparser*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     off  = *tr;
@@ -3277,7 +3515,7 @@ static pos bind_structparser(structparser*out,const char *data, pos off, pos **t
         pos save = 0;
         out->count=*(tr++);
         save = *(tr++);
-        out->elem= malloc(out->count* sizeof(*out->elem));
+        out->elem= n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
             return 0;
         }
@@ -3292,7 +3530,7 @@ static pos bind_structparser(structparser*out,const char *data, pos off, pos **t
             case CONSTANT:
                 tr = trace_begin + *tr;
                 out->elem[i].N_type= CONSTANT;
-                off = bind_constparser(&out->elem[i].CONSTANT, data,off,&tr,trace_begin);
+                off = bind_constparser(arena,&out->elem[i].CONSTANT, data,off,&tr,trace_begin);
                 if(parser_fail(off)) {
                     return -1;
                 }
@@ -3300,11 +3538,11 @@ static pos bind_structparser(structparser*out,const char *data, pos off, pos **t
             case CONTEXT:
                 tr = trace_begin + *tr;
                 out->elem[i].N_type= CONTEXT;
-                off = bind_contextidentifier(&out->elem[i].CONTEXT.name, data,off,&tr,trace_begin);
+                off = bind_contextidentifier(arena,&out->elem[i].CONTEXT.name, data,off,&tr,trace_begin);
                 if(parser_fail(off)) {
                     return -1;
                 }
-                off = bind_constrainedint(&out->elem[i].CONTEXT.parser, data,off,&tr,trace_begin);
+                off = bind_constrainedint(arena,&out->elem[i].CONTEXT.parser, data,off,&tr,trace_begin);
                 if(parser_fail(off)) {
                     return -1;
                 }
@@ -3312,15 +3550,15 @@ static pos bind_structparser(structparser*out,const char *data, pos off, pos **t
             case FIELD:
                 tr = trace_begin + *tr;
                 out->elem[i].N_type= FIELD;
-                off = bind_varidentifier(&out->elem[i].FIELD.name, data,off,&tr,trace_begin);
+                off = bind_varidentifier(arena,&out->elem[i].FIELD.name, data,off,&tr,trace_begin);
                 if(parser_fail(off)) {
                     return -1;
                 }
-                out->elem[i].FIELD.parser= malloc(sizeof(*out->elem[i].FIELD.parser));
+                out->elem[i].FIELD.parser= n_malloc(arena,sizeof(*out->elem[i].FIELD.parser));
                 if(!out->elem[i].FIELD.parser) {
                     return -1;
                 }
-                off = bind_parser(out->elem[i].FIELD.parser, data,off,&tr,trace_begin);
+                off = bind_parser(arena,out->elem[i].FIELD.parser, data,off,&tr,trace_begin);
                 if(parser_fail(off)) {
                     return -1;
                 }
@@ -3337,21 +3575,35 @@ static pos bind_structparser(structparser*out,const char *data, pos off, pos **t
     *trace = tr;
     return off;
 }
-static pos bind_wrapparser(wrapparser*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+structparser*parse_structparser(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    structparser* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_structparser(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_structparser(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_wrapparser(NailArena *arena,wrapparser*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     off  = *tr;
     tr++;
     if(*tr<0) { /*OPTIONAL*/
         tr++;
-        out->constbefore= malloc(sizeof(*out->constbefore));
+        out->constbefore= n_malloc(arena,sizeof(*out->constbefore));
         if(!out->constbefore) return -1;
         fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
         {   /*ARRAY*/
             pos save = 0;
             out->constbefore[0].count=*(tr++);
             save = *(tr++);
-            out->constbefore[0].elem= malloc(out->constbefore[0].count* sizeof(*out->constbefore[0].elem));
+            out->constbefore[0].elem= n_malloc(arena,out->constbefore[0].count* sizeof(*out->constbefore[0].elem));
             if(!out->constbefore[0].elem) {
                 return 0;
             }
@@ -3361,7 +3613,7 @@ static pos bind_wrapparser(wrapparser*out,const char *data, pos off, pos **trace
                     off  = *tr;
                     tr++;
                 }
-                off = bind_constparser(&out->constbefore[0].elem[i], data,off,&tr,trace_begin);
+                off = bind_constparser(arena,&out->constbefore[0].elem[i], data,off,&tr,trace_begin);
                 if(parser_fail(off)) {
                     return -1;
                 }
@@ -3376,17 +3628,17 @@ static pos bind_wrapparser(wrapparser*out,const char *data, pos off, pos **trace
         tr = trace_begin + *tr;
         out->constbefore= NULL;
     }
-    out->parser= malloc(sizeof(*out->parser));
+    out->parser= n_malloc(arena,sizeof(*out->parser));
     if(!out->parser) {
         return -1;
     }
-    off = bind_parser(out->parser, data,off,&tr,trace_begin);
+    off = bind_parser(arena,out->parser, data,off,&tr,trace_begin);
     if(parser_fail(off)) {
         return -1;
     }
     if(*tr<0) { /*OPTIONAL*/
         tr++;
-        out->constafter= malloc(sizeof(*out->constafter));
+        out->constafter= n_malloc(arena,sizeof(*out->constafter));
         if(!out->constafter) return -1;
         fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         off  = *tr;
@@ -3396,7 +3648,7 @@ static pos bind_wrapparser(wrapparser*out,const char *data, pos off, pos **trace
             pos save = 0;
             out->constafter[0].count=*(tr++);
             save = *(tr++);
-            out->constafter[0].elem= malloc(out->constafter[0].count* sizeof(*out->constafter[0].elem));
+            out->constafter[0].elem= n_malloc(arena,out->constafter[0].count* sizeof(*out->constafter[0].elem));
             if(!out->constafter[0].elem) {
                 return 0;
             }
@@ -3406,7 +3658,7 @@ static pos bind_wrapparser(wrapparser*out,const char *data, pos off, pos **trace
                     off  = *tr;
                     tr++;
                 }
-                off = bind_constparser(&out->constafter[0].elem[i], data,off,&tr,trace_begin);
+                off = bind_constparser(arena,&out->constafter[0].elem[i], data,off,&tr,trace_begin);
                 if(parser_fail(off)) {
                     return -1;
                 }
@@ -3424,7 +3676,21 @@ static pos bind_wrapparser(wrapparser*out,const char *data, pos off, pos **trace
     *trace = tr;
     return off;
 }
-static pos bind_choiceparser(choiceparser*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+wrapparser*parse_wrapparser(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    wrapparser* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_wrapparser(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_wrapparser(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_choiceparser(NailArena *arena,choiceparser*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     off  = *tr;
@@ -3437,23 +3703,23 @@ static pos bind_choiceparser(choiceparser*out,const char *data, pos off, pos **t
         pos save = 0;
         out->count=*(tr++);
         save = *(tr++);
-        out->elem= malloc(out->count* sizeof(*out->elem));
+        out->elem= n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
             return 0;
         }
         for(pos i=0; i<out->count; i++) {
-            off = bind_constidentifier(&out->elem[i].tag, data,off,&tr,trace_begin);
+            off = bind_constidentifier(arena,&out->elem[i].tag, data,off,&tr,trace_begin);
             if(parser_fail(off)) {
                 return -1;
             }
             fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
             off  = *tr;
             tr++;
-            out->elem[i].parser= malloc(sizeof(*out->elem[i].parser));
+            out->elem[i].parser= n_malloc(arena,sizeof(*out->elem[i].parser));
             if(!out->elem[i].parser) {
                 return -1;
             }
-            off = bind_parser(out->elem[i].parser, data,off,&tr,trace_begin);
+            off = bind_parser(arena,out->elem[i].parser, data,off,&tr,trace_begin);
             if(parser_fail(off)) {
                 return -1;
             }
@@ -3466,7 +3732,21 @@ static pos bind_choiceparser(choiceparser*out,const char *data, pos off, pos **t
     *trace = tr;
     return off;
 }
-static pos bind_arrayparser(arrayparser*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+choiceparser*parse_choiceparser(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    choiceparser* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_choiceparser(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_choiceparser(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_arrayparser(NailArena *arena,arrayparser*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
@@ -3476,11 +3756,11 @@ static pos bind_arrayparser(arrayparser*out,const char *data, pos off, pos **tra
         fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         off  = *tr;
         tr++;
-        out->MANYONE= malloc(sizeof(*out->MANYONE));
+        out->MANYONE= n_malloc(arena,sizeof(*out->MANYONE));
         if(!out->MANYONE) {
             return -1;
         }
-        off = bind_parser(out->MANYONE, data,off,&tr,trace_begin);
+        off = bind_parser(arena,out->MANYONE, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3491,11 +3771,11 @@ static pos bind_arrayparser(arrayparser*out,const char *data, pos off, pos **tra
         fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         off  = *tr;
         tr++;
-        out->MANY= malloc(sizeof(*out->MANY));
+        out->MANY= n_malloc(arena,sizeof(*out->MANY));
         if(!out->MANY) {
             return -1;
         }
-        off = bind_parser(out->MANY, data,off,&tr,trace_begin);
+        off = bind_parser(arena,out->MANY, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3506,15 +3786,15 @@ static pos bind_arrayparser(arrayparser*out,const char *data, pos off, pos **tra
         fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         off  = *tr;
         tr++;
-        off = bind_constparser(&out->SEPBYONE.separator, data,off,&tr,trace_begin);
+        off = bind_constparser(arena,&out->SEPBYONE.separator, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
-        out->SEPBYONE.inner= malloc(sizeof(*out->SEPBYONE.inner));
+        out->SEPBYONE.inner= n_malloc(arena,sizeof(*out->SEPBYONE.inner));
         if(!out->SEPBYONE.inner) {
             return -1;
         }
-        off = bind_parser(out->SEPBYONE.inner, data,off,&tr,trace_begin);
+        off = bind_parser(arena,out->SEPBYONE.inner, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3525,15 +3805,15 @@ static pos bind_arrayparser(arrayparser*out,const char *data, pos off, pos **tra
         fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         off  = *tr;
         tr++;
-        off = bind_constparser(&out->SEPBY.separator, data,off,&tr,trace_begin);
+        off = bind_constparser(arena,&out->SEPBY.separator, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
-        out->SEPBY.inner= malloc(sizeof(*out->SEPBY.inner));
+        out->SEPBY.inner= n_malloc(arena,sizeof(*out->SEPBY.inner));
         if(!out->SEPBY.inner) {
             return -1;
         }
-        off = bind_parser(out->SEPBY.inner, data,off,&tr,trace_begin);
+        off = bind_parser(arena,out->SEPBY.inner, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3543,14 +3823,28 @@ static pos bind_arrayparser(arrayparser*out,const char *data, pos off, pos **tra
     }*trace = tr;
     return off;
 }
-static pos bind_parserinner(parserinner*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+arrayparser*parse_arrayparser(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    arrayparser* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_arrayparser(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_arrayparser(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_parserinner(NailArena *arena,parserinner*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
     case INT:
         tr = trace_begin + *tr;
         out->N_type= INT;
-        off = bind_constrainedint(&out->INT, data,off,&tr,trace_begin);
+        off = bind_constrainedint(arena,&out->INT, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3558,7 +3852,7 @@ static pos bind_parserinner(parserinner*out,const char *data, pos off, pos **tra
     case STRUCT:
         tr = trace_begin + *tr;
         out->N_type= STRUCT;
-        off = bind_structparser(&out->STRUCT, data,off,&tr,trace_begin);
+        off = bind_structparser(arena,&out->STRUCT, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3566,7 +3860,7 @@ static pos bind_parserinner(parserinner*out,const char *data, pos off, pos **tra
     case WRAP:
         tr = trace_begin + *tr;
         out->N_type= WRAP;
-        off = bind_wrapparser(&out->WRAP, data,off,&tr,trace_begin);
+        off = bind_wrapparser(arena,&out->WRAP, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3574,7 +3868,7 @@ static pos bind_parserinner(parserinner*out,const char *data, pos off, pos **tra
     case CHOICE:
         tr = trace_begin + *tr;
         out->N_type= CHOICE;
-        off = bind_choiceparser(&out->CHOICE, data,off,&tr,trace_begin);
+        off = bind_choiceparser(arena,&out->CHOICE, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3582,7 +3876,7 @@ static pos bind_parserinner(parserinner*out,const char *data, pos off, pos **tra
     case ARRAY:
         tr = trace_begin + *tr;
         out->N_type= ARRAY;
-        off = bind_arrayparser(&out->ARRAY, data,off,&tr,trace_begin);
+        off = bind_arrayparser(arena,&out->ARRAY, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3593,15 +3887,15 @@ static pos bind_parserinner(parserinner*out,const char *data, pos off, pos **tra
         fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         off  = *tr;
         tr++;
-        off = bind_contextidentifier(&out->LENGTH.length, data,off,&tr,trace_begin);
+        off = bind_contextidentifier(arena,&out->LENGTH.length, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
-        out->LENGTH.parser= malloc(sizeof(*out->LENGTH.parser));
+        out->LENGTH.parser= n_malloc(arena,sizeof(*out->LENGTH.parser));
         if(!out->LENGTH.parser) {
             return -1;
         }
-        off = bind_parser(out->LENGTH.parser, data,off,&tr,trace_begin);
+        off = bind_parser(arena,out->LENGTH.parser, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3612,11 +3906,11 @@ static pos bind_parserinner(parserinner*out,const char *data, pos off, pos **tra
         fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         off  = *tr;
         tr++;
-        out->OPTIONAL= malloc(sizeof(*out->OPTIONAL));
+        out->OPTIONAL= n_malloc(arena,sizeof(*out->OPTIONAL));
         if(!out->OPTIONAL) {
             return -1;
         }
-        off = bind_parser(out->OPTIONAL, data,off,&tr,trace_begin);
+        off = bind_parser(arena,out->OPTIONAL, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3629,7 +3923,7 @@ static pos bind_parserinner(parserinner*out,const char *data, pos off, pos **tra
             pos save = 0;
             out->UNION.count=*(tr++);
             save = *(tr++);
-            out->UNION.elem= malloc(out->UNION.count* sizeof(*out->UNION.elem));
+            out->UNION.elem= n_malloc(arena,out->UNION.count* sizeof(*out->UNION.elem));
             if(!out->UNION.elem) {
                 return 0;
             }
@@ -3637,11 +3931,11 @@ static pos bind_parserinner(parserinner*out,const char *data, pos off, pos **tra
                 fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
                 off  = *tr;
                 tr++;
-                out->UNION.elem[i]= malloc(sizeof(*out->UNION.elem[i]));
+                out->UNION.elem[i]= n_malloc(arena,sizeof(*out->UNION.elem[i]));
                 if(!out->UNION.elem[i]) {
                     return -1;
                 }
-                off = bind_parser(out->UNION.elem[i], data,off,&tr,trace_begin);
+                off = bind_parser(arena,out->UNION.elem[i], data,off,&tr,trace_begin);
                 if(parser_fail(off)) {
                     return -1;
                 }
@@ -3655,7 +3949,7 @@ static pos bind_parserinner(parserinner*out,const char *data, pos off, pos **tra
         fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         off  = *tr;
         tr++;
-        off = bind_varidentifier(&out->REF, data,off,&tr,trace_begin);
+        off = bind_varidentifier(arena,&out->REF, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3663,7 +3957,7 @@ static pos bind_parserinner(parserinner*out,const char *data, pos off, pos **tra
     case NAME:
         tr = trace_begin + *tr;
         out->N_type= NAME;
-        off = bind_varidentifier(&out->NAME, data,off,&tr,trace_begin);
+        off = bind_varidentifier(arena,&out->NAME, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3673,7 +3967,21 @@ static pos bind_parserinner(parserinner*out,const char *data, pos off, pos **tra
     }*trace = tr;
     return off;
 }
-static pos bind_parser(parser*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+parserinner*parse_parserinner(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    parserinner* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_parserinner(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_parserinner(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_parser(NailArena *arena,parser*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
@@ -3683,7 +3991,7 @@ static pos bind_parser(parser*out,const char *data, pos off, pos **trace ,  pos 
         fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         off  = *tr;
         tr++;
-        off = bind_parserinner(&out->PAREN, data,off,&tr,trace_begin);
+        off = bind_parserinner(arena,&out->PAREN, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3694,7 +4002,7 @@ static pos bind_parser(parser*out,const char *data, pos off, pos **trace ,  pos 
     case PR:
         tr = trace_begin + *tr;
         out->N_type= PR;
-        off = bind_parserinner(&out->PR, data,off,&tr,trace_begin);
+        off = bind_parserinner(arena,&out->PR, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3704,21 +4012,35 @@ static pos bind_parser(parser*out,const char *data, pos off, pos **trace ,  pos 
     }*trace = tr;
     return off;
 }
-static pos bind_definition(definition*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+parser*parse_parser(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    parser* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_parser(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_parser(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_definition(NailArena *arena,definition*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
     case PARSER:
         tr = trace_begin + *tr;
         out->N_type= PARSER;
-        off = bind_varidentifier(&out->PARSER.name, data,off,&tr,trace_begin);
+        off = bind_varidentifier(arena,&out->PARSER.name, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
         fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         off  = *tr;
         tr++;
-        off = bind_parser(&out->PARSER.definition, data,off,&tr,trace_begin);
+        off = bind_parser(arena,&out->PARSER.definition, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3726,7 +4048,7 @@ static pos bind_definition(definition*out,const char *data, pos off, pos **trace
     case CONST:
         tr = trace_begin + *tr;
         out->N_type= CONST;
-        off = bind_constidentifier(&out->CONST.name, data,off,&tr,trace_begin);
+        off = bind_constidentifier(arena,&out->CONST.name, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3739,7 +4061,7 @@ static pos bind_definition(definition*out,const char *data, pos off, pos **trace
         fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         off  = *tr;
         tr++;
-        off = bind_constparser(&out->CONST.definition, data,off,&tr,trace_begin);
+        off = bind_constparser(arena,&out->CONST.definition, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3749,19 +4071,33 @@ static pos bind_definition(definition*out,const char *data, pos off, pos **trace
     }*trace = tr;
     return off;
 }
-static pos bind_grammar(grammar*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
+definition*parse_definition(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    definition* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_definition(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_definition(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
+static pos bind_grammar(NailArena *arena,grammar*out,const char *data, pos off, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
     fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
     {   /*ARRAY*/
         pos save = 0;
         out->count=*(tr++);
         save = *(tr++);
-        out->elem= malloc(out->count* sizeof(*out->elem));
+        out->elem= n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
             return 0;
         }
         for(pos i=0; i<out->count; i++) {
-            off = bind_definition(&out->elem[i], data,off,&tr,trace_begin);
+            off = bind_definition(arena,&out->elem[i], data,off,&tr,trace_begin);
             if(parser_fail(off)) {
                 return -1;
             }
@@ -3774,7 +4110,22 @@ static pos bind_grammar(grammar*out,const char *data, pos off, pos **trace ,  po
     *trace = tr;
     return off;
 }
+grammar*parse_grammar(NailArena *arena, const char *data, size_t size) {
+    n_trace trace;
+    pos *tr_ptr;
+    pos pos;
+    grammar* retval;
+    n_trace_init(&trace,4096,4096);
+    tr_ptr = trace.trace;
+    if(size != packrat_grammar(&trace,data,0,size)) return NULL;
+    retval = n_malloc(arena,sizeof(*retval));
+    if(!retval) return NULL;
+    if(bind_grammar(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;
+    n_trace_release(&trace);
+    return retval;
+}
 #include <hammer/hammer.h>
+#include <hammer/internal.h>
 void gen_number(HBitWriter *out,number * val);
 void gen_varidentifier(HBitWriter *out,varidentifier * val);
 void gen_constidentifier(HBitWriter *out,constidentifier * val);
@@ -3878,6 +4229,10 @@ void gen_constint(HBitWriter *out,constint * val) {
     gen_WHITE(out);
     h_bit_writer_put(out,'=',8);
     gen_intconstant(out,&val->value);
+    {/*Context-rewind*/
+        HBitWriter end_of_struct= *out;
+        *out = end_of_struct;
+    }
 }
 void gen_arrayvalue(HBitWriter *out,arrayvalue * val) {
     switch(val->N_type) {
@@ -3911,6 +4266,10 @@ void gen_constarray(HBitWriter *out,constarray * val) {
     gen_WHITE(out);
     h_bit_writer_put(out,'=',8);
     gen_arrayvalue(out,&val->value);
+    {/*Context-rewind*/
+        HBitWriter end_of_struct= *out;
+        *out = end_of_struct;
+    }
 }
 void gen_constfields(HBitWriter *out,constfields * val) {
     for(int i8=0; i8<val->count; i8++) {
@@ -3968,6 +4327,9 @@ void gen_intconstraint(HBitWriter *out,intconstraint * val) {
         h_bit_writer_put(out,'.',8);
         if(NULL!=val->RANGE.max) {
             gen_intconstant(out,&val->RANGE.max[0]);
+        }{/*Context-rewind*/
+            HBitWriter end_of_struct= *out;
+            *out = end_of_struct;
         }
         break;
     case SET:
@@ -3995,6 +4357,9 @@ void gen_constrainedint(HBitWriter *out,constrainedint * val) {
         gen_WHITE(out);
         h_bit_writer_put(out,'|',8);
         gen_intconstraint(out,&val->constraint[0]);
+    }{/*Context-rewind*/
+        HBitWriter end_of_struct= *out;
+        *out = end_of_struct;
     }
 }
 void gen_structparser(HBitWriter *out,structparser * val) {
@@ -4011,10 +4376,18 @@ void gen_structparser(HBitWriter *out,structparser * val) {
         case CONTEXT:
             gen_contextidentifier(out,&val->elem[i11].CONTEXT.name);
             gen_constrainedint(out,&val->elem[i11].CONTEXT.parser);
+            {/*Context-rewind*/
+                HBitWriter end_of_struct= *out;
+                *out = end_of_struct;
+            }
             break;
         case FIELD:
             gen_varidentifier(out,&val->elem[i11].FIELD.name);
             gen_parser(out,val->elem[i11].FIELD.parser);
+            {/*Context-rewind*/
+                HBitWriter end_of_struct= *out;
+                *out = end_of_struct;
+            }
             break;
         }
     }
@@ -4045,6 +4418,10 @@ void gen_wrapparser(HBitWriter *out,wrapparser * val) {
     }
     gen_WHITE(out);
     h_bit_writer_put(out,'>',8);
+    {   /*Context-rewind*/
+        HBitWriter end_of_struct= *out;
+        *out = end_of_struct;
+    }
 }
 void gen_choiceparser(HBitWriter *out,choiceparser * val) {
     gen_WHITE(out);
@@ -4061,6 +4438,10 @@ void gen_choiceparser(HBitWriter *out,choiceparser * val) {
         gen_WHITE(out);
         h_bit_writer_put(out,'=',8);
         gen_parser(out,val->elem[i14].parser);
+        {/*Context-rewind*/
+            HBitWriter end_of_struct= *out;
+            *out = end_of_struct;
+        }
     }
     gen_WHITE(out);
     h_bit_writer_put(out,'}',8);
@@ -4094,6 +4475,10 @@ void gen_arrayparser(HBitWriter *out,arrayparser * val) {
         h_bit_writer_put(out,'1',8);
         gen_constparser(out,&val->SEPBYONE.separator);
         gen_parser(out,val->SEPBYONE.inner);
+        {/*Context-rewind*/
+            HBitWriter end_of_struct= *out;
+            *out = end_of_struct;
+        }
         break;
     case SEPBY:
         gen_WHITE(out);
@@ -4104,6 +4489,10 @@ void gen_arrayparser(HBitWriter *out,arrayparser * val) {
         h_bit_writer_put(out,'y',8);
         gen_constparser(out,&val->SEPBY.separator);
         gen_parser(out,val->SEPBY.inner);
+        {/*Context-rewind*/
+            HBitWriter end_of_struct= *out;
+            *out = end_of_struct;
+        }
         break;
     }
 }
@@ -4132,6 +4521,10 @@ void gen_parserinner(HBitWriter *out,parserinner * val) {
         h_bit_writer_put(out,'f',8);
         gen_contextidentifier(out,&val->LENGTH.length);
         gen_parser(out,val->LENGTH.parser);
+        {/*Context-rewind*/
+            HBitWriter end_of_struct= *out;
+            *out = end_of_struct;
+        }
         break;
     case OPTIONAL:
         gen_WHITE(out);
@@ -4185,6 +4578,10 @@ void gen_definition(HBitWriter *out,definition * val) {
         gen_WHITE(out);
         h_bit_writer_put(out,'=',8);
         gen_parser(out,&val->PARSER.definition);
+        {/*Context-rewind*/
+            HBitWriter end_of_struct= *out;
+            *out = end_of_struct;
+        }
         break;
     case CONST:
         gen_constidentifier(out,&val->CONST.name);
@@ -4192,6 +4589,10 @@ void gen_definition(HBitWriter *out,definition * val) {
         h_bit_writer_put(out,'=',8);
         gen_WHITE(out);
         gen_constparser(out,&val->CONST.definition);
+        {/*Context-rewind*/
+            HBitWriter end_of_struct= *out;
+            *out = end_of_struct;
+        }
         break;
     }
 }
@@ -4220,7 +4621,7 @@ int main() {
 #if XYCONST > 0
     p = CAT(packrat_,XYZZY)(input,0,inputsize);
 #else
-    p = CAT(packrat_,XYZZY)(NULL,&test, input,0,inputsize);
+    p = CAT(packrat_,XYZZY)(&test, input,0,inputsize);
 
 #endif
 
@@ -4230,12 +4631,14 @@ int main() {
 
 #if XYCONST == 0
     if(p==inputsize) {
+        NailArena arena;
         XYZZY object;
         HBitWriter *bw;
         pos *tr = test.trace;
         const char *buf;
         size_t siz;
-        pos succ = CAT(bind_,XYZZY)(&object,input, 0, &tr, test.trace);
+        assert(NailArena_init(&arena,4096));
+        pos succ = CAT(bind_,XYZZY)(&arena,&object,input, 0, &tr, test.trace);
         bw= h_bit_writer_new(&system_allocator);
         if(succ<0)
             exit(-2);

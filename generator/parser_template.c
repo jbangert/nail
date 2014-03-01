@@ -57,6 +57,13 @@ static int  n_trace_init(n_trace *out,pos size,pos grow){
         out->grow = grow;
         return 1;
 }
+static void n_trace_release(n_trace *out){
+        free(out->trace);
+        out->trace =NULL;
+        out->capacity = 0;
+        out->iter = 0;
+        out->grow = 0;
+}
 static int n_trace_grow(n_trace *out, int space){
         if(out->capacity - space>= out->iter){
                 return 0;
@@ -123,7 +130,53 @@ static int n_tr_const(n_trace *trace,pos newoff){
         return 0;
 }
 
-typedef struct NailArena_{} NailArena ;
+typedef struct NailArenaPool{
+        void *iter;void *end;
+        struct NailArenaPool *next;
+} NailArenaPool;
+typedef struct NailArena_{
+        NailArenaPool *current;                
+        size_t blocksize;
+} NailArena ;
+
+void *n_malloc(NailArena *arena, size_t size)
+{
+        void *retval;
+        if(arena->current->end - arena->current->iter <= size){
+                size_t siz = arena->blocksize;
+                if(size>siz)
+                        siz = size + sizeof(NailArenaPool);
+                NailArenaPool *newpool  = malloc(siz);
+                if(!newpool) return NULL;
+                newpool->end = (void *)((char *)newpool + siz);
+                newpool->iter = (void*)(newpool+1);
+                newpool->next = arena->current;
+                arena->current= newpool;
+        }
+        retval = arena->current->iter;
+        arena->current->iter += size;
+        return retval;
+}
+
+int NailArena_init(NailArena *arena, size_t blocksize){
+        if(blocksize< 2*sizeof(NailArena))
+                blocksize = 2*sizeof(NailArena);
+        arena->current = malloc(blocksize);
+        if(!arena->current) return 0;
+        arena->current->next = NULL;
+        arena->current->iter = arena->current + 1;
+        arena->current->end = (char *) arena->current + blocksize;
+        arena->blocksize = blocksize;
+        return 1;
+}
+int NailArena_release(NailArena *arena){
+        NailArenaPool *p;
+        while((p= arena->current) ){
+                arena->current = p->next;
+                free(p);
+        }
+        arena->blocksize = 0;
+}
 //Returns the pointer where the taken choice is supposed to go.
 
 #define parser_fail(i) __builtin_expect(i<0,0)

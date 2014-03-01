@@ -2,11 +2,10 @@
 #include <netinet/in.h>
 #include <err.h>
 #include <string.h>
-#include <hammer/hammer.h>
-#include "server.h"
 
-#define N_MACRO_IMPLEMENT
-#include "grammar.h"
+
+
+#include "generated.h"
 
 extern HAllocator system_allocator;
 #define narray_alloc(arr, aren, cnt) arr.count = cnt; arr.elem= h_arena_malloc(aren,cnt * sizeof(arr.elem[0]))
@@ -33,46 +32,44 @@ int start_listening() {
     err(1, "Bind failed");
   return sock;
 }
-char *dns_respond(size_t *len,struct dns_message *query)
+char *dns_respond(size_t *len,struct dnspacket *query)
 {
         HArena *arena = h_new_arena(&system_allocator,0);
         HBitWriter *writer = h_bit_writer_new(&system_allocator);
-        dns_message *response = h_arena_malloc(arena,sizeof(*response));
+        dnspacket *response = h_arena_malloc(arena,sizeof(*response));
         char *retval;
         int i;
-        response->header.id = query->header.id;
-        response->header.qr = 1;
-        response->header.rd = query->header.rd;
-        response->header.aa = 1;
-        response->header.ra = 0; /* We don't do recursion*/
-        response->header.question_count = query->questions.count;
-        response->header.answer_count = query->questions.count; 
+        response->id = query->id;
+        response->qr = 1;
+        response->rd = query->rd;
+        response->aa = 1;
+        response->ra = 0; /* We don't do recursion*/
         response->questions  = query->questions;
         // We respond CNAME spargelze.it to everyone 
-        narray_alloc(response->rr,arena,query->questions.count);
+        narray_alloc(response->responses,arena,query->questions.count);
         for(i=0;i<query->questions.count;i++){
-                dns_question *q =  &response->questions.elem[i];
-                dns_response *rr = &response->rr.elem[i];
+                answer *rr= &response->responses.elem[i];
+                question *q =  &response->questions.elem[i];
+
                 rr->labels = q->labels;
                 rr->rtype = 5; //DNS
                 rr->class = 255; //ANY 
                 rr->ttl = 60;
                 {
                         /* dirty parser nesting. TODO: upgrade grammar*/
-                        dns_labels labels;
+                        labels labels;
                         HBitWriter *label_buffer = h_bit_writer_new(&system_allocator);
                         size_t count;
                         narray_alloc(labels,arena,2);
-                        narray_string(labels.elem[0],"spargelze");
-                        narray_string(labels.elem[1],"it");
-                        assert(gen_dns_labels(label_buffer,&labels));
+                        narray_string(labels.elem[0].label,"spargelze");
+                        narray_string(labels.elem[1].label,"it");
+                        gen_labels(label_buffer,&labels);
                         rr->rdata.elem = h_bit_writer_get_buffer(label_buffer, &count);
                         rr->rdata.count = count;
                 }
 
         }
-        if(!gen_dns_message(writer,response))
-                return NULL;
+        gen_dnspacket(writer,response);
         return h_bit_writer_get_buffer(writer,len);
 }
 int main(int argc, char** argv) {
@@ -84,6 +81,7 @@ int main(int argc, char** argv) {
   struct sockaddr_in remote;
   socklen_t remote_len;
   while (1) {
+          NailArena arena;
           struct dns_message *message;
           char *response;
           size_t len;
@@ -94,16 +92,17 @@ int main(int argc, char** argv) {
              printf(".%02hhx", packet[i]);
              
              printf("\n");*/
-          
-          message = parse_dns_message(packet, packet_size);
+          NailArena_init(&arena,4096);
+          message = parse_dnspacket(&arena,packet, packet_size);
           if (!message) {
                   printf("Invalid packet; ignoring\n");
                   continue;
           }
-          print_dns_message(message,stderr,0);
+//          print_dnspacket(message,stderr,0);
           response = dns_respond(&len,message );
           assert(response);
           sendto(sock, response, len, 0, (struct sockaddr*)&remote, remote_len);
+          NailArena_release(&arena);
 
 }
 return 0;

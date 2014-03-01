@@ -17,7 +17,7 @@ int main(){
 #if XYCONST > 0
     p = CAT(packrat_,XYZZY)(input,0,inputsize);
 #else 
-            p = CAT(packrat_,XYZZY)(NULL,&test, input,0,inputsize);
+            p = CAT(packrat_,XYZZY)(&test, input,0,inputsize);
        
 #endif
     
@@ -27,12 +27,14 @@ int main(){
     
 #if XYCONST == 0    
     if(p==inputsize){
+            NailArena arena;
             XYZZY object;
             HBitWriter *bw;
             pos *tr = test.trace;
             const char *buf;
             size_t siz;
-            pos succ = CAT(bind_,XYZZY)(&object,input, 0, &tr, test.trace);
+            assert(NailArena_init(&arena,4096));
+            pos succ = CAT(bind_,XYZZY)(&arena,&object,input, 0, &tr, test.trace);
             bw= h_bit_writer_new(&system_allocator);
             if(succ<0)
                     exit(-2);

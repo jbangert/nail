@@ -1,10 +1,8 @@
 all: server
-server: foo.c generator.c
-	cc $(CFLAGS) -o $@ $^
-foo.c: server.c *.h ../../nail/*.h
-	cpp $(CFLAGS) server.c |sed '/^\#/d' > $@ && astyle $@ && rm $@.orig
-generator.c : grammar.h *.h	
-	../../generator/nail $< $@ -generator && astyle $@
+server: server.c generated.h
+	cc $(CFLAGS) -o $@ $<
+generated.h: dns_packet.nail
+	../../generator/nail $< $@ -parser_hammer -generator && astyle $@
 
 
 CFLAGS+= -I../../include -lhammer -ggdb  -std=gnu99

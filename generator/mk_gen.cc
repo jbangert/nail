@@ -82,7 +82,7 @@ class GenGenerator{
         }
         case CONTEXT:{
           int width = boost::lexical_cast<int>(mk_str(field->CONTEXT.parser.parser.UNSIGNED));
-          out << "long "<< mk_str(field->CONTEXT.name) << ";"; // TODO: pick proper type
+          out << "long "<< mk_str(field->CONTEXT.name) << " = 0;"; // TODO: pick proper type
           out << "HBitWriter rewind_"<< mk_str(field->CONTEXT.name) << " = *out;";
           out << "h_bit_writer_put(out,0,"<< width << ");";
           break;

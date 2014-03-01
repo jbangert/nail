@@ -26,7 +26,8 @@ int main(int argc, char**argv)
     //fwrite(input, 1, inputsize, stderr);  
     // print_parser_invocation(parse_parser_invocation(input,inputsize),stdout,0);
     // exit(0);
-    result =  parse_grammar(input,inputsize);
+    // result =  parse_trace_grammar(input,inputsize,stderr,">");
+    result = parse_grammar(input,inputsize);
     //    if(result)
     //      print_grammar(result, stderr,0);    exit(1);
      if(result) {
