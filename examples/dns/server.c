@@ -5,8 +5,7 @@
 
 
 
-#include "dns_packet.h"
-#include "zonefile.h"
+#include "parser.h"
 
 extern HAllocator system_allocator;
 #define narray_alloc(arr, aren, cnt) arr.count = cnt; arr.elem= h_arena_malloc(aren,cnt * sizeof(arr.elem[0]))
