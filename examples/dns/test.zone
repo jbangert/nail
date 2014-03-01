@@ -1,1 +1,3 @@
-user.spargelzeit.com: 
+localhost:A:127.0.0.1
+spargelzeit.com:NS:localhost
+user.spargelzeit.com:A:127.0.0.1

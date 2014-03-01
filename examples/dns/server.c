@@ -8,7 +8,7 @@
 #include "parser.h"
 
 extern HAllocator system_allocator;
-#define narray_alloc(arr, aren, cnt) arr.count = cnt; arr.elem= h_arena_malloc(aren,cnt * sizeof(arr.elem[0]))
+#define narray_alloc(arr, aren, cnt) arr.count = cnt; arr.elem= n_malloc(&aren,cnt * sizeof(arr.elem[0]))
 #define narray_string(arr,string) arr.count = strlen(string); arr.elem = string;
 
 ///
@@ -32,47 +32,110 @@ int start_listening() {
     err(1, "Bind failed");
   return sock;
 }
-char *dns_respond(size_t *len,struct dnspacket *query)
+int domain_cmp(domain *a, labels *b){
+        if(a->count != b->count)
+                return 1;
+        for(int i=0;i<a->count;i++){
+                if(a->elem[i].count != b->elem[i].label.count)
+                        return 1;
+                if(memcmp(a->elem[i].elem,  b->elem[i].label.elem, a->elem[i].count))
+                        return 1;
+        }
+        return 0;
+}
+#define TYPE_CNAME 5
+#define TYPE_A 1
+#define TYPE_NS 2
+#define TYPE_MX 15
+#define QTYPE_ANY 255
+//responses are a bit hackish - should really put those into the grammar too
+void domain_response(answer *rr, domain *dom){
+        labels *l =(labels *)dom;
+        HBitWriter *label_buffer = h_bit_writer_new(&system_allocator);
+        gen_labels(label_buffer,&l);
+        size_t count;
+        rr->rdata.elem = h_bit_writer_get_buffer(label_buffer, &count);
+        rr->rdata.count = count;
+        h_bit_writer_free(label_buffer);
+}
+int natoi(char *s, int n)
 {
-        HArena *arena = h_new_arena(&system_allocator,0);
+    int x = 0;
+    while(n--)
+    {
+    	x = x * 10 + (s[0] - '0');		
+    	s++;
+    }
+    return x;
+}
+char *dns_respond(size_t *len,struct dnspacket *query, zone *zone)
+{
+        NailArena arena;
+        NailArena_init(&arena,4096);
         HBitWriter *writer = h_bit_writer_new(&system_allocator);
-        dnspacket *response = h_arena_malloc(arena,sizeof(*response));
+        dnspacket *response = n_malloc(&arena,sizeof(*response));
         char *retval;
-        int i;
+
         response->id = query->id;
-        fprintf(stderr,"Responding to %x\n", response->id);
         response->qr = 1;
         response->rd = query->rd;
         response->aa = 1;
         response->ra = 0; /* We don't do recursion*/
         response->questions  = query->questions;
-        // We respond CNAME spargelze.it to everyone 
+        response->additionalcount=0;
+        response->authoritycount=0;
+        response->rcode = 0;
         narray_alloc(response->responses,arena,query->questions.count);
-        for(i=0;i<query->questions.count;i++){
-                answer *rr= &response->responses.elem[i];
+        for(int i=0;i<query->questions.count;i++){
                 question *q =  &response->questions.elem[i];
-
-                rr->labels = q->labels;
-                rr->rtype = 5; //DNS
-                rr->class = 255; //ANY 
-                rr->ttl = 60;
-                {
-                        /* dirty parser nesting. TODO: upgrade grammar*/
-                        labels labels;
-                        HBitWriter *label_buffer = h_bit_writer_new(&system_allocator);
-                        size_t count;
-                        narray_alloc(labels,arena,2);
-                        narray_string(labels.elem[0].label,"spargelze");
-                        narray_string(labels.elem[1].label,"it");
-                        gen_labels(label_buffer,&labels);
-                        rr->rdata.elem = h_bit_writer_get_buffer(label_buffer, &count);
-                        rr->rdata.count = count;
+                definition *j;// We really should do a hashtable. Oh well.
+                for(j=zone->elem + 0;j<zone->elem + zone->count;j++){
+                        if(domain_cmp(&j->hostname, &q->labels))
+                                continue;
+                        if(!((j->rr.N_type == CNAME) ||
+                           (q->qtype == QTYPE_ANY) ||
+                             (q->qtype == TYPE_A && j->rr.N_type ==A) ||
+                             (q->qtype == TYPE_MX && j->rr.N_type== MX)||
+                             (q->qtype == TYPE_NS && j->rr.N_type== NS)))
+                                continue;
+                        answer *rr= &response->responses.elem[i];
+                        rr->class =1;// IP
+                        rr->labels = q->labels;
+                        rr->ttl = 60;
+                        switch(j->rr.N_type){
+                        case A:
+                                rr->rtype = TYPE_A;
+                                //definitely put this in the grammar?
+                                rr->rdata.count = 4;
+                                rr->rdata.elem = n_malloc(&arena,4);
+                                if(j->rr.A.count < 4)
+                                        continue;
+                                for(int i=0;i<4;i++)
+                                        rr->rdata.elem[i] = natoi(j->rr.A.elem[i].elem,j->rr.A.elem[i].count);
+                                goto success;
+                        case NS:
+                                rr->rtype = TYPE_NS;
+                                domain_response(rr,&j->rr.NS);
+                                goto success;
+                        case MX:
+                                rr->rtype = TYPE_MX;
+                                domain_response(rr,&j->rr.MX);
+                                goto success;
+                        case CNAME:
+                                rr->rtype = TYPE_CNAME;
+                                domain_response(rr,&j->rr.CNAME);
+                                goto success;
+                        }
                 }
-
+                response->responses.count = 0;
+                response->rcode = 3;// NXDOMAIN
+        success:;
         }
         gen_dnspacket(writer,response);
+        NailArena_release(&arena);
         return h_bit_writer_get_buffer(writer,len);
 }
+#define ZONESIZ 4096*1024
 int main(int argc, char** argv) {
         
   int sock = start_listening();
@@ -81,6 +144,17 @@ int main(int argc, char** argv) {
   ssize_t packet_size;
   struct sockaddr_in remote;
   socklen_t remote_len;
+  if(argc<2) exit(-1);
+  char *zonebuf = malloc(ZONESIZ);
+  FILE *zonefil = fopen(argv[1],"r");
+  NailArena permanent;
+  NailArena_init(&permanent,4096);
+  if(!zonebuf || !zonefil) exit(-1);
+  remote_len = fread(zonebuf,1,ZONESIZ,zonefil);
+  zone * zon = parse_zone(&permanent,zonebuf,remote_len);
+  if(!zon) {fprintf(stderr,"Cannot parse zone\n"); exit(-1);}
+  free(zonebuf);
+  fclose(zonefil);
   while (1) {
           NailArena arena;
           struct dnspacket *message;
@@ -88,22 +162,16 @@ int main(int argc, char** argv) {
           size_t len;
           remote_len = sizeof(remote);
           packet_size = recvfrom(sock, packet, sizeof(packet), 0, (struct sockaddr*)&remote, &remote_len);
-          // dump the packet...
-          /* for (int i = 0; i < packet_size; i++)
-             printf(".%02hhx", packet[i]);
-             
-             printf("\n");*/
           NailArena_init(&arena,4096);
           message = parse_dnspacket(&arena,packet, packet_size);
           if (!message) {
                   printf("Invalid packet; ignoring\n");
                   continue;
           }
-//          print_dnspacket(message,stderr,0);
-          response = dns_respond(&len,message );
+          response = dns_respond(&len,message,zon );
           assert(response);
           sendto(sock, response, len, 0, (struct sockaddr*)&remote, remote_len);
-          // NailArena_release(&arena);
+           NailArena_release(&arena);
 
 }
 return 0;

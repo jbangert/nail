@@ -37,12 +37,13 @@ alnum = ||  uint8 | 'a'..'z' || uint8 | '0'..'9'
 domain = sepBy1 uint8='.' many1 alnum
 #define literal(x) many uint8= #x
 #define rr(type,parser) type = <literal(:type:); domain>
-definition = {hostname domain;
+definition = {WHITE;
+           hostname domain;
             rr choose {
-           rr(NX,domain)
+           rr(NS,domain)
            rr(CNAME,domain)
            rr(MX,domain)
            rr(A,ipaddr)
 
            }}
-zone = many1 definition
+zone = <many1 definition; WHITE>

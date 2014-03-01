@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 typedef int32_t pos;
 typedef struct{
@@ -160,6 +161,7 @@ void *n_malloc(NailArena *arena, size_t size)
         }
         retval = arena->current->iter;
         arena->current->iter += size;
+        memset(retval,size,0);
         return retval;
 }
 
