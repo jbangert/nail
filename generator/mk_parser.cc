@@ -373,11 +373,12 @@ class CPrimitiveParser{
     out << "}";
   }
   void packrat_repeat(const parser &p, const std::string &fail, size_t min, const constparser *separator){
-    std::string gotofail=(boost::format("goto fail_repeat_%d;") % nr_many).str();
+    int this_many = nr_many++;
+    std::string gotofail=(boost::format("goto fail_repeat_%d;") % this_many).str();
     out << "{\n";
     out << "pos many = n_tr_memo_many(trace);\n"
         << "pos count = 0;\n"
-        << "succ_repeat_" << nr_many << ":\n";
+        << "succ_repeat_" << this_many << ":\n";
     if(separator != NULL){
       out << "if(count>0){\n";
       packrat(*separator,gotofail);
@@ -385,14 +386,13 @@ class CPrimitiveParser{
     }
     packrat(p, gotofail);
     out << "count++;\n";
-    out << " goto succ_repeat_"<< nr_many << ";\n";
-    out << "fail_repeat_" << nr_many << ":\n";
+    out << " goto succ_repeat_"<< this_many << ";\n";
+    out << "fail_repeat_" << this_many << ":\n";
     out << "n_tr_write_many(trace,many,count);\n" ;
     if(min>0){
       out << "if(count < "<<min<<"){"<< fail << "}\n";
     }
     out << "}\n";
-    nr_many++;
     
   }
   void packrat(const arrayparser &array, const std::string &fail){
@@ -670,7 +670,7 @@ class CAction{
         std::string iter = boost::str(boost::format("i%d") % num_iters++);
           out << "for(pos "<<iter<<"=0;"<<iter<<"<"<<count<<";"<<iter<<"++){";
         if(p.N_type == ARRAY && (p.ARRAY.N_type == SEPBY || p.ARRAY.N_type == SEPBYONE)){
-          out<< "if(i>0){";
+          out<< "if("<<iter<<">0){";
           action_constparser();
           out << "}";
         }
