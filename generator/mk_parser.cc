@@ -585,7 +585,7 @@ class CAction{
 #ifdef DEBUG_OUT
         out << "fprintf(stderr,\"%d = choice %d %d\\n\",tr-trace_begin, tr[0], tr[1]);\n";
 #endif
-        int nr_option = 0;
+        int nr_option = 1;
         out << "switch(*(tr++)){\n";
         FOREACH(c, p.UNION){
           out << "case " << nr_option++ << ":\n";
@@ -593,6 +593,7 @@ class CAction{
           action((*c)->PR, lval);
           out << "break;\n";
         }
+        out << "default: assert(!\"Error\"); exit(-1);";
         out << "}";
       }
       break;

@@ -61,7 +61,7 @@ wrapparser = {t("<"); constbefore optional <sepBy1 SEPERATOR constparser; SEPERA
                       constafter optional <SEPERATOR;sepBy SEPERATOR constparser>
                       t(">") }
 // choiceidentifier = || varidentifier || constidentifier                      
-choiceparser = < t("choose"); t("{"); many {tag  || varidentifier || constidentifier; t("="); parser  *parser }; t("}") >
+choiceparser = < t("choose"); t("{"); many {tag  constidentifier; t("="); parser  *parser }; t("}") >
 arrayparser =   choose{         
                 MANYONE= < t("many1"); *parser>
                 MANY=  < t("many"); *parser>  
