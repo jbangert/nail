@@ -5,13 +5,14 @@
 number = many1 digit
 varidentifier   = <WHITE; many1 lower>
 constidentifier = <WHITE; many1 upper>
+contextidentifier = <WHITE uint8='@'; many1 lower>
 WHITE = many || uint8 = ' ' || uint8 = '\n'
 SEPERATOR = {many uint8=' '; many || uint8 = '\n' || uint8 = ';'}
 intconstant = <WHITE;  choose {
             ASCII= <uint8 = '\''
                    choose{
-                     escape= <uint8 = '\\'; uint8>
-                     direct= uint8
+                     ESCAPE= <uint8 = '\\'; uint8>
+                     DIRECT= uint8
                     } 
                      uint8 = '\''>
             NUMBER= number

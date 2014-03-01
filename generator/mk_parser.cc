@@ -185,10 +185,10 @@ public:
 std::string intconstant_value(const intconstant &val){
   switch(val.N_type){
   case ASCII:
-    if(val.ASCII.N_type == escape)
-      return boost::str(boost::format("'\\%c'") % val.ASCII.escape);
+    if(val.ASCII.N_type == ESCAPE)
+      return boost::str(boost::format("'\\%c'") % val.ASCII.ESCAPE);
     else
-      return boost::str(boost::format("'%c'") % val.ASCII.direct);
+      return boost::str(boost::format("'%c'") % val.ASCII.DIRECT);
     break;
   case NUMBER:
     return mk_str(val.NUMBER);
