@@ -260,14 +260,14 @@ struct constrainedint {
 ;
 struct structparser {
     struct {
-        enum  {CONSTANT,CTXT,FIELD} N_type;
+        enum  {CONSTANT,CONTEXT,FIELD} N_type;
         union {
             constparser CONSTANT;
             struct {
                 contextidentifier name;
-                parser*  parser;
+                constrainedint parser;
             }
-            CTXT;
+            CONTEXT;
             struct {
                 varidentifier name;
                 parser*  parser;
@@ -315,13 +315,18 @@ struct arrayparser {
     };
 };
 struct parserinner {
-    enum  {INT,STRUCT,WRAP,CHOICE,ARRAY,OPTIONAL,UNION,REF,NAME} N_type;
+    enum  {INT,STRUCT,WRAP,CHOICE,ARRAY,LENGTH,OPTIONAL,UNION,REF,NAME} N_type;
     union {
         constrainedint INT;
         structparser STRUCT;
         wrapparser WRAP;
         choiceparser CHOICE;
         arrayparser ARRAY;
+        struct {
+            contextidentifier length;
+            parser*  parser;
+        }
+        LENGTH;
         parser*  OPTIONAL;
         struct {
             parser**elem;
@@ -1612,21 +1617,21 @@ choice_9_CONSTANT_out:
             choice = n_tr_memo_choice(trace);
             i = packrat_contextidentifier(tmp, trace,data,off,max);
             if(parser_fail(i)) {
-                goto choice_9_CTXT_out;
+                goto choice_9_CONTEXT_out;
             }
             else {
                 off=i;
             }
-            i = packrat_parser(tmp, trace,data,off,max);
+            i = packrat_constrainedint(tmp, trace,data,off,max);
             if(parser_fail(i)) {
-                goto choice_9_CTXT_out;
+                goto choice_9_CONTEXT_out;
             }
             else {
                 off=i;
             }
-            n_tr_pick_choice(trace,choice_begin,CTXT,choice);
+            n_tr_pick_choice(trace,choice_begin,CONTEXT,choice);
             goto choice_9_succ;
-choice_9_CTXT_out:
+choice_9_CONTEXT_out:
             off = backtrack;
             choice = n_tr_memo_choice(trace);
             i = packrat_varidentifier(tmp, trace,data,off,max);
@@ -2277,6 +2282,63 @@ choice_11_CHOICE_out:
         n_tr_pick_choice(trace,choice_begin,ARRAY,choice);
         goto choice_11_succ;
 choice_11_ARRAY_out:
+        off = backtrack;
+        choice = n_tr_memo_choice(trace);
+        {
+            pos ext = packrat_WHITE(data,off,max);
+            if(ext < 0) {
+                goto choice_11_LENGTH_out;
+            }
+            off = ext;
+        }
+        if(off + 8> max) {
+            goto choice_11_LENGTH_out;
+        }
+        if( read_unsigned_bits(data,off,8)!= 'n') {
+            goto choice_11_LENGTH_out;
+        }
+        off += 8;
+        if(off + 8> max) {
+            goto choice_11_LENGTH_out;
+        }
+        if( read_unsigned_bits(data,off,8)!= '_') {
+            goto choice_11_LENGTH_out;
+        }
+        off += 8;
+        if(off + 8> max) {
+            goto choice_11_LENGTH_out;
+        }
+        if( read_unsigned_bits(data,off,8)!= 'o') {
+            goto choice_11_LENGTH_out;
+        }
+        off += 8;
+        if(off + 8> max) {
+            goto choice_11_LENGTH_out;
+        }
+        if( read_unsigned_bits(data,off,8)!= 'f') {
+            goto choice_11_LENGTH_out;
+        }
+        off += 8;
+        if(parser_fail(n_tr_const(trace,off))) {
+            goto choice_11_LENGTH_out;
+        }
+        i = packrat_contextidentifier(tmp, trace,data,off,max);
+        if(parser_fail(i)) {
+            goto choice_11_LENGTH_out;
+        }
+        else {
+            off=i;
+        }
+        i = packrat_parser(tmp, trace,data,off,max);
+        if(parser_fail(i)) {
+            goto choice_11_LENGTH_out;
+        }
+        else {
+            off=i;
+        }
+        n_tr_pick_choice(trace,choice_begin,LENGTH,choice);
+        goto choice_11_succ;
+choice_11_LENGTH_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
         {
@@ -3235,18 +3297,14 @@ static pos bind_structparser(structparser*out,const char *data, pos off, pos **t
                     return -1;
                 }
                 break;
-            case CTXT:
+            case CONTEXT:
                 tr = trace_begin + *tr;
-                out->elem[i].N_type= CTXT;
-                off = bind_contextidentifier(&out->elem[i].CTXT.name, data,off,&tr,trace_begin);
+                out->elem[i].N_type= CONTEXT;
+                off = bind_contextidentifier(&out->elem[i].CONTEXT.name, data,off,&tr,trace_begin);
                 if(parser_fail(off)) {
                     return -1;
                 }
-                out->elem[i].CTXT.parser= malloc(sizeof(*out->elem[i].CTXT.parser));
-                if(!out->elem[i].CTXT.parser) {
-                    return -1;
-                }
-                off = bind_parser(out->elem[i].CTXT.parser, data,off,&tr,trace_begin);
+                off = bind_constrainedint(&out->elem[i].CONTEXT.parser, data,off,&tr,trace_begin);
                 if(parser_fail(off)) {
                     return -1;
                 }
@@ -3525,6 +3583,25 @@ static pos bind_parserinner(parserinner*out,const char *data, pos off, pos **tra
         tr = trace_begin + *tr;
         out->N_type= ARRAY;
         off = bind_arrayparser(&out->ARRAY, data,off,&tr,trace_begin);
+        if(parser_fail(off)) {
+            return -1;
+        }
+        break;
+    case LENGTH:
+        tr = trace_begin + *tr;
+        out->N_type= LENGTH;
+        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
+        off  = *tr;
+        tr++;
+        off = bind_contextidentifier(&out->LENGTH.length, data,off,&tr,trace_begin);
+        if(parser_fail(off)) {
+            return -1;
+        }
+        out->LENGTH.parser= malloc(sizeof(*out->LENGTH.parser));
+        if(!out->LENGTH.parser) {
+            return -1;
+        }
+        off = bind_parser(out->LENGTH.parser, data,off,&tr,trace_begin);
         if(parser_fail(off)) {
             return -1;
         }
@@ -3931,9 +4008,9 @@ void gen_structparser(HBitWriter *out,structparser * val) {
         case CONSTANT:
             gen_constparser(out,&val->elem[i11].CONSTANT);
             break;
-        case CTXT:
-            gen_contextidentifier(out,&val->elem[i11].CTXT.name);
-            gen_parser(out,val->elem[i11].CTXT.parser);
+        case CONTEXT:
+            gen_contextidentifier(out,&val->elem[i11].CONTEXT.name);
+            gen_constrainedint(out,&val->elem[i11].CONTEXT.parser);
             break;
         case FIELD:
             gen_varidentifier(out,&val->elem[i11].FIELD.name);
@@ -4046,6 +4123,15 @@ void gen_parserinner(HBitWriter *out,parserinner * val) {
         break;
     case ARRAY:
         gen_arrayparser(out,&val->ARRAY);
+        break;
+    case LENGTH:
+        gen_WHITE(out);
+        h_bit_writer_put(out,'n',8);
+        h_bit_writer_put(out,'_',8);
+        h_bit_writer_put(out,'o',8);
+        h_bit_writer_put(out,'f',8);
+        gen_contextidentifier(out,&val->LENGTH.length);
+        gen_parser(out,val->LENGTH.parser);
         break;
     case OPTIONAL:
         gen_WHITE(out);

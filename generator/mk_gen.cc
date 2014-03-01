@@ -75,12 +75,30 @@ class GenGenerator{
         case CONSTANT:
           generator(field->CONSTANT);
           break;
-        case FIELD:
+        case FIELD:{
           ValExpr fieldname(mk_str(field->FIELD.name),&val);
           generator(field->FIELD.parser->PR,fieldname);
           break;
         }
+        case CONTEXT:{
+          int width = boost::lexical_cast<int>(mk_str(field->CONTEXT.parser.parser.UNSIGNED));
+          out << "long "<< mk_str(field->CONTEXT.name) << ";"; // TODO: pick proper type
+          out << "HBitWriter rewind_"<< mk_str(field->CONTEXT.name) << " = *out;";
+          out << "h_bit_writer_put(out,0,"<< width << ");";
+          break;
+        }
+        }
       }
+      
+      out << "{/*Context-rewind*/\n HBitWriter end_of_struct= *out;\n";
+      FOREACH(field,p.STRUCT){
+        if(field->N_type != CONTEXT)
+          continue;
+        int width = boost::lexical_cast<int>(mk_str(field->CONTEXT.parser.parser.UNSIGNED));
+        out << "*out = rewind_"<< mk_str(field->CONTEXT.name)<<";\n";
+        out << "h_bit_writer_put(out,"<<mk_str(field->CONTEXT.name)<<","<<width<<");\n";
+      }
+      out << "*out = end_of_struct;\n}";
       break;
     case WRAP:
       if(p.WRAP.constbefore){
@@ -115,6 +133,18 @@ class GenGenerator{
         // Parentheses or the like might be NECESSARY for bijection. For now, fail?
         fprintf(stderr,"Warning, UNION is dangerous\n");
         generator(p.UNION.elem[0]->PR,val);
+      }
+      break;
+    case LENGTH:
+      {
+        ValExpr count("count", &val);
+        ValExpr data("elem", &val);
+        ValExpr iter(boost::str(boost::format("i%d") % num_iters++));
+        ArrayElemExpr elem(&data,&iter);
+        out << "for(int "<< iter<<"=0;"<<iter << "<" << count << ";" << iter << "++){";
+        generator(p.LENGTH.parser->PR,elem);
+        out<< "}";
+        out << mk_str(p.LENGTH.length) << "=" << count << ";";
       }
       break;
     case ARRAY:
@@ -167,6 +197,7 @@ public:
   void generator( grammar *grammar)
   {
     out << "#include <hammer/hammer.h>\n";
+    out << "#include <hammer/internal.h>\n";
     FOREACH(definition,*grammar){
 
       if(definition->N_type == CONST){

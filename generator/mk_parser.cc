@@ -48,6 +48,14 @@ class CDataModel{
  
     }
   }
+  void emit_array(const parser &inner, const std::string name = ""){
+
+      out << "struct "<< name <<"{\n";
+      emit_type(inner);
+      out << "*elem;\n size_t count;\n";
+      out << "}" ;
+
+  }
   void emit_type( const parser &outer,const std::string name =""){
     const parserinner &p = outer.PR;
     switch(p.N_type){
@@ -86,23 +94,23 @@ class CDataModel{
       break;
   
     case ARRAY:
-      out << "struct "<< name <<"{\n";
       switch(p.ARRAY.N_type){
       case MANY:
       case MANYONE:
-        emit_type(*p.ARRAY.MANY);
+        emit_array(*p.ARRAY.MANY,name);
         break;
       case SEPBY:
       case SEPBYONE:
-        emit_type(*p.ARRAY.SEPBY.inner);
+        emit_array(*p.ARRAY.SEPBY.inner,name);
         break;
       }
-      out << "*elem;\n size_t count;\n";
-      out << "}" ;
       break;
     case OPTIONAL:
       emit_type(*p.OPTIONAL);
       out << "*";
+      break;
+    case LENGTH:
+      emit_array(*p.LENGTH.parser,name);
       break;
     case UNION:
       {
@@ -428,6 +436,14 @@ class CPrimitiveParser{
         case FIELD:
           packrat(*field->FIELD.parser,fail);
           break;
+        case CONTEXT:{
+          //TODO: Make better
+          int width = boost::lexical_cast<int>(mk_str(field->CONTEXT.parser.parser.UNSIGNED));
+          check_int(width,fail);
+          out << "long " << mk_str(field->CONTEXT.name) << " = " << int_expr(width) << ";\n";
+          out << "off +=" << width << ";\n";
+        }
+          
         }
       }
       break;
@@ -465,6 +481,17 @@ class CPrimitiveParser{
       }
     case ARRAY:
       packrat(parser.PR.ARRAY,fail); 
+      break;
+    case LENGTH:
+        out << "{/*LENGTH*/"
+            << "pos many = n_tr_memo_many(trace);\n"
+            << "pos count= "<< mk_str(parser.PR.LENGTH.length)<<";\n"
+            << "pos i =0;";
+        out<< "for( i=0;i<count;i++){";
+        packrat(*parser.PR.LENGTH.parser,fail);
+        out << "}";
+        out << "n_tr_write_many(trace,many,count);\n";
+        out << "}/*/LENGTH*/";
       break;
     case OPTIONAL:
       packrat_optional(*parser.PR.OPTIONAL,fail);
@@ -540,10 +567,15 @@ class CAction{
         case CONSTANT:
           action_constparser();
           break;
-        case FIELD:
+        case FIELD:{
           ValExpr fieldname(mk_str(field->FIELD.name),&lval);
           action(field->FIELD.parser->PR,fieldname);
           break;
+        }
+        case CONTEXT:{
+          int width = boost::lexical_cast<int>(mk_str(field->CONTEXT.parser.parser.UNSIGNED));
+          out << "off+=" << width<<";";
+        }
         }
       }
       break;
@@ -596,6 +628,7 @@ class CAction{
         out << "}";
       }
       break;
+    case LENGTH:
     case ARRAY:
       {
 #ifdef DEBUG_OUT
@@ -604,23 +637,29 @@ class CAction{
         const parser *i;
         ValExpr count("count", &lval);
         ValExpr data("elem", &lval);
-        switch(p.ARRAY.N_type){
-        case MANYONE:
-          i = p.ARRAY.MANYONE;break;
-        case MANY:
-          i = p.ARRAY.MANY; break;
-        case SEPBY:
-          i = p.ARRAY.SEPBY.inner; break;
-        case SEPBYONE:
-          i= p.ARRAY.SEPBYONE.inner; break;
+        if(p.N_type == ARRAY){
+          switch(p.ARRAY.N_type){
+          case MANYONE:
+            i = p.ARRAY.MANYONE;break;
+          case MANY:
+            i = p.ARRAY.MANY; break;
+          case SEPBY:
+            i = p.ARRAY.SEPBY.inner; break;
+          case SEPBYONE:
+            i= p.ARRAY.SEPBYONE.inner; break;
+          }
         }
+        else{ /* LENGTH*/
+          i = p.LENGTH.parser;
+        }
+          
         out << "{ /*ARRAY*/ \n pos save = 0;";
         out << count << "=" << "*(tr++);\n"
             << "save = *(tr++);\n";
         out <<data << "= " << "malloc(" << count << "* sizeof(*"<<data<<"));\n"
             << "if(!"<< data<< "){return 0;}\n";
         out << "for(pos i=0;i<"<<count<<";i++){";
-        if(p.ARRAY.N_type == SEPBY || p.ARRAY.N_type == SEPBYONE){
+        if(p.N_type == ARRAY && (p.ARRAY.N_type == SEPBY || p.ARRAY.N_type == SEPBYONE)){
           out<< "if(i>0){";
           action_constparser();
           out << "}";
