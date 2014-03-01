@@ -1,7 +1,7 @@
 all: server
-server: server.c generated.h
+server: server.c parser.h
 	cc $(CFLAGS) -o $@ $<
-generated.h: dns_packet.nail
+%.h: %.nail
 	../../generator/nail $< $@ -parser_hammer -generator && astyle $@
 
 
