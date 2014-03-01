@@ -260,9 +260,14 @@ struct constrainedint {
 ;
 struct structparser {
     struct {
-        enum  {CONSTANT,FIELD} N_type;
+        enum  {CONSTANT,CTXT,FIELD} N_type;
         union {
             constparser CONSTANT;
+            struct {
+                contextidentifier name;
+                parser*  parser;
+            }
+            CTXT;
             struct {
                 varidentifier name;
                 parser*  parser;
@@ -286,7 +291,7 @@ struct wrapparser {
 ;
 struct choiceparser {
     struct {
-        varidentifier tag;
+        constidentifier tag;
         parser*  parser;
     }
     *elem;
@@ -1605,6 +1610,25 @@ succ_repeat_14:
 choice_9_CONSTANT_out:
             off = backtrack;
             choice = n_tr_memo_choice(trace);
+            i = packrat_contextidentifier(tmp, trace,data,off,max);
+            if(parser_fail(i)) {
+                goto choice_9_CTXT_out;
+            }
+            else {
+                off=i;
+            }
+            i = packrat_parser(tmp, trace,data,off,max);
+            if(parser_fail(i)) {
+                goto choice_9_CTXT_out;
+            }
+            else {
+                off=i;
+            }
+            n_tr_pick_choice(trace,choice_begin,CTXT,choice);
+            goto choice_9_succ;
+choice_9_CTXT_out:
+            off = backtrack;
+            choice = n_tr_memo_choice(trace);
             i = packrat_varidentifier(tmp, trace,data,off,max);
             if(parser_fail(i)) {
                 goto choice_9_FIELD_out;
@@ -1871,40 +1895,14 @@ static pos packrat_choiceparser(NailArena *tmp,n_trace *trace, const char *data,
         pos many = n_tr_memo_many(trace);
         pos count = 0;
 succ_repeat_19:
-        {   pos backtrack = off;
-            pos choice_begin = n_tr_begin_choice(trace);
-            pos choice;
-            if(parser_fail(choice_begin)) {
-                goto fail_repeat_19;
-            }
-            choice = n_tr_memo_choice(trace);
-            i = packrat_varidentifier(tmp, trace,data,off,max);
-            if(parser_fail(i)) {
-                goto choice_10_1_out;
-            }
-            else {
-                off=i;
-            }
-            n_tr_pick_choice(trace,choice_begin,1,choice);
-            goto choice_10_succ;
-choice_10_1_out:
-            off = backtrack;
-            choice = n_tr_memo_choice(trace);
-            i = packrat_constidentifier(tmp, trace,data,off,max);
-            if(parser_fail(i)) {
-                goto choice_10_2_out;
-            }
-            else {
-                off=i;
-            }
-            n_tr_pick_choice(trace,choice_begin,2,choice);
-            goto choice_10_succ;
-choice_10_2_out:
-            off = backtrack;
+        i = packrat_constidentifier(tmp, trace,data,off,max);
+        if(parser_fail(i)) {
             goto fail_repeat_19;
-choice_10_succ:
-            ;
-        }{
+        }
+        else {
+            off=i;
+        }
+        {
             pos ext = packrat_WHITE(data,off,max);
             if(ext < 0) {
                 goto fail_repeat_19;
@@ -1966,246 +1964,246 @@ static pos packrat_arrayparser(NailArena *tmp,n_trace *trace, const char *data, 
         {
             pos ext = packrat_WHITE(data,off,max);
             if(ext < 0) {
-                goto choice_11_MANYONE_out;
+                goto choice_10_MANYONE_out;
             }
             off = ext;
         }
         if(off + 8> max) {
-            goto choice_11_MANYONE_out;
+            goto choice_10_MANYONE_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'm') {
-            goto choice_11_MANYONE_out;
+            goto choice_10_MANYONE_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_11_MANYONE_out;
+            goto choice_10_MANYONE_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'a') {
-            goto choice_11_MANYONE_out;
+            goto choice_10_MANYONE_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_11_MANYONE_out;
+            goto choice_10_MANYONE_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'n') {
-            goto choice_11_MANYONE_out;
+            goto choice_10_MANYONE_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_11_MANYONE_out;
+            goto choice_10_MANYONE_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'y') {
-            goto choice_11_MANYONE_out;
+            goto choice_10_MANYONE_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_11_MANYONE_out;
+            goto choice_10_MANYONE_out;
         }
         if( read_unsigned_bits(data,off,8)!= '1') {
-            goto choice_11_MANYONE_out;
+            goto choice_10_MANYONE_out;
         }
         off += 8;
         if(parser_fail(n_tr_const(trace,off))) {
-            goto choice_11_MANYONE_out;
+            goto choice_10_MANYONE_out;
         }
         i = packrat_parser(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_11_MANYONE_out;
+            goto choice_10_MANYONE_out;
         }
         else {
             off=i;
         }
         n_tr_pick_choice(trace,choice_begin,MANYONE,choice);
-        goto choice_11_succ;
-choice_11_MANYONE_out:
+        goto choice_10_succ;
+choice_10_MANYONE_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
         {
             pos ext = packrat_WHITE(data,off,max);
             if(ext < 0) {
-                goto choice_11_MANY_out;
+                goto choice_10_MANY_out;
             }
             off = ext;
         }
         if(off + 8> max) {
-            goto choice_11_MANY_out;
+            goto choice_10_MANY_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'm') {
-            goto choice_11_MANY_out;
+            goto choice_10_MANY_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_11_MANY_out;
+            goto choice_10_MANY_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'a') {
-            goto choice_11_MANY_out;
+            goto choice_10_MANY_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_11_MANY_out;
+            goto choice_10_MANY_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'n') {
-            goto choice_11_MANY_out;
+            goto choice_10_MANY_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_11_MANY_out;
+            goto choice_10_MANY_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'y') {
-            goto choice_11_MANY_out;
+            goto choice_10_MANY_out;
         }
         off += 8;
         if(parser_fail(n_tr_const(trace,off))) {
-            goto choice_11_MANY_out;
+            goto choice_10_MANY_out;
         }
         i = packrat_parser(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_11_MANY_out;
+            goto choice_10_MANY_out;
         }
         else {
             off=i;
         }
         n_tr_pick_choice(trace,choice_begin,MANY,choice);
-        goto choice_11_succ;
-choice_11_MANY_out:
+        goto choice_10_succ;
+choice_10_MANY_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
         {
             pos ext = packrat_WHITE(data,off,max);
             if(ext < 0) {
-                goto choice_11_SEPBYONE_out;
+                goto choice_10_SEPBYONE_out;
             }
             off = ext;
         }
         if(off + 8> max) {
-            goto choice_11_SEPBYONE_out;
+            goto choice_10_SEPBYONE_out;
         }
         if( read_unsigned_bits(data,off,8)!= 's') {
-            goto choice_11_SEPBYONE_out;
+            goto choice_10_SEPBYONE_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_11_SEPBYONE_out;
+            goto choice_10_SEPBYONE_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'e') {
-            goto choice_11_SEPBYONE_out;
+            goto choice_10_SEPBYONE_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_11_SEPBYONE_out;
+            goto choice_10_SEPBYONE_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'p') {
-            goto choice_11_SEPBYONE_out;
+            goto choice_10_SEPBYONE_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_11_SEPBYONE_out;
+            goto choice_10_SEPBYONE_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'B') {
-            goto choice_11_SEPBYONE_out;
+            goto choice_10_SEPBYONE_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_11_SEPBYONE_out;
+            goto choice_10_SEPBYONE_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'y') {
-            goto choice_11_SEPBYONE_out;
+            goto choice_10_SEPBYONE_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_11_SEPBYONE_out;
+            goto choice_10_SEPBYONE_out;
         }
         if( read_unsigned_bits(data,off,8)!= '1') {
-            goto choice_11_SEPBYONE_out;
+            goto choice_10_SEPBYONE_out;
         }
         off += 8;
         if(parser_fail(n_tr_const(trace,off))) {
-            goto choice_11_SEPBYONE_out;
+            goto choice_10_SEPBYONE_out;
         }
         i = packrat_constparser(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_11_SEPBYONE_out;
+            goto choice_10_SEPBYONE_out;
         }
         else {
             off=i;
         }
         i = packrat_parser(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_11_SEPBYONE_out;
+            goto choice_10_SEPBYONE_out;
         }
         else {
             off=i;
         }
         n_tr_pick_choice(trace,choice_begin,SEPBYONE,choice);
-        goto choice_11_succ;
-choice_11_SEPBYONE_out:
+        goto choice_10_succ;
+choice_10_SEPBYONE_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
         {
             pos ext = packrat_WHITE(data,off,max);
             if(ext < 0) {
-                goto choice_11_SEPBY_out;
+                goto choice_10_SEPBY_out;
             }
             off = ext;
         }
         if(off + 8> max) {
-            goto choice_11_SEPBY_out;
+            goto choice_10_SEPBY_out;
         }
         if( read_unsigned_bits(data,off,8)!= 's') {
-            goto choice_11_SEPBY_out;
+            goto choice_10_SEPBY_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_11_SEPBY_out;
+            goto choice_10_SEPBY_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'e') {
-            goto choice_11_SEPBY_out;
+            goto choice_10_SEPBY_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_11_SEPBY_out;
+            goto choice_10_SEPBY_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'p') {
-            goto choice_11_SEPBY_out;
+            goto choice_10_SEPBY_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_11_SEPBY_out;
+            goto choice_10_SEPBY_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'B') {
-            goto choice_11_SEPBY_out;
+            goto choice_10_SEPBY_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_11_SEPBY_out;
+            goto choice_10_SEPBY_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'y') {
-            goto choice_11_SEPBY_out;
+            goto choice_10_SEPBY_out;
         }
         off += 8;
         if(parser_fail(n_tr_const(trace,off))) {
-            goto choice_11_SEPBY_out;
+            goto choice_10_SEPBY_out;
         }
         i = packrat_constparser(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_11_SEPBY_out;
+            goto choice_10_SEPBY_out;
         }
         else {
             off=i;
         }
         i = packrat_parser(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_11_SEPBY_out;
+            goto choice_10_SEPBY_out;
         }
         else {
             off=i;
         }
         n_tr_pick_choice(trace,choice_begin,SEPBY,choice);
-        goto choice_11_succ;
-choice_11_SEPBY_out:
+        goto choice_10_succ;
+choice_10_SEPBY_out:
         off = backtrack;
         goto fail;
-choice_11_succ:
+choice_10_succ:
         ;
     }
     return off;
@@ -2223,147 +2221,147 @@ static pos packrat_parserinner(NailArena *tmp,n_trace *trace, const char *data, 
         choice = n_tr_memo_choice(trace);
         i = packrat_constrainedint(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_12_INT_out;
+            goto choice_11_INT_out;
         }
         else {
             off=i;
         }
         n_tr_pick_choice(trace,choice_begin,INT,choice);
-        goto choice_12_succ;
-choice_12_INT_out:
+        goto choice_11_succ;
+choice_11_INT_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
         i = packrat_structparser(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_12_STRUCT_out;
+            goto choice_11_STRUCT_out;
         }
         else {
             off=i;
         }
         n_tr_pick_choice(trace,choice_begin,STRUCT,choice);
-        goto choice_12_succ;
-choice_12_STRUCT_out:
+        goto choice_11_succ;
+choice_11_STRUCT_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
         i = packrat_wrapparser(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_12_WRAP_out;
+            goto choice_11_WRAP_out;
         }
         else {
             off=i;
         }
         n_tr_pick_choice(trace,choice_begin,WRAP,choice);
-        goto choice_12_succ;
-choice_12_WRAP_out:
+        goto choice_11_succ;
+choice_11_WRAP_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
         i = packrat_choiceparser(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_12_CHOICE_out;
+            goto choice_11_CHOICE_out;
         }
         else {
             off=i;
         }
         n_tr_pick_choice(trace,choice_begin,CHOICE,choice);
-        goto choice_12_succ;
-choice_12_CHOICE_out:
+        goto choice_11_succ;
+choice_11_CHOICE_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
         i = packrat_arrayparser(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_12_ARRAY_out;
+            goto choice_11_ARRAY_out;
         }
         else {
             off=i;
         }
         n_tr_pick_choice(trace,choice_begin,ARRAY,choice);
-        goto choice_12_succ;
-choice_12_ARRAY_out:
+        goto choice_11_succ;
+choice_11_ARRAY_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
         {
             pos ext = packrat_WHITE(data,off,max);
             if(ext < 0) {
-                goto choice_12_OPTIONAL_out;
+                goto choice_11_OPTIONAL_out;
             }
             off = ext;
         }
         if(off + 8> max) {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'o') {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'p') {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         if( read_unsigned_bits(data,off,8)!= 't') {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'i') {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'o') {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'n') {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'a') {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         if( read_unsigned_bits(data,off,8)!= 'l') {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         off += 8;
         if(off + 8> max) {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         if( read_unsigned_bits(data,off,8)!= ' ') {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         off += 8;
         if(parser_fail(n_tr_const(trace,off))) {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         i = packrat_parser(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_12_OPTIONAL_out;
+            goto choice_11_OPTIONAL_out;
         }
         else {
             off=i;
         }
         n_tr_pick_choice(trace,choice_begin,OPTIONAL,choice);
-        goto choice_12_succ;
-choice_12_OPTIONAL_out:
+        goto choice_11_succ;
+choice_11_OPTIONAL_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
         {
@@ -2406,56 +2404,56 @@ succ_repeat_20:
 fail_repeat_20:
             n_tr_write_many(trace,many,count);
             if(count < 1) {
-                goto choice_12_UNION_out;
+                goto choice_11_UNION_out;
             }
         }
         n_tr_pick_choice(trace,choice_begin,UNION,choice);
-        goto choice_12_succ;
-choice_12_UNION_out:
+        goto choice_11_succ;
+choice_11_UNION_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
         {
             pos ext = packrat_WHITE(data,off,max);
             if(ext < 0) {
-                goto choice_12_REF_out;
+                goto choice_11_REF_out;
             }
             off = ext;
         }
         if(off + 8> max) {
-            goto choice_12_REF_out;
+            goto choice_11_REF_out;
         }
         if( read_unsigned_bits(data,off,8)!= '*') {
-            goto choice_12_REF_out;
+            goto choice_11_REF_out;
         }
         off += 8;
         if(parser_fail(n_tr_const(trace,off))) {
-            goto choice_12_REF_out;
+            goto choice_11_REF_out;
         }
         i = packrat_varidentifier(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_12_REF_out;
+            goto choice_11_REF_out;
         }
         else {
             off=i;
         }
         n_tr_pick_choice(trace,choice_begin,REF,choice);
-        goto choice_12_succ;
-choice_12_REF_out:
+        goto choice_11_succ;
+choice_11_REF_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
         i = packrat_varidentifier(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_12_NAME_out;
+            goto choice_11_NAME_out;
         }
         else {
             off=i;
         }
         n_tr_pick_choice(trace,choice_begin,NAME,choice);
-        goto choice_12_succ;
-choice_12_NAME_out:
+        goto choice_11_succ;
+choice_11_NAME_out:
         off = backtrack;
         goto fail;
-choice_12_succ:
+choice_11_succ:
         ;
     }
     return off;
@@ -2474,23 +2472,23 @@ static pos packrat_parser(NailArena *tmp,n_trace *trace, const char *data, pos o
         {
             pos ext = packrat_WHITE(data,off,max);
             if(ext < 0) {
-                goto choice_13_PAREN_out;
+                goto choice_12_PAREN_out;
             }
             off = ext;
         }
         if(off + 8> max) {
-            goto choice_13_PAREN_out;
+            goto choice_12_PAREN_out;
         }
         if( read_unsigned_bits(data,off,8)!= '(') {
-            goto choice_13_PAREN_out;
+            goto choice_12_PAREN_out;
         }
         off += 8;
         if(parser_fail(n_tr_const(trace,off))) {
-            goto choice_13_PAREN_out;
+            goto choice_12_PAREN_out;
         }
         i = packrat_parserinner(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_13_PAREN_out;
+            goto choice_12_PAREN_out;
         }
         else {
             off=i;
@@ -2498,38 +2496,38 @@ static pos packrat_parser(NailArena *tmp,n_trace *trace, const char *data, pos o
         {
             pos ext = packrat_WHITE(data,off,max);
             if(ext < 0) {
-                goto choice_13_PAREN_out;
+                goto choice_12_PAREN_out;
             }
             off = ext;
         }
         if(off + 8> max) {
-            goto choice_13_PAREN_out;
+            goto choice_12_PAREN_out;
         }
         if( read_unsigned_bits(data,off,8)!= ')') {
-            goto choice_13_PAREN_out;
+            goto choice_12_PAREN_out;
         }
         off += 8;
         if(parser_fail(n_tr_const(trace,off))) {
-            goto choice_13_PAREN_out;
+            goto choice_12_PAREN_out;
         }
         n_tr_pick_choice(trace,choice_begin,PAREN,choice);
-        goto choice_13_succ;
-choice_13_PAREN_out:
+        goto choice_12_succ;
+choice_12_PAREN_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
         i = packrat_parserinner(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_13_PR_out;
+            goto choice_12_PR_out;
         }
         else {
             off=i;
         }
         n_tr_pick_choice(trace,choice_begin,PR,choice);
-        goto choice_13_succ;
-choice_13_PR_out:
+        goto choice_12_succ;
+choice_12_PR_out:
         off = backtrack;
         goto fail;
-choice_13_succ:
+choice_12_succ:
         ;
     }
     return off;
@@ -2547,7 +2545,7 @@ static pos packrat_definition(NailArena *tmp,n_trace *trace, const char *data, p
         choice = n_tr_memo_choice(trace);
         i = packrat_varidentifier(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_14_PARSER_out;
+            goto choice_13_PARSER_out;
         }
         else {
             off=i;
@@ -2555,35 +2553,35 @@ static pos packrat_definition(NailArena *tmp,n_trace *trace, const char *data, p
         {
             pos ext = packrat_WHITE(data,off,max);
             if(ext < 0) {
-                goto choice_14_PARSER_out;
+                goto choice_13_PARSER_out;
             }
             off = ext;
         }
         if(off + 8> max) {
-            goto choice_14_PARSER_out;
+            goto choice_13_PARSER_out;
         }
         if( read_unsigned_bits(data,off,8)!= '=') {
-            goto choice_14_PARSER_out;
+            goto choice_13_PARSER_out;
         }
         off += 8;
         if(parser_fail(n_tr_const(trace,off))) {
-            goto choice_14_PARSER_out;
+            goto choice_13_PARSER_out;
         }
         i = packrat_parser(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_14_PARSER_out;
+            goto choice_13_PARSER_out;
         }
         else {
             off=i;
         }
         n_tr_pick_choice(trace,choice_begin,PARSER,choice);
-        goto choice_14_succ;
-choice_14_PARSER_out:
+        goto choice_13_succ;
+choice_13_PARSER_out:
         off = backtrack;
         choice = n_tr_memo_choice(trace);
         i = packrat_constidentifier(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_14_CONST_out;
+            goto choice_13_CONST_out;
         }
         else {
             off=i;
@@ -2591,46 +2589,46 @@ choice_14_PARSER_out:
         {
             pos ext = packrat_WHITE(data,off,max);
             if(ext < 0) {
-                goto choice_14_CONST_out;
+                goto choice_13_CONST_out;
             }
             off = ext;
         }
         if(parser_fail(n_tr_const(trace,off))) {
-            goto choice_14_CONST_out;
+            goto choice_13_CONST_out;
         }
         if(off + 8> max) {
-            goto choice_14_CONST_out;
+            goto choice_13_CONST_out;
         }
         if( read_unsigned_bits(data,off,8)!= '=') {
-            goto choice_14_CONST_out;
+            goto choice_13_CONST_out;
         }
         off += 8;
         if(parser_fail(n_tr_const(trace,off))) {
-            goto choice_14_CONST_out;
+            goto choice_13_CONST_out;
         }
         {
             pos ext = packrat_WHITE(data,off,max);
             if(ext < 0) {
-                goto choice_14_CONST_out;
+                goto choice_13_CONST_out;
             }
             off = ext;
         }
         if(parser_fail(n_tr_const(trace,off))) {
-            goto choice_14_CONST_out;
+            goto choice_13_CONST_out;
         }
         i = packrat_constparser(tmp, trace,data,off,max);
         if(parser_fail(i)) {
-            goto choice_14_CONST_out;
+            goto choice_13_CONST_out;
         }
         else {
             off=i;
         }
         n_tr_pick_choice(trace,choice_begin,CONST,choice);
-        goto choice_14_succ;
-choice_14_CONST_out:
+        goto choice_13_succ;
+choice_13_CONST_out:
         off = backtrack;
         goto fail;
-choice_14_succ:
+choice_13_succ:
         ;
     }
     return off;
@@ -3237,6 +3235,22 @@ static pos bind_structparser(structparser*out,const char *data, pos off, pos **t
                     return -1;
                 }
                 break;
+            case CTXT:
+                tr = trace_begin + *tr;
+                out->elem[i].N_type= CTXT;
+                off = bind_contextidentifier(&out->elem[i].CTXT.name, data,off,&tr,trace_begin);
+                if(parser_fail(off)) {
+                    return -1;
+                }
+                out->elem[i].CTXT.parser= malloc(sizeof(*out->elem[i].CTXT.parser));
+                if(!out->elem[i].CTXT.parser) {
+                    return -1;
+                }
+                off = bind_parser(out->elem[i].CTXT.parser, data,off,&tr,trace_begin);
+                if(parser_fail(off)) {
+                    return -1;
+                }
+                break;
             case FIELD:
                 tr = trace_begin + *tr;
                 out->elem[i].N_type= FIELD;
@@ -3370,25 +3384,9 @@ static pos bind_choiceparser(choiceparser*out,const char *data, pos off, pos **t
             return 0;
         }
         for(pos i=0; i<out->count; i++) {
-            fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
-            switch(*(tr++)) {
-            case 1:
-                tr = trace_begin + *tr;
-                off = bind_varidentifier(&out->elem[i].tag, data,off,&tr,trace_begin);
-                if(parser_fail(off)) {
-                    return -1;
-                }
-                break;
-            case 2:
-                tr = trace_begin + *tr;
-                off = bind_constidentifier(&out->elem[i].tag, data,off,&tr,trace_begin);
-                if(parser_fail(off)) {
-                    return -1;
-                }
-                break;
-            default:
-                assert(!"Error");
-                exit(-1);
+            off = bind_constidentifier(&out->elem[i].tag, data,off,&tr,trace_begin);
+            if(parser_fail(off)) {
+                return -1;
             }
             fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
             off  = *tr;
@@ -3933,6 +3931,10 @@ void gen_structparser(HBitWriter *out,structparser * val) {
         case CONSTANT:
             gen_constparser(out,&val->elem[i11].CONSTANT);
             break;
+        case CTXT:
+            gen_contextidentifier(out,&val->elem[i11].CTXT.name);
+            gen_parser(out,val->elem[i11].CTXT.parser);
+            break;
         case FIELD:
             gen_varidentifier(out,&val->elem[i11].FIELD.name);
             gen_parser(out,val->elem[i11].FIELD.parser);
@@ -3978,7 +3980,7 @@ void gen_choiceparser(HBitWriter *out,choiceparser * val) {
     gen_WHITE(out);
     h_bit_writer_put(out,'{',8);
     for(int i14=0; i14<val->count; i14++) {
-        gen_varidentifier(out,&val->elem[i14].tag);
+        gen_constidentifier(out,&val->elem[i14].tag);
         gen_WHITE(out);
         h_bit_writer_put(out,'=',8);
         gen_parser(out,val->elem[i14].parser);

@@ -1,6 +1,8 @@
 all: nail 
 CFLAGS+= -I../ -lhammer -ggdb -std=gnu++11
 CXXFLAGS=$(CFLAGS) -std=gnu++11
+mk_parser.o: mk_parser.cc *.h
+mk_gen.o: mk_gen.cc *.h
 newgrammar.h: new_grammar.nail
 	tools/old2new new_grammar.nail  2&>/dev/null > newgrammar.h
 parser_template.o: parser_template.c 

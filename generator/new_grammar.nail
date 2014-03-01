@@ -53,7 +53,9 @@ constrainedint = {
 
 structparser = <t("{"); sepBy SEPERATOR choose{
               CONSTANT = constparser                      
+              CONTEXT = {name contextidentifier; parser *parser}    
               FIELD= { name varidentifier;  parser *parser }
+
               } 
          t("}")>
 wrapparser = {t("<"); constbefore optional <sepBy1 SEPERATOR constparser; SEPERATOR>
@@ -75,6 +77,7 @@ parserinner =  choose {// because we don't do left recursive grammars yet
                 WRAP = wrapparser
                 CHOICE= choiceparser
                 ARRAY = arrayparser
+                LENGTH = {t("context"); length contextidentifier; parser constrainedint}
                 OPTIONAL= <t("optional ") *parser>
                 UNION = many1 <t("||") *parser>
                 REF   =  <t("*") varidentifier >
