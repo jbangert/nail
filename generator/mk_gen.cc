@@ -95,10 +95,12 @@ class GenGenerator{
         if(field->N_type != CONTEXT)
           continue;
         int width = boost::lexical_cast<int>(mk_str(field->CONTEXT.parser.parser.UNSIGNED));
-        out << "*out = rewind_"<< mk_str(field->CONTEXT.name)<<";\n";
+        out << "out->index = rewind_"<< mk_str(field->CONTEXT.name)<<".index;\n";
+        out << "out->bit_offset = rewind_"<< mk_str(field->CONTEXT.name)<<".bit_offset;\n";
         out << "h_bit_writer_put(out,"<<mk_str(field->CONTEXT.name)<<","<<width<<");\n";
       }
-      out << "*out = end_of_struct;\n}";
+      out << "out->index = end_of_struct.index;\n";
+      out << "out->bit_offset = end_of_struct.bit_offset;\n}";
       break;
     case WRAP:
       if(p.WRAP.constbefore){

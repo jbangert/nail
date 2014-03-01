@@ -7,22 +7,27 @@ typedef struct{
         pos *trace;
         pos capacity,iter,grow;
 } n_trace; 
-uint64_t read_unsigned_bits(const char *data, pos pos, unsigned count){    uint64_t retval = 0;
-    unsigned int out_idx=0;
-    //TODO: Implement little endian too
-    //Count LSB to MSB
-    while(count>0) {
-            if((pos & 7) == 0 && (count &7) ==0) {
-            retval|= data[pos >> 3] << out_idx;
-            out_idx+=8;
-            pos += 8;
-            count-=8;
+uint64_t read_unsigned_bits(const uint8_t *data, pos pos, unsigned count){ 
+        uint64_t retval = 0;
+        unsigned int out_idx=count;
+        //TODO: Implement little endian too
+        //Count LSB to MSB
+        while(count>0) {
+                if((pos & 7) == 0 && (count &7) ==0) {
+                        out_idx-=8;
+                        retval|= data[pos >> 3] << out_idx;
+                        pos += 8;
+                        count-=8;
+                }
+                else{
+                        //This can use a lot of performance love
+//TODO: implement other endianesses
+                        out_idx--;
+                        retval |= ((data[pos>>3] >> (7-(pos&7))) & 1) << out_idx;
+                        count--;
+                        pos++;
+                }
         }
-        else{
-            assert("BAM!");
-            exit(0);
-        }
-    }
     return retval;
 }
 #define BITSLICE(x, off, len) read_unsigned_bits(x,off,len)

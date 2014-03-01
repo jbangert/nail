@@ -215,7 +215,7 @@ class CPrimitiveParser{
   int nr_choice,nr_option;
   int nr_many;
   int nr_const;
-  
+  int num_iters;
   int bit_offset = 0; // < 0 = unknown alignment, 0 == byte aligned, 1 = byte + 1, etc 
 
   /*Packrat pass emits a light-weight trace of data structure*/
@@ -223,24 +223,24 @@ class CPrimitiveParser{
   void check_int(unsigned int width, const std::string &fail){
     out << "if(off + "<< width <<"> max) {"<<fail<<"}\n";
   }
-  void constraint(  intconstraint &c){
+  void constraint(std::string val,  intconstraint &c){
     switch(c.N_type){
     case RANGE:
-      out << "val>"<<intconstant_value(*c.RANGE.max) << "|| val < "<<intconstant_value(*c.RANGE.min);
+      out <<val<< ">"<<intconstant_value(*c.RANGE.max) << "|| "<< val <<" < "<<intconstant_value(*c.RANGE.min);
       break;
     case SET:
       {
         int first = 0;
-        FOREACH(val,c.SET){
+        FOREACH(allowed,c.SET){
           if(first++ != 0)
             out << " && ";
-          out << "val != "<<intconstant_value(*val);
+          out << val << " != "<<intconstant_value(*allowed);
         }
       }
       break;
     case NEGATE:
       out << "!(";
-      constraint(*c.NEGATE);
+      constraint(val,*c.NEGATE);
       out << ")";
       break;
     }
@@ -252,7 +252,7 @@ class CPrimitiveParser{
     if(c.constraint != NULL){
       out << "{\n uint64_t val = "<< int_expr(width) << ";\n";
       out << "if(";
-      constraint(*c.constraint);
+      constraint(std::string("val"),*c.constraint);
       out << "){"<<fail<<"}\n";
       out << "}\n";
     }
@@ -441,6 +441,11 @@ class CPrimitiveParser{
           int width = boost::lexical_cast<int>(mk_str(field->CONTEXT.parser.parser.UNSIGNED));
           check_int(width,fail);
           out << "long " << mk_str(field->CONTEXT.name) << " = " << int_expr(width) << ";\n";
+          if(field->CONTEXT.parser.constraint != NULL){
+            out << "if(";
+            constraint(mk_str(field->CONTEXT.name), *field->CONTEXT.parser.constraint);
+            out << "){"<<fail<<"}\n";
+            }
           out << "off +=" << width << ";\n";
         }
           
@@ -482,17 +487,19 @@ class CPrimitiveParser{
     case ARRAY:
       packrat(parser.PR.ARRAY,fail); 
       break;
-    case LENGTH:
+    case LENGTH:{
+      std::string iter = boost::str(boost::format("i%d") % num_iters++);
       out << "{/*LENGTH*/"
           << "pos many = n_tr_memo_many(trace);\n"
           << "pos count= "<< mk_str(parser.PR.LENGTH.length)<<";\n"
-          << "pos i =0;";
-      out<< "for( i=0;i<count;i++){";
+          << "pos "<<iter<<"=0;";
+      out<< "for( "<<iter<<"=0;"<<iter<<"<count;"<<iter<<"++){";
       packrat(*parser.PR.LENGTH.parser,fail);
       out << "}";
       out << "n_tr_write_many(trace,many,count);\n";
       out << "}/*/LENGTH*/";
       break;
+    }
     case OPTIONAL:
       packrat_optional(*parser.PR.OPTIONAL,fail);
       break;
@@ -506,11 +513,11 @@ class CPrimitiveParser{
     }
   }
 public:
-  CPrimitiveParser(std::ostream *os) : out(*os), nr_choice(1),nr_many(0),nr_const(0){}
+  CPrimitiveParser(std::ostream *os) : out(*os), nr_choice(1),nr_many(0),nr_const(0),num_iters(1){}
   void packrat(const definition &def) {
     if(def.N_type == PARSER){
       std::string name = mk_str(def.PARSER.name);
-      out <<"static pos packrat_" << name <<"(n_trace *trace, const char *data, pos off, pos max){\n";
+      out <<"static pos packrat_" << name <<"(n_trace *trace, const uint8_t *data, pos off, pos max){\n";
       out << "pos i;\n"; //Used in name and ref as temp variables
       packrat(def.PARSER.definition, "goto fail;");
       out << "return off;\n"
@@ -519,7 +526,7 @@ public:
     }
     else if(def.N_type == CONST){
       std::string name = mk_str(def.CONST.name);
-      out << "static pos packrat_" << name << "(const char *data, pos off, pos max){\n";
+      out << "static pos packrat_" << name << "(const uint8_t *data, pos off, pos max){\n";
       packrat_const(def.CONST.definition, "goto fail;");
       out << "return off;\n"
           << "fail: return -1;\n"
@@ -531,10 +538,10 @@ public:
       //Declaration
       switch(def->N_type){
       case PARSER:
-        out << "static pos packrat_" << mk_str(def->PARSER.name) <<"(n_trace *trace, const char *data, pos off, pos max);\n";
+        out << "static pos packrat_" << mk_str(def->PARSER.name) <<"(n_trace *trace, const uint8_t *data, pos off, pos max);\n";
         break;
       case CONST:
-        out << "static pos packrat_" << mk_str(def->CONST.name) <<"(const char *data, pos off, pos max);\n";
+        out << "static pos packrat_" << mk_str(def->CONST.name) <<"(const uint8_t *data, pos off, pos max);\n";
         break;
       }
     }
@@ -546,6 +553,7 @@ public:
 };
 class CAction{
   std::ostream &out;
+  int num_iters;
   void action_constparser(){
 #ifdef DEBUG_OUT
     out << "fprintf(stderr,\"%d = const %d\\n\",tr-trace_begin, *tr);\n";
@@ -658,13 +666,15 @@ class CAction{
             << "save = *(tr++);\n";
         out <<data << "= " << "n_malloc(arena," << count << "* sizeof(*"<<data<<"));\n"
             << "if(!"<< data<< "){return 0;}\n";
-        out << "for(pos i=0;i<"<<count<<";i++){";
+
+        std::string iter = boost::str(boost::format("i%d") % num_iters++);
+          out << "for(pos "<<iter<<"=0;"<<iter<<"<"<<count<<";"<<iter<<"++){";
         if(p.N_type == ARRAY && (p.ARRAY.N_type == SEPBY || p.ARRAY.N_type == SEPBYONE)){
           out<< "if(i>0){";
           action_constparser();
           out << "}";
         }
-        ValExpr iexpr("i");
+        ValExpr iexpr(iter);
         ArrayElemExpr elem(&data,&iexpr);
         action(i->PR,elem);
         out << "}\n";
@@ -700,32 +710,32 @@ class CAction{
     }
   }
 public:
-  CAction(std::ostream *os): out(*os){}
+  CAction(std::ostream *os): out(*os), num_iters(1){}
  
   void emit_action(const grammar &grammar){
     FOREACH(def, grammar){
       if(def->N_type == PARSER){ 
         std::string name= mk_str(def->PARSER.name);
-        out << "static pos bind_"<< name<< "(NailArena *arena," << name <<"*out,const char *data, pos off, pos **trace,  pos * trace_begin);";
+        out << "static pos bind_"<< name<< "(NailArena *arena," << name <<"*out,const uint8_t *data, pos off, pos **trace,  pos * trace_begin);";
       }
     }
     FOREACH(def, grammar){
       if(def->N_type == PARSER){
         std::string name= mk_str(def->PARSER.name);
-        out << "static pos bind_"<<name<< "(NailArena *arena," << name <<"*out,const char *data, pos off, pos **trace ,  pos * trace_begin){\n";
+        out << "static pos bind_"<<name<< "(NailArena *arena," << name <<"*out,const uint8_t *data, pos off, pos **trace ,  pos * trace_begin){\n";
         out << " pos *tr = *trace;";
         //  out << name << "*ret = malloc(sizeof("<<name<<")); if(!ret) return -1;";
         ValExpr outexpr("out",NULL,1);
         action(def->PARSER.definition.PR,outexpr);
         out << "*trace = tr;";
         out<< "return off;}";
-        out << name << "*parse_" << name << "(NailArena *arena, const char *data, size_t size){\n"
+        out << name << "*parse_" << name << "(NailArena *arena, const uint8_t *data, size_t size){\n"
             <<"n_trace trace;\n"
             <<"pos *tr_ptr;\n pos pos;\n"
             << name <<"* retval;\n"
             << "n_trace_init(&trace,4096,4096);\n"
             << "tr_ptr = trace.trace;"
-            << "if(size != packrat_"<<name<<"(&trace,data,0,size)) return NULL;"
+            << "if(size*8 != packrat_"<<name<<"(&trace,data,0,size*8)) return NULL;"
             << "retval = n_malloc(arena,sizeof(*retval));\n"
             <<"if(!retval) return NULL;\n"
             << "if(bind_"<<name<<"(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;\n"

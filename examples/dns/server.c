@@ -40,6 +40,7 @@ char *dns_respond(size_t *len,struct dnspacket *query)
         char *retval;
         int i;
         response->id = query->id;
+        fprintf(stderr,"Responding to %x\n", response->id);
         response->qr = 1;
         response->rd = query->rd;
         response->aa = 1;
@@ -82,7 +83,7 @@ int main(int argc, char** argv) {
   socklen_t remote_len;
   while (1) {
           NailArena arena;
-          struct dns_message *message;
+          struct dnspacket *message;
           char *response;
           size_t len;
           remote_len = sizeof(remote);
@@ -102,7 +103,7 @@ int main(int argc, char** argv) {
           response = dns_respond(&len,message );
           assert(response);
           sendto(sock, response, len, 0, (struct sockaddr*)&remote, remote_len);
-          NailArena_release(&arena);
+          // NailArena_release(&arena);
 
 }
 return 0;
