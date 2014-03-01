@@ -161,7 +161,7 @@ void *n_malloc(NailArena *arena, size_t size)
         }
         retval = arena->current->iter;
         arena->current->iter += size;
-        memset(retval,size,0);
+        memset(retval,0,size);
         return retval;
 }
 

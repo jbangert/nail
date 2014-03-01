@@ -1,6 +1,8 @@
-all: server
+all: server resolver
+resolver: resolver.c parser.h
 server: server.c parser.h
 	cc $(CFLAGS) -o $@ $<
+
 %.h: %.nail
 	../../generator/nail $< $@ -parser_hammer -generator && astyle $@
 

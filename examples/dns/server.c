@@ -1,15 +1,6 @@
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <err.h>
-#include <string.h>
+#include "common.h"
 
 
-
-#include "parser.h"
-
-extern HAllocator system_allocator;
-#define narray_alloc(arr, aren, cnt) arr.count = cnt; arr.elem= n_malloc(&aren,cnt * sizeof(arr.elem[0]))
-#define narray_string(arr,string) arr.count = strlen(string); arr.elem = string;
 
 ///
 // Main Program for a Dummy DNS Server, from hammer/example
@@ -43,11 +34,6 @@ int domain_cmp(domain *a, labels *b){
         }
         return 0;
 }
-#define TYPE_CNAME 5
-#define TYPE_A 1
-#define TYPE_NS 2
-#define TYPE_MX 15
-#define QTYPE_ANY 255
 //responses are a bit hackish - should really put those into the grammar too
 void domain_response(answer *rr, domain *dom){
         labels *l =(labels *)dom;
@@ -85,7 +71,7 @@ char *dns_respond(size_t *len,struct dnspacket *query, zone *zone)
         response->additionalcount=0;
         response->authoritycount=0;
         response->rcode = 0;
-        narray_alloc(response->responses,arena,query->questions.count);
+        narray_alloc(response->responses,&arena,query->questions.count);
         for(int i=0;i<query->questions.count;i++){
                 question *q =  &response->questions.elem[i];
                 definition *j;// We really should do a hashtable. Oh well.
