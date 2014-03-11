@@ -1,0 +1,55 @@
+This is BibTeX, Version 0.99d (TeX Live 2013/Arch Linux)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: main.aux
+The style file: plain.bst
+Database file #1: main.bib
+Database file #2: locasto.bib
+Database file #3: login.bib
+Database file #4: phrack.bib
+Database file #5: short.bib
+Database file #6: langsec.bib
+Warning--can't use both volume and number fields in mccann2000packet
+Warning--empty booktitle in patterson-citation
+Warning--empty year in patterson-citation
+You've used 19 entries,
+            2118 wiz_defined-function locations,
+            614 strings with 7236 characters,
+and the built_in function-call counts, 6015 in all, are:
+= -- 603
+> -- 226
+< -- 8
++ -- 92
+- -- 72
+* -- 332
+:= -- 971
+add.period$ -- 63
+call.type$ -- 19
+change.case$ -- 93
+chr.to.int$ -- 0
+cite$ -- 22
+duplicate$ -- 273
+empty$ -- 525
+format.name$ -- 72
+if$ -- 1324
+int.to.chr$ -- 0
+int.to.str$ -- 19
+missing$ -- 14
+newline$ -- 98
+num.names$ -- 38
+pop$ -- 127
+preamble$ -- 1
+purify$ -- 74
+quote$ -- 0
+skip$ -- 194
+stack$ -- 0
+substring$ -- 303
+swap$ -- 79
+text.length$ -- 8
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 74
+warning$ -- 3
+while$ -- 56
+width$ -- 21
+write$ -- 211
+(There were 3 warnings)
