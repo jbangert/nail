@@ -1,0 +1,47 @@
+Please find enclosed reviewer comments on your LangSec SPW2014
+submission. We expect you to address these comments by Apr 1 (the hard
+deadline for the IEEE CPS).
+
+Looking forward to seeing you at the workshop,
+
+--Sergey & Meredith
+  for LangSec SPW 2014 PC
+
+-----------------  REVIEWER COMMENTS SUMMARY --------------------
+
+"Nail: A practical interface generator for binary formats"
+
+This paper describes the design and implementation of the Nail parser
+generator.  It's interesting work, although it would be even more
+interesting if it contained some more detail on how easy/hard it would
+be to specify parsers for different protocols (other than the
+relatively straightforward DNS, or specifically the DNS subset of A,
+NS, MX and CNAME), which parts of the protocol caused the most
+difficulties to specify, where did the parser run into problems when
+processing real-world data that may or may not have complied with the
+specifications, and so on.  While the details of how the tool were
+built are interesting, I think the lessons-learned would be even more
+interesting.
+
+Has there been any attempt made to see how useful the generated parser is in
+terms of rejecting invalid input, e.g. by fuzzing the input data?
+
+Section 1.2 contains an incomplete sentence, "popularised  by Parsec for
+Haskell and.".
+
+Section 2 contains a sentence that doesn't make sense, "we present the
+combinators in Nail grouped by the combinations, if possible grouped by the
+combinators".
+
+Section 2 the example "uint 8 | 1..3" section should be explained to make sure
+that readers actually understand what's being specified.  Also the somewhat
+random spacing makes it hard to determine what's associated with what.
+
+Section 2.2 is in even greater need of explanation, or at least point out a
+few relevant elements and explain those, while it's possible to figure most of
+it out, or guess, it would help to be walked through at least some of the
+details.
+
+Reference #2 is incomplete.
+
+---------------------------- ----------------------------
