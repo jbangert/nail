@@ -9,3 +9,6 @@ main.pdf: main.tex *.bib
 	pdflatex $<
 	pdflatex $<
 
+clean:
+	rm -f main.pdf main.aux main.bbl main.blg main.log main.out
+
