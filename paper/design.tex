@@ -1,0 +1,210 @@
+\section{Design}
+
+\paragraph{Overview}
+To alleviate these problems, Nail provides a richer set of combinators that induce the structure of
+an internal model, while also describing the grammar of the external protocol. Nail takes the
+combinators and produces type declarations for an internal model, the \textit{parser}, a function to parse a sequence of
+bytes into an instance of the model and the \textit{generator}, a function to create a sequence of
+bytes from an instance of the model.
+
+A central design decision of Nail is that there is a  bijection between the model exposed to the programmer and the bytes
+input and output up to syntactic equivalence. More precisely, the parser is the generators inverse,
+so parsing the generators output will yield the generators input, but generating the parsers output
+does not necessarily yield the parsers input. To understand why this makes sense, consider a grammar
+for a text language that tolerates white space or a binary protocol that tolerates arbitrarily long
+padding\footnote{Say, the physical layer of most communication protocols is a possibly infinite
+  sequence of symbols that are syntactically nil followed by a pre-determined synchronisation
+  sequence and the actual contents of the transmission.}. However, if some features of Nail are
+avoided, there is a proper isomorphism between model and protocol.
+
+In the following, we present the combinators in Nail grouped by the combinators, if possible grouped
+by the combinator of conventional Parser Expression Grammars they replace.
+\paragraph{Fundamental parsers}
+The elementary parsers of Nail are the same as those of Hammer, signed and unsigned integers with
+arbitrary lengths up to 64 bits. Note that is possible to define parsers for sub-byte lengths, e.g.
+to parse the 4-bit data offset within the TCP header. Integer parsers return their value in the
+smallest appropriately sized machine integer type, e.g. a 24 bit integer is stored in a 32-bit wide variable.\\
+Examples: \texttt{uint4}, \texttt{int32}
+
+Integer parsers can be constrained to fall either within an (inclusive) range of values or be an
+element of a set of allowed values. \\Examples: \texttt{uint8 | 1..3},\texttt{uint16| ..512},
+\texttt{int32| [1,255,512]}
+
+\paragraph{Constant parser}
+Nail also has constant parsers, which do not return a value. The simplest constant parser is an
+integer with fixed value, e.g. \texttt{uint8=0}. Constant parsers succeed if the inner integer
+parser returns the given value and fail otherwise. 
+
+
+\paragraph{Sequence: Structure}
+Nails fundamental concept is the structure combinator. It contains a list of named parsers and
+unnamed constant parsers. 
+When parsing, it parses each parser in sequence and returns a structure containing the result of
+each parser.
+
+\begin{tabular}{ll}
+\textbf{Nail} & \textbf{Data Model}\\
+\begin{minipage}{2in}
+\begin{verbatim}
+header = {
+ id uint16
+ qr uint1
+ opcode uint4
+ aa uint1 
+ tc uint1
+ rd uint1
+ ra uint1
+ uint3 = 0
+ rcode uint4
+}
+\end{verbatim} 
+\end{minipage}
+ & 
+\begin{minipage}{2in}
+\begin{verbatim}
+struct header{
+    uint16_t id;
+    uint8_t qr;
+    uint8_t opcode;
+    uint8_t aa;
+    uint8_t tc;
+    uint8_t rd;
+    uint8_t ra;
+    uint8_t rcode;
+};
+\end{verbatim} 
+\end{minipage} 
+\\
+\end{tabular}
+\paragraph{Repetition: Many,SepBy}
+The many combinator takes a parser and applies it repeatedly until it fails, returning an array of
+the inner parsers results. SepBy additionally takes a constant parser, which it applies in between
+parsing two values,but not before parsing the first value or after parsing the last.\\
+Examples \texttt{many uint8}, \texttt{sepBy uint8=',' (many uint8| '0'..'9')} (which recognises
+comma-separated lists of numbers).
+
+The many combinator also works on constant parsers, although as described above it can make the
+generator not bijective. \footnote{By default, the generator will emit exactly one iteration of the
+  constant parser in its output.} Example: \texttt{many uint8= "test"}
+
+
+\paragraph{Semantic choice: choose}
+We extend PEG's ordered choice combinator, which picks the first choice that succeeds, with a tag
+for each choice. The result is saved in a tagged union. 
+
+\begin{verbatim}
+choose {
+   A = uint8 | 1.. 8
+   B = uint16 | ..256
+}
+\end{verbatim}
+\paragraph{Wrap}
+
+The wrap combinator parses one or more constant parser, then an inner parser whose value it returns
+and then again parses one or more constant parsers.\\ Example: 
+\verb+<uint8='"'; many8 uint8|'a'..'z'; uint8='"'  >+
+
+\subsection{Offset fields}
+Another problem for parser generators is that binary protocols often contain length and offset
+fields. While conventional parsing algorithms can deal with bounded offset fields - a finite
+automaton can count a bounded integer, and we can feed the (finite) input multiple times to the
+finite automaton. However, this implementation is both time-inefficient - why feed many bytes into
+the automaton that will just be skipped - and very cumbersome to express with current parser
+generators. Therefore, if languages with offset fields are parsed with parser generators, the only
+currently feasible way is to add 'ad-hoc' hacks such as changing the input pointer of the generated
+parser on the fly from semantic actions. 
+
+Nail will properly support both offset and length fields and much of the following discussion
+applies to both , although the current prototype only implements lengths, which we will focus on. 
+
+\paragraph{Dependency fields}
+We call length or offset fields \textit{dependency fields}, because during parsing, another parser
+depends on them, and while generating output, their value depends on some other structure in the
+data model.
+Dependency fields appear in a structure combinator as would any other field, but their name begins
+with an '@' sign and they have to return an integer value. Dependency fields are not directly
+represented in the internal model. 
+
+\paragraph{Length fields: n_of}
+The length combinator takes a dependency field and a parser, evaluating the parser as often as the
+value of the dependency field, returning an array of the values. When generating output, it emits
+the array and writes its length to the dependency field. 
+
+\subsection{Example Grammars}
+To further familiarise the reader with Nail, we provide two example grammars. 
+\paragraph{UTF-16}
+This grammar recognises valid UTF-16 strings and exposes an array of code points. 
+
+\begin{tabular}{ll}
+\textbf{Nail} & \textbf{Data Model}\\
+\begin{minipage}{3in}
+\begin{verbatim}
+utfstring = many choose {
+         SUPP= {
+               lead uint16 | 55296..56319
+                          // 0xD800..0xDBFF
+               trail uint16 | 56320..57343
+                          // 0xDC00..0xDFFF
+               }
+         BASIC = uint16 | !55296..57343
+       }
+\end{verbatim}
+\end{minipage}
+ & 
+\begin{minipage}{2in}
+\begin{verbatim}
+struct utfstring {
+ struct {
+   enum  {SUPP,BASIC} N_type;
+   union {
+    struct {
+     uint16_t lead;
+     uint16_t trail;
+    } SUPP;
+    uint16_t BASIC;
+   };
+ }*elem;
+ size_t count;
+};
+\end{verbatim} 
+\end{minipage} 
+\\
+\end{tabular}
+
+\paragraph{DNS packet}
+This grammar recognises DNS packets without label compression, as per RFC1035 
+\begin{verbatim}
+labels = <many {@length  uint8 | 1..255 
+                label n_of @length uint8 }
+             uint8 = 0>
+question= {   labels labels
+              qtype uint16 | 1..16 
+              qclass uint16 | [1,255]
+               }
+answer  = {
+             labels labels
+             rtype uint16 | 1..16
+             class uint16 | [1]
+             ttl uint32
+             @rlength uint16 
+             rdata n_of @rlength uint8 
+             }
+dnspacket = {id uint16
+              qr uint1
+              opcode uint4
+              aa uint1 
+              tc uint1
+              rd uint1
+              ra uint1
+              uint3 = 0
+              rcode uint4
+              @questioncount uint16
+              @answercount uint16
+              authoritycount uint16   // Ignored
+              additionalcount uint16  //Ignored       
+              questions n_of @questioncount question         
+              responses n_of @answercount answer
+            }
+\end{verbatim}
+
+

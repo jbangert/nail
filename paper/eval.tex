@@ -1,0 +1,22 @@
+\section{Evaluation}
+In order to test the Nail framework, we cloned the test DNS server from the Hammer distribution to
+Nail. Hammer ships with a toy DNS server written in 683 lines of code, excluding the hammer
+framework itself that responds to any valid DNS query with a CNAME record to the domain
+``spargelze.it''.  Most of this code is taken up with custom validators, semantic actions and data
+structure definitions. 
+
+Our DNS server measures 148 lines of C and 48 lines of Nail grammar, and supports a custom zone file format
+with A,NS,MX and CNAME records. The same grammar is used together with 98 lines of C to implement a
+functional toy clone of the host command line tool. However, because our grammar does not yet
+support DNS label compression, the latter tool will occasionally reject valid real world DNS
+responses. Both clients have functional anti-spoofing measures.
+
+It is hard to compare our efforts to a real world DNS server, as we have less functionality, in
+particular for DNS compression and additional hint records than real world DNS servers. 
+However, the closest in functionality and intent is Dan Bernstein's djbdns\footnote{\url{http://cr.yp.to/djbdns.html}}, which aims
+to be a minimalist, highly secure DNS server. The latest release of DJBDNS, however, including
+various support tools is about ten thousand lines of C as measured by SLOCCOUNT. We are confident
+that it is possible to a feature-par version with Nail that is an order of magnitude smaller and
+intend to do so.
+
+
