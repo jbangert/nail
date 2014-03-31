@@ -5,7 +5,7 @@ main.pdf: main.tex *.bib
 #do
 #	bibtex `basename $$i`
 #done
-	bibtex main
+	bibtex -min-crossrefs=100 main
 	pdflatex $<
 	pdflatex $<
 
