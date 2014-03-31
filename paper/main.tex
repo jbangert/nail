@@ -1,4 +1,11 @@
-\documentclass[10pt]{article}
+\documentclass[10pt,twocolumn]{article}
+\usepackage[10pt,nocopyright]{sigmin}
+\usepackage[letterpaper, breaklinks, pdfborder={0 0 0}]{hyperref}
+\usepackage[square,comma,numbers,sort&compress]{natbib}
+\usepackage{times}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{mathptmx}
 \usepackage{graphicx}
 \usepackage{url}
 \usepackage{listings}
@@ -10,6 +17,12 @@
 \usepackage{amssymb}
 \usepackage{verbatim}
 \usepackage{fullpage}
+
+\renewcommand{\ttdefault}{pxtt}   %% better \tt font
+
+%% Ensure ligatures (e.g., ``fine official flag'') can be copy/pasted from PDF.
+\input{glyphtounicode}
+\pdfgentounicode=1
 
 
 \begin{document}
