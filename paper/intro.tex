@@ -18,7 +18,7 @@ that code.
 Common wisdom thus says to take special care when preparing code that deals with untrusted input.
 However, with currently prevalent software design methods, it is hard to isolate input-handling code
 from the rest of the program, as user input is typically passed through the program and processed in
-bits and pieces as a 'shotgun parser'\cite{shotgun-parser}.  
+bits and pieces as a 'shotgun parser'~\cite{shotgun-parser}.  
 
 A look at the CVE database or Hacker journal such as \textit{Phrack} shows that such design patterns
 and the security problems they cause are rampant. Input processing libraries such as libpng
@@ -34,29 +34,26 @@ different implementations of the same format can also differ in their understand
 cases. The security of many systems relies on different components interpreting the same data
 similarly.
 
-Such parser differential vulnerabilities were found in various cryptographic systems, including  iOS
-\footnote{The XNU kernel and the user code-signing verifier interpret executable metadata
+Such parser differential vulnerabilities were found in various cryptographic systems, including  iOS\footnote{The XNU kernel and the user code-signing verifier interpret executable metadata
   differently, so the code signature sees different bytes at a virtual address than the executable
-  that runs.}\cite{evaders6} and Android\footnote{Android applications are distributed as .zip
+  that runs.}~\cite{evaders6} and Android\footnote{Android applications are distributed as .zip
   files. Signatures are verified with a Java program, but the program is extracted with a C program.
 The java program interprets all fields as signed, whereas the C program treats them as unsigned,
-allowing one to replace files in a signed archive.}
-\cite{saurik-masterkey} code signing and even the
-X.509 protocol underlying SSL \cite{DBLP:conf/fc/KaminskyPS10}. Such vulnerabilities occur even if the language,
+allowing one to replace files in a signed archive.}~\cite{saurik-masterkey} code signing and even the
+X.509 protocol underlying SSL~\cite{DBLP:conf/fc/KaminskyPS10}. Such vulnerabilities occur even if the language,
 runtime environment or static analysis guarantee memory safety.
 
 Finally, many protocol implementations are so complicated that even without bugs, they inadvertently
-provide a full Turing-complete execution environment. Examples include X86 page tables
-\cite{bangert2013page}, ELF symbols and relocations\cite{shapiro2013weird}. Even though these
+provide a full Turing-complete execution environment. Examples include X86 page tables~\cite{bangert2013page}, ELF symbols and relocations~\cite{shapiro2013weird}. Even though these
 protocols were never intended to be that expressive - and consequentially hard to parse, implementation details of their
 recognisers - which de facto became a part of the specification and were relied upon by legitimate
 inputs - expose unwanted computational power and have unintended side-effects.
 In the offensive research community, this has
-been generalised into treating a program as a \textit{weird machine}\cite{bratus2011exploit} that
+been generalised into treating a program as a \textit{weird machine}~\cite{bratus2011exploit} that
 operates on an input, analogous to a virtual machine operating on bytecode.
 
 Proper input recognition has been shown to be an excellent way of eliminating malicious inputs. In
-one case, a  PDF parser implemented in Coq could eliminate over $95\%$ of known malicious PDFs\cite{Bogk-PDF}.
+one case, a  PDF parser implemented in Coq could eliminate over $95\%$ of known malicious PDFs~\cite{Bogk-PDF}.
 However, manually writing parser code does not scale to the number of file formats  and protocols in
 existence and might result in parser code tied to one specific application.
 
@@ -69,8 +66,7 @@ been written for all sorts of protocols and are the standard way of describing t
 Parser generators can automatically create parsers for such languages, and with common classes of
 grammars such as regular expressions or deterministic context free languages, that parser can be
 expressed in a computationally less powerful form, e.g. a finite automaton or a push down automaton,
-limiting the weird machine problem and enabling very efficient implementation. \cite{Knuth1965607}
-
+limiting the weird machine problem and enabling very efficient implementation~\cite{Knuth1965607}.
 
 Specifications of binary protocols, such as RFCs, also contain grammars, although they are
 frequently translated into prose and diagrams as opposed to the traditional Backus-Naur-Form.  
@@ -80,8 +76,8 @@ Unfortunately, grammars are seldom used directly to recognise machine-created in
 the security-critical and very well-engineered MIT Kerberos distribution uses parser
 generators, but only for handling configuration files. A notable exception is the Mongrel
 web server \footnote{\url{http://mongrel2.org/}} which uses a grammar for HTTP written in the
-Ragel \cite{ragel-paper} regular expression language. Mongrel was re-written from scratch multiple
-times to achieve better scaleability and design, yet the grammar could be  re-used across all iterations\cite{patterson-citation}.
+Ragel~\cite{ragel-paper} regular expression language. Mongrel was re-written from scratch multiple
+times to achieve better scaleability and design, yet the grammar could be  re-used across all iterations~\cite{patterson-citation}.
 
  Parser generators for binary protocols were first introduced by the Hammer\footnote{\url{http://github.com/upstandinghackers/hammer/}} parser.
  While previous parser generators could also be used to write grammars for binary
@@ -90,10 +86,10 @@ times to achieve better scaleability and design, yet the grammar could be  re-us
  inconvenient. Hammer allows the programmer to specify a grammar in terms of bits and bytes instead
  of characters. Common concerns, such as endianness and bit-packing are transparently hidden by the
  library. Hammer implements grammars as language-integrated parser combinators, an approach
- popularised by Parsec for Haskell\cite{LeijenMeijer:parsec}. The parser combinator style (to our
- knowledge, first  described in \cite{burge1975recursive}) is a natural way of concisely expressing
- top-down grammars\cite{Danielsson:2010:TPC:1863543.1863585} \footnote{For more background on the history of expressing grammars, see Bryan
-   Ford's masters thesis\cite{ford2002packrat}, which also describes the default parsing algorithm used by Hammer} by composing them from one or multiple sub-parsers. 
+ popularised by Parsec for Haskell~\cite{LeijenMeijer:parsec}. The parser combinator style (to our
+ knowledge, first  described in~\cite{burge1975recursive}) is a natural way of concisely expressing
+ top-down grammars~\cite{Danielsson:2010:TPC:1863543.1863585}\footnote{For more background on the history of expressing grammars, see Bryan
+   Ford's masters thesis~\cite{ford2002packrat}, which also describes the default parsing algorithm used by Hammer} by composing them from one or multiple sub-parsers. 
   Hammer then constructs a tree of function pointers which
  can be invoked to parse a given input into an abstract syntax tree (AST).
  
