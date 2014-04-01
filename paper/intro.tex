@@ -13,15 +13,16 @@ simple formats, such as those used by the zlib compression
 library, have had input processing vulnerabilities in the
 past.\footnote{\url{http://www.cvedetails.com/vulnerability-list/vendor_id-72/product_id-1820/GNU-Zlib.html}}
 
-A promising approach to avoid such vulnerabilities is to specify a
-precise grammar for the input data format, and to use a parser generator,
-such as {\tt lex} and {\tt yacc}, to synthesize the input processing
-code.  Developers that use a parser generator will not need to write
-error-prone input processing code on their own, and as long as the
-parser generator is bug-free, the application will be safe from input
-processing vulnerabilities.  Unfortunately, applying this approach in
-practice, using state-of-the-art parser generators, requires addressing
-several challenges.
+A promising approach to avoid such vulnerabilities is to specify
+a precise grammar for the input data format, and to use a parser
+generator, such as {\tt lex} and {\tt yacc}, to synthesize the input
+processing code.  Developers that use a parser generator do not need
+to write error-prone input processing code on their own, and as long
+as the parser generator is bug-free, the application will be safe from
+input processing vulnerabilities.  Unfortunately, applying this approach
+in practice, using state-of-the-art parser generators, still requires
+too much manual programmer effort, making it error-prone, as we describe
+next.
 
 First, parser generators typically parse inputs into an abstract syntax
 tree (AST) that corresponds to the grammar.  In order to produce a data
@@ -37,15 +38,22 @@ structure, and once again in the semantic actions that translate the
 grammar into the data structure---leading to another potential source
 of bugs and inconsistencies.
 
-A similar problem occurs when the programmer wants to generate output.
-Even though not all programs may use the same format for output as they
-do on input, different programs might use the same format for input and
-output and re-using the same grammar is a good way to save engineering
-effort and reduce parser differentials.  Some parser generators, e.g.
+Second, data formats can have constraints XXX todo.
+
+Third, applications often need to produce output in the same
+format as their input---for example, applications might both
+read and write files, or both receive and send network packets.
+Most parser generators just focus on parsing an input, rather
+than producing an output, thus requiring the programmer to manually
+construct outputs, which is error-prone.  Some parser generators, such as
 Boost.Spirit,\footnote{\url{http://www.boost.org/doc/libs/1_55_0/libs/spirit/doc/html/index.html}}
-allow the same grammar to be re-used for generating output from the
-intermediate representation.  However, those generators require a new set
-of semantic actions to be written, even though the relationship between
-grammar and intermediate model was already expressed in the actions for
-the parser.
+allow reusing the grammar for generating output from the internal
+representation.  However, those generators require yet another set of
+semantic actions to be written, transforming the internal representation
+into an AST\@.
+
+This paper presents the initial design and implementation of Nail, a
+parser generator that greatly reduces the programmer effort required to
+use a grammar-based parser.  Nail addresses the above three challenges
+with several key ideas.  First, Nail XXX todo.
 
