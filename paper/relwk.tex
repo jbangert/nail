@@ -1,5 +1,7 @@
 \section{Related work}
 
+\paragraph{Parsing frameworks.}
+
 Generating parsers and generators from an executable specification
 is the core concept of Interface Generators, e.g. in CORBA or more
 recently~\cite{varda2008}. However, while interface generators work
@@ -10,4 +12,60 @@ system~\cite{mccann2000packet}, however PacketTypes works only as a
 parser, not as an output generator and does not support the expressive
 power of PEGs, but rather implements a C like structure model enhanced
 with data-dependent length fields and constraints.
+
+\paragraph{Language safety.}
+
+Input processing vulnerabilities fall into two broad classes.  The first
+class is memory safety bugs, such as buffer overflows, which allow an
+adversary to corrupt the application's memory using specially crafted
+inputs.  These mistakes arise in lower-level languages that do not
+provide memory safety guarantees (such as C), and can be partially
+mitigated by a wide range of techniques, such as static analysis,
+dynamic instrumentation, and address space layout randomization, that
+make it more difficult for an adversary to exploit these bugs.
+
+The second class is logic errors, where application code misinterprets
+input data.  This can lead to serious security consequences when two
+systems disagree on the meaning of a network packet or a signed message,
+as in iOS\footnote{The XNU kernel and the user code-signing verifier
+interpret executable metadata differently, so the code signature
+sees different bytes at a virtual address than the executable that
+runs.}~\cite{evaders6} and Android\footnote{Android applications
+are distributed as .zip files. Signatures are verified with a Java
+program, but the program is extracted with a C program.  The java
+program interprets all fields as signed, whereas the C program
+treats them as unsigned, allowing one to replace files in a signed
+archive.}~\cite{saurik-masterkey} code signing and even the X.509 protocol
+underlying SSL~\cite{DBLP:conf/fc/KaminskyPS10}.  These mistakes are
+highly application-specific, and are difficult to mitigate using existing
+techniques, and these mistakes can occur even in high-level languages
+that guarantee memory safety.
+
+
+--- XXX integrate the following paragraphs somewhere into the logical flow ---
+
+With currently prevalent software design methods, it is hard to isolate
+input-handling code from the rest of the program, as user input is
+typically passed through the program and processed in bits and pieces as a
+``shotgun parser''~\cite{shotgun-parser}.
+
+Finally, many protocol implementations are so complicated that even
+without bugs, they inadvertently provide a full Turing-complete execution
+environment. Examples include X86 page tables~\cite{bangert2013page},
+ELF symbols and relocations~\cite{shapiro2013weird}. Even though
+these protocols were never intended to be that expressive -
+and consequentially hard to parse, implementation details of their
+recognisers - which de facto became a part of the specification and were
+relied upon by legitimate inputs - expose unwanted computational power
+and have unintended side-effects.  In the offensive research community,
+this has been generalised into treating a program as a \textit{weird
+machine}~\cite{bratus2011exploit} that operates on an input, analogous
+to a virtual machine operating on bytecode.
+
+Proper input recognition has been shown to be an excellent way of
+eliminating malicious inputs. In one case, a  PDF parser implemented in
+Coq could eliminate over $95\%$ of known malicious PDFs~\cite{Bogk-PDF}.
+However, manually writing parser code does not scale to the number of
+file formats  and protocols in existence and might result in parser code
+tied to one specific application.
 
