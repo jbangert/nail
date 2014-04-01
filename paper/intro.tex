@@ -13,22 +13,13 @@ simple formats, such as those used by the zlib compression
 library, have had input processing vulnerabilities in the
 past.\footnote{\url{http://www.cvedetails.com/vulnerability-list/vendor_id-72/product_id-1820/GNU-Zlib.html}}
 
-
-
-Luckily, we can avoid all of these problems at once if we have a single,
-executable specification of what exactly a programs input is supposed
-to look like. In fact, definitive grammars have long been written for
-all sorts of protocols and are the standard way of describing text-based
-protocols.  Parser generators can automatically create parsers for such
-languages, and with common classes of grammars such as regular expressions
-or deterministic context free languages, that parser can be expressed
-in a computationally less powerful form, e.g. a finite automaton or a
-push down automaton, limiting the weird machine problem and enabling
-very efficient implementation~\cite{Knuth1965607}.
-
-Specifications of binary protocols, such as RFCs, also contain grammars,
-although they are frequently translated into prose and diagrams as
-opposed to the traditional Backus-Naur-Form.
+A promising approach to avoid such vulnerabilities is to specify
+a precise grammar for the input data format, and to build a tool for
+parsing inputs given a particular grammar, such as the traditional {\tt
+lex} and {\tt yacc} generators.  Applications that use such a tool to
+process input data will not need to write error-prone input processing
+code, and as long as the tool is bug-free, the application will be safe
+from input processing vulnerabilities.
 
 Unfortunately, grammars are seldom used directly to recognise
 machine-created input. For example, the security-critical and very

@@ -49,7 +49,7 @@ input-handling code from the rest of the program, as user input is
 typically passed through the program and processed in bits and pieces as a
 ``shotgun parser''~\cite{shotgun-parser}.
 
-Finally, many protocol implementations are so complicated that even
+Many protocol implementations are so complicated that even
 without bugs, they inadvertently provide a full Turing-complete execution
 environment. Examples include X86 page tables~\cite{bangert2013page},
 ELF symbols and relocations~\cite{shapiro2013weird}. Even though
@@ -62,10 +62,23 @@ this has been generalised into treating a program as a \textit{weird
 machine}~\cite{bratus2011exploit} that operates on an input, analogous
 to a virtual machine operating on bytecode.
 
+Parser generators can automatically create parsers for such languages,
+and with common classes of grammars such as regular expressions or
+deterministic context free languages, that parser can be expressed in a
+computationally less powerful form, e.g. a finite automaton or a push
+down automaton, limiting the weird machine problem and enabling very
+efficient implementation~\cite{Knuth1965607}.
+
 Proper input recognition has been shown to be an excellent way of
 eliminating malicious inputs. In one case, a  PDF parser implemented in
 Coq could eliminate over $95\%$ of known malicious PDFs~\cite{Bogk-PDF}.
 However, manually writing parser code does not scale to the number of
 file formats  and protocols in existence and might result in parser code
 tied to one specific application.
+
+In fact, definitive grammars have long been written for all sorts of
+protocols and are the standard way of describing text-based protocols.
+Specifications of binary protocols, such as RFCs, also contain grammars,
+although they are frequently translated into prose and diagrams as
+opposed to the traditional Backus-Naur-Form.
 
