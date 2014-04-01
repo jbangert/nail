@@ -15,7 +15,7 @@ past.\footnote{\url{http://www.cvedetails.com/vulnerability-list/vendor_id-72/pr
 
 A promising approach to avoid such vulnerabilities is to specify
 a precise grammar for the input data format, and to use a parser
-generator, such as {\tt lex} and {\tt yacc}, to synthesize the input
+generator, such as {\tt lex} and {\tt yacc}, to synthesise the input
 processing code.  Developers that use a parser generator do not need
 to write error-prone input processing code on their own, and as long
 as the parser generator is bug-free, the application will be safe from
@@ -38,12 +38,7 @@ structure, and once again in the semantic actions that translate the
 grammar into the data structure---leading to another potential source
 of bugs and inconsistencies.
 
-Second, data formats can have constraints XXX todo.
-Lengths.
-Counts.
-Checksums.
-
-Third, applications often need to produce output in the same
+Second,  applications often need to produce output in the same
 format as their input---for example, applications might both
 read and write files, or both receive and send network packets.
 Most parser generators just focus on parsing an input, rather
@@ -54,6 +49,15 @@ allow reusing the grammar for generating output from the internal
 representation.  However, those generators require yet another set of
 semantic actions to be written, transforming the internal representation
 into an AST\@.
+
+
+Third, data formats can have structural dependencies, such as offset, length and checksum fields
+that are hard to express in state-of-the-art grammar languages. Often the programmer is required to
+manually write control code, such as re-positioning the parser's input stream, looping over the
+invocation of a sub-parser or computing a
+checksum over raw input bytes.  Besides leaving much room for errors with offset arithmetic, such
+code is usually not reusable when generating output.
+
 
 This paper presents the initial design and implementation of Nail, a
 parser generator that greatly reduces the programmer effort required to
