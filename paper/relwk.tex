@@ -13,6 +13,27 @@ parser, not as an output generator and does not support the expressive
 power of PEGs, but rather implements a C like structure model enhanced
 with data-dependent length fields and constraints.
 
+Parser generators for binary protocols were first introduced by the
+Hammer\footnote{\url{http://github.com/upstandinghackers/hammer/}} parser.
+While previous parser generators could also be used to write grammars
+for binary protocols\footnote{Theoretically speaking, the alphabet
+over which a grammar is an  abstract set, so most algorithms work
+just as well on an alphabet of $\{0,1\}$}, doing so is impractically
+inconvenient. Hammer allows the programmer to specify a grammar in
+terms of bits and bytes instead of characters. Common concerns, such as
+endianness and bit-packing are transparently hidden by the library. Hammer
+implements grammars as language-integrated parser combinators, an approach
+popularised by Parsec for Haskell~\cite{LeijenMeijer:parsec}. The
+parser combinator style (to our knowledge, first  described
+in~\cite{burge1975recursive}) is a natural way of concisely expressing
+top-down grammars~\cite{Danielsson:2010:TPC:1863543.1863585}\footnote{For
+more background on the history of expressing grammars, see Bryan Ford's
+masters thesis~\cite{ford2002packrat}, which also describes the default
+parsing algorithm used by Hammer} by composing them from one or multiple
+sub-parsers.  Hammer then constructs a tree of function pointers which
+can be invoked to parse a given input into an abstract syntax tree (AST).
+
+
 \paragraph{Language safety.}
 
 Input processing vulnerabilities fall into two broad classes.  The first
@@ -40,6 +61,19 @@ underlying SSL~\cite{DBLP:conf/fc/KaminskyPS10}.  These mistakes are
 highly application-specific, and are difficult to mitigate using existing
 techniques, and these mistakes can occur even in high-level languages
 that guarantee memory safety.
+
+\paragraph{Application use of parsers.}
+
+Unfortunately, grammars are seldom used directly to recognise
+machine-created input. For example, the security-critical and very
+well-engineered MIT Kerberos distribution uses parser generators, but
+only for handling configuration files. A notable exception is the Mongrel
+web server\footnote{\url{http://mongrel2.org/}} which uses a grammar
+for HTTP written in the Ragel~\cite{ragel-paper} regular expression
+language. Mongrel was re-written from scratch multiple times to achieve
+better scaleability and design, yet the grammar could be  re-used across
+all iterations~\cite{patterson-citation}.
+
 
 
 --- XXX integrate the following paragraphs somewhere into the logical flow ---
