@@ -1,28 +1,13 @@
 \section{Related work}
 
-Generating parsers and generators from an executable specification is the core concept of Interface
-Generators, e.g. in CORBA or more recently~\cite{varda2008}. However, while interface
-generators work very well for existing grammars, they do not allow full control over the format of
-the output, so cannot be used to implement legacy protocols.
-Very related work has been done at Bell Labs with the PacketTypes system~\cite{mccann2000packet},
-however PacketTypes works only as a parser, not as an output generator and does not support the expressive power of PEGs, but rather
-implements a C like structure model enhanced with data-dependent length fields and constraints.
+Generating parsers and generators from an executable specification
+is the core concept of Interface Generators, e.g. in CORBA or more
+recently~\cite{varda2008}. However, while interface generators work
+very well for existing grammars, they do not allow full control over the
+format of the output, so cannot be used to implement legacy protocols.
+Very related work has been done at Bell Labs with the PacketTypes
+system~\cite{mccann2000packet}, however PacketTypes works only as a
+parser, not as an output generator and does not support the expressive
+power of PEGs, but rather implements a C like structure model enhanced
+with data-dependent length fields and constraints.
 
-\begin{comment}
-
-Memory corruption exploits (frequently) rely on placing controlled values at known (or controlled)
-memory locations. Exploit countermeasures  like Address-Space Layout Randomisation~\cite{pax-aslr},
- heap cookies~\cite{heapcookies} or data execution prevention try to make this harder for
- an attacker. Attackers have developed techniques such as heap spraying~\cite{heapspray} and heap
- feng shui~\cite{fengshui} to help bypass those mitigations. 
-
-
-Nail parsers use two arena allocators~\cite{arena}, one for the temporary syntax tree and one for the
-result. If Nail were to use the normal system allocator, the attacker could cause two packets to be
-parsed at the same time (or, given a sufficiently complicated input, two structure within the same
-grammar to be parsed sequentially) such that the (invalid) intermediate results from one parse,  
- If there is a buffer overflow past the
-end of one input, it is much harder for the attacker craft a sequence of packets to trick the allocator into
-placing a known value next to that input.
-
-\end{comment}
