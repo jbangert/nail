@@ -30,32 +30,12 @@ application developers must write explicit {\em semantic actions} that
 update the application's internal representation of the data based on
 each AST node.  Writing these semantic actions by hand is error-prone,
 much like other input processing code, and mistakes can result in memory
-corruption bugs or misinterpreted inputs.
-
-
-
-While it is possible to express short transformations on the input
-entirely as semantic actions\footnote{This is in fact the design
-rationale, to perform computation on the fly as the parser walks the
-parse tree.}, more complicated programs usually construct an internal
-representation, which contains all relevant information from the input
-in a format native to the programming language used. For example, a C
-programmer ideally wants to deal with structs and NULL-terminated arrays,
-whereas a C++ programmer might expect STL containers, a Java programmer
-interfaces, a Haskell programmer records and a LISP programmer property
-lists.  The structure of this internal representation usually resembles
-the structure of the grammar.
-
-Therefore, a typical programmer has to describe the structure of his input
-twice or even thrice to use a parser generator. Once, to write a grammar,
-another time to write the semantic actions constructing his favourite
-intermediate representation. In most languages the programmer also
-has to write explicit type definitions, which describe the intermediate
-object model again. Most programmers will baulk at this multiplication of
-efforts and either hand-write a top-down parser which still eliminates
-writing the semantic actions at the slight cost of verbosity or resort
-to passing user input through their control flow, hopefully remembering
-to verify each part before it is accessed.
+corruption bugs or misinterpreted inputs.  Writing these semantic actions
+also requires the programmer to describe the structure of the input three
+times---once to describe the grammar, once to describe the internal data
+structure, and once again in the semantic actions that translate the
+grammar into the data structure---leading to another potential source
+of bugs and inconsistencies.
 
 A similar problem occurs when the programmer wants to generate output.
 Even though not all programs may use the same format for output as they

@@ -116,3 +116,15 @@ Specifications of binary protocols, such as RFCs, also contain grammars,
 although they are frequently translated into prose and diagrams as
 opposed to the traditional Backus-Naur-Form.
 
+While it is possible to express short transformations on the input
+entirely as semantic actions\footnote{This is in fact the design
+rationale, to perform computation on the fly as the parser walks the
+parse tree.}, more complicated programs usually construct an internal
+representation, which contains all relevant information from the input
+in a format native to the programming language used. For example, a C
+programmer ideally wants to deal with structs and NULL-terminated arrays,
+whereas a C++ programmer might expect STL containers, a Java programmer
+interfaces, a Haskell programmer records and a LISP programmer property
+lists.  The structure of this internal representation usually resembles
+the structure of the grammar.
+
