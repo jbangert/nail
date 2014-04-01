@@ -13,29 +13,26 @@ simple formats, such as those used by the zlib compression
 library, have had input processing vulnerabilities in the
 past.\footnote{\url{http://www.cvedetails.com/vulnerability-list/vendor_id-72/product_id-1820/GNU-Zlib.html}}
 
-A promising approach to avoid such vulnerabilities is to specify
-a precise grammar for the input data format, and to build a tool for
-parsing inputs given a particular grammar, such as the traditional {\tt
-lex} and {\tt yacc} generators.  Applications that use such a tool to
-process input data will not need to write error-prone input processing
-code, and as long as the tool is bug-free, the application will be safe
-from input processing vulnerabilities.
+A promising approach to avoid such vulnerabilities is to specify a
+precise grammar for the input data format, and to use a parser generator,
+such as {\tt lex} and {\tt yacc}, to synthesize the input processing
+code.  Developers that use a parser generator will not need to write
+error-prone input processing code on their own, and as long as the
+parser generator is bug-free, the application will be safe from input
+processing vulnerabilities.  Unfortunately, applying this approach in
+practice, using state-of-the-art parser generators, requires addressing
+several challenges.
 
-Working with generic tree structures is tiresome, so the programmer can
-bind a \textit{semantic action} to a sub-parser. Whenever the sub-parser
-is successfully invoked, the parser executes the semantic action on the
-output of the sub-parser and places the result as a leaf node in the
-syntax tree. Other parser generators frequently skip the AST entirely,
-requiring the programmer to specify a semantic action with every rule
-in the grammar.
+First, parser generators typically parse inputs into an abstract syntax
+tree (AST) that corresponds to the grammar.  In order to produce a data
+structure that the rest of the application code can easily process,
+application developers must write explicit {\em semantic actions} that
+update the application's internal representation of the data based on
+each AST node.  Writing these semantic actions by hand is error-prone,
+much like other input processing code, and mistakes can result in memory
+corruption bugs or misinterpreted inputs.
 
-Semantic actions are one source of vulnerability within automatically
-generated parsers, as they are typically implemented in C or another
-general purpose programming language and perform dangerous operations
-such as memory allocation and copying. If there is a bug in the semantic
-actions, the attacker is likely able to craft an input that invokes the
-semantic actions with controllable inputs, as the inputs have not been
-fully verified yet.
+
 
 While it is possible to express short transformations on the input
 entirely as semantic actions\footnote{This is in fact the design
