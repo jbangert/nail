@@ -1,0 +1,65 @@
+macaddr = [6]uint8
+udp = {
+    source      uint16 
+    destination uint16 
+    @length      uint16 
+    checksum uint16 
+    payload n_of @length uint8 
+}
+arpfour = {
+    uint16 = 1//HTYPE = ETHERNET
+    uint16 = 0x0800 //ProtocolType = IPv4
+    uint8 = 6 // hardware length  = Mac addr len
+    uint8 = 4 //protocol length = Hardware length
+    operation uint16 | [1,2]
+    senderhost macaddr
+    senderip   uint32
+    targethost macaddr
+    targetip   uint32    
+}
+icmp = {
+     type uint8 
+     code uint8
+     checksum uint16
+     data uint32
+}
+ipfour = {
+       uint4 = 4 // version
+//       ihl  uint4 // header length, TODO: 
+         uint4 = 5
+       dscp uint6
+       ecn  uint2 
+       totallength uint16
+       ident uint16
+       uint1 = 0
+       df uint1 
+       mf uint1
+       fragmentoff uint13
+       ttl uint8
+       uint8 = 17
+//       protocol uint8
+       hdrchecksum uint16 //We need some way to compute this dependency...
+       source uint32
+       dest uint32
+       payload udp // This really needs fixing
+//       payload length @total_length - 20 switch @protocol {
+//               UDP=17=udp
+//       }
+}
+ethernet = { 
+           dest macaddr
+           src  macaddr
+           vlan optional {
+                uint16 = 0x8100
+                pcp uint3
+                dei uint1
+                vid uint12
+                }
+           payload choose { 
+              ICMP = <uint16= 1; icmp>   
+              ARP = <uint16= 0x0806; arpfour> 
+              IPFOUR = <uint16= 0x0800; ipfour>
+//              IPSIX = <uint16= 0x86DD; ipsix>
+           }               
+
+}
