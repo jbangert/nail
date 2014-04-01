@@ -21,8 +21,7 @@ from the rest of the program, as user input is typically passed through the prog
 bits and pieces as a 'shotgun parser'~\cite{shotgun-parser}.  
 
 A look at the CVE database or Hacker journal such as \textit{Phrack} shows that such design patterns
-and the security problems they cause are rampant. Input processing libraries such as libpng
-\footnote{\url{http://www.cvedetails.com/vulnerability-list/vendor_id-7294/Libpng.html} shows 24
+and the security problems they cause are rampant. Input processing libraries such as libpng\footnote{\url{http://www.cvedetails.com/vulnerability-list/vendor_id-7294/Libpng.html} shows 24
 remote exploits in the between 2007 and 2013.} or Adobe's PDF and Flash viewers are notoriously
 plagued with input bugs. Even simpler formats such as the \textit{zlib} compression library have
 historically contained multiple security
@@ -75,7 +74,7 @@ frequently translated into prose and diagrams as opposed to the traditional Back
 Unfortunately, grammars are seldom used directly to recognise machine-created input. For example,
 the security-critical and very well-engineered MIT Kerberos distribution uses parser
 generators, but only for handling configuration files. A notable exception is the Mongrel
-web server \footnote{\url{http://mongrel2.org/}} which uses a grammar for HTTP written in the
+web server\footnote{\url{http://mongrel2.org/}} which uses a grammar for HTTP written in the
 Ragel~\cite{ragel-paper} regular expression language. Mongrel was re-written from scratch multiple
 times to achieve better scaleability and design, yet the grammar could be  re-used across all iterations~\cite{patterson-citation}.
 
@@ -107,8 +106,7 @@ inputs, as the inputs have not been fully verified yet.
 
 \subsection{Motivation}
 \paragraph{Motivation}
-While it is possible to express short transformations on the input entirely as semantic actions
-\footnote{This is in fact the design rationale, to perform computation on the fly as the parser
+While it is possible to express short transformations on the input entirely as semantic actions\footnote{This is in fact the design rationale, to perform computation on the fly as the parser
   walks the parse tree.}, more complicated programs usually construct an internal representation,
 which contains all relevant information from the input in a format native to the programming
 language used. For example, a C programmer ideally wants to deal with structs and NULL-terminated
@@ -130,7 +128,7 @@ Even though not all programs may use the same format for output as they do on in
 programs might use the same format for input and output and re-using the same grammar is a good way
 to save engineering effort and reduce parser differentials.
 Some parser generators, e.g.
-Boost.Spirit \footnote{\url{http://www.boost.org/doc/libs/1_55_0/libs/spirit/doc/html/index.html}},
+Boost.Spirit,\footnote{\url{http://www.boost.org/doc/libs/1_55_0/libs/spirit/doc/html/index.html}}
 allow the same grammar to be re-used for generating output from the intermediate representation.
 However, those generators require a new set of semantic actions to be written, even though the
 relationship between grammar and intermediate model was already expressed in the actions for the

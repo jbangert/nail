@@ -87,7 +87,7 @@ Examples \texttt{many uint8}, \texttt{sepBy uint8=',' (many uint8| '0'..'9')} (w
 comma-separated lists of numbers).
 
 The many combinator also works on constant parsers, although as described above it can make the
-generator not bijective. \footnote{By default, the generator will emit exactly one iteration of the
+generator not bijective.\footnote{By default, the generator will emit exactly one iteration of the
   constant parser in its output.} Example: \texttt{many uint8= "test"}
 
 
