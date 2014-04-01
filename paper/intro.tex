@@ -51,7 +51,7 @@ semantic actions to be written, transforming the internal representation
 into an AST\@.
 
 
-Third, data formats can have structural dependencies, such as offset, length and checksum fields
+Third, data formats, especially binary formats such as PNG or PDF, can have \emph{structural dependencies}, such as offset, length and checksum fields
 that are hard to express in state-of-the-art grammar languages. Often the programmer is required to
 manually write control code, such as re-positioning the parser's input stream, looping over the
 invocation of a sub-parser or computing a
@@ -59,14 +59,34 @@ checksum over raw input bytes.  Besides leaving much room for errors with offset
 code is usually not reusable when generating output.
 
 
-This paper presents the initial design and implementation of Nail, a
-parser generator that greatly reduces the programmer effort required to
-use a grammar-based parser.  Nail addresses the above three challenges
-with several key ideas.  First, Nail XXX todo.  Bijections.  Reduced
-expressiveness.  Constraints.  External interaction (checksum, ports,
-etc).
+This paper presents the initial design and implementation of Nail, a parser
+generator that greatly reduces the programmer effort required to use a
+grammar-based parser. Nail addresses the above three challenges with several key
+ideas. First, Nail reduces the expressiveness of its grammar language by
+removing semantic actions. Existing parser generators allow arbitrary
+computation to transform between the AST and the parser output.%  Instead, Nail
+% derives the structure of its output automatically from the grammar, forcing the
+% programmer to clearly separate syntactic validation and semantic processing.
 
-We have implemented an initial prototype of Nail in C\@.  Our experience
+Second, this allows the parser to construct a \emph{syntactic bijection} between input
+and output. That is, parsing is the inverse of generating output. However,
+Nail allows \emph{constants} in the external format to have multiple
+representations if they should not affect the semantics of the data. For
+example, in a text protocol, the amount of white-space separating tokens should
+not affect the meaning of the data and is consequently not exposed to the
+application by Nail in the internal representation. However, as long as
+constants are only used for their intended purpose of representing syntax-only
+features, the generated output will have the same semantics as the parsed input. 
+
+Third, Nail provides support for structural dependencies, transparently handling
+offset and length fields. XXX todo 
+
+
+%  XXX todo.  Bijections.  Reduced
+% expressiveness.  Constraints.  External interaction (checksum, ports,
+% etc).
+
+We have implemented an initial prototype of Nail for C\@.  Our experience
 so far suggests that it is a promising approach: we were able to construct
 a succinct grammar for DNS packets, and write a small DNS server that
 uses Nail for all packet input and output, and operates purely on
