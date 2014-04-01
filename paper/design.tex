@@ -2,23 +2,32 @@
 \label{s:design}
 
 \paragraph{Overview}
-To alleviate these problems, Nail provides a richer set of combinators that induce the structure of
-an internal model, while also describing the grammar of the external protocol. Nail takes the
-combinators and produces type declarations for an internal model, the \textit{parser}, a function to parse a sequence of
+
+To alleviate these problems, Nail provides a richer set of combinators that not only describes the
+grammar of the external protocol, but also induce an internal model. 
+
+A central design decision of Nail is that there is a semantic bijection between the model exposed to
+the programmer and the bytes input and output up to syntactic equivalence. More precisely, the
+parser is the generators inverse, so parsing the generators output will yield the generators input,
+but generating the parsers output does not necessarily yield the parsers input. To understand why
+this makes sense, consider a grammar for a text language that tolerates white space or a binary
+protocol that tolerates arbitrarily long padding\footnote{Say, the physical layer of most
+  communication protocols is a possibly infinite sequence of symbols that are syntactically nil
+  followed by a pre-determined synchronisation sequence and the actual contents of the
+  transmission.}. In that case, the program semantics should be independent of the number of padding
+elements in the input, and Nail therefore does not expose that information to the programmer. We
+call such discarded fields \emph{constants}. Currently, Nail always makes a default choice when
+there are multiple options to express a constant, however Nail could be extended to allow a
+grammar-specific plug-in to make these choices, say for faster alignment, streaming applications
+when data is not ready or visual appearance in human-readable protocols. However, if some features
+of Nail are avoided, there is a proper isomorphism between model and protocol.
+
+
+Nail evaluates the combinators and produces type declarations for the internal model, the \textit{parser}, a function to parse a sequence of
 bytes into an instance of the model and the \textit{generator}, a function to create a sequence of
 bytes from an instance of the model.
 
-A central design decision of Nail is that there is a  bijection between the model exposed to the programmer and the bytes
-input and output up to syntactic equivalence. More precisely, the parser is the generators inverse,
-so parsing the generators output will yield the generators input, but generating the parsers output
-does not necessarily yield the parsers input. To understand why this makes sense, consider a grammar
-for a text language that tolerates white space or a binary protocol that tolerates arbitrarily long
-padding\footnote{Say, the physical layer of most communication protocols is a possibly infinite
-  sequence of symbols that are syntactically nil followed by a pre-determined synchronisation
-  sequence and the actual contents of the transmission.}. However, if some features of Nail are
-avoided, there is a proper isomorphism between model and protocol.
-
-In the following, we present the combinators in Nail grouped by the combinators of conventional Parser Expression Grammars they replace.
+In the following, we present the combinators in Nail.
 \paragraph{Fundamental parsers}
 The elementary parsers of Nail are the same as those of Hammer, signed and unsigned integers with
 arbitrary lengths up to 64 bits. Note that is possible to define parsers for sub-byte lengths, e.g.
@@ -41,10 +50,9 @@ parser returns the given value and fail otherwise.
 
 
 \paragraph{Sequence: Structure}
-Nails fundamental concept is the structure combinator. It contains a list of named parsers and
-unnamed constant parsers. 
-When parsing, it parses each parser in sequence and returns a structure containing the result of
-each parser.
+Nails fundamental concept is the structure combinator. It contains a list of
+named parsers and unnamed constant parsers. When parsing, it parses each parser
+in sequence and returns a structure containing the result of each parser.
 
 \begin{tabular}{ll}
 \textbf{Nail} & \textbf{Data Model}\\

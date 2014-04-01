@@ -62,24 +62,27 @@ code is usually not reusable when generating output.
 This paper presents the initial design and implementation of Nail, a parser
 generator that greatly reduces the programmer effort required to use a
 grammar-based parser. Nail addresses the above three challenges with several key
-ideas. First, Nail reduces the expressiveness of its grammar language by
-removing semantic actions. Existing parser generators allow arbitrary
-computation to transform between the AST and the parser output.%  Instead, Nail
-% derives the structure of its output automatically from the grammar, forcing the
-% programmer to clearly separate syntactic validation and semantic processing.
+ideas.
 
-Second, this allows the parser to construct a \emph{syntactic bijection} between input
-and output. That is, parsing is the inverse of generating output. However,
-Nail allows \emph{constants} in the external format to have multiple
-representations if they should not affect the semantics of the data. For
-example, in a text protocol, the amount of white-space separating tokens should
-not affect the meaning of the data and is consequently not exposed to the
-application by Nail in the internal representation. However, as long as
+First, Nail reduces the expressiveness of its grammar language by removing
+semantic actions. Existing parser generators allow arbitrary computation to
+transform between the AST and the parser output. Instead, Nail derives the
+structure of its output automatically from the grammar, forcing the programmer
+to clearly separate syntactic validation and semantic processing.
+
+Second, this well-defined internal representation allows Nail to inverse the
+parser and generate output. However, Nail allows \emph{constants} in the
+external format to have multiple representations if they should not affect the
+semantics of the data. For example, in a text protocol, the amount of
+white-space separating tokens should not affect the meaning of the data and
+consequently Nail does not expose it to the application. As long as
 constants are only used for their intended purpose of representing syntax-only
-features, the generated output will have the same semantics as the parsed input. 
+features, the generated output will have the same semantics as the parsed input.
 
 Third, Nail provides support for structural dependencies, transparently handling
-offset and length fields. XXX todo 
+offset and length fields. By hiding the offset and length values from the
+programmer, Nail ensures they remain consistent even if the data is changed by
+the application. 
 
 
 %  XXX todo.  Bijections.  Reduced
