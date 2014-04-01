@@ -15,6 +15,7 @@ intconstant = <WHITE;  choose {
                      DIRECT= uint8
                     } 
                      uint8 = '\''>
+            HEX = < uint8 = '0'; uint8 = 'x';  many  || digit || (uint8 | 'A' .. 'F') > 
             NUMBER= number
             }>
 
@@ -77,7 +78,9 @@ parserinner =  choose {// because we don't do left recursive grammars yet
                 WRAP = wrapparser
                 CHOICE= choiceparser
                 ARRAY = arrayparser
+                FIXEDARRAY = { t("["); length intconstant; t("]"); inner *parser}
                 LENGTH = <t("n_of") { length contextidentifier; parser *parser}>
+                OFFSET = <t("offset") {offset contextidentifier; parser *parser}>
                 OPTIONAL= <t("optional ") *parser>
                 UNION = many1 <t("||") *parser>
                 REF   =  <t("*") varidentifier >

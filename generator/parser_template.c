@@ -135,15 +135,11 @@ static int n_tr_const(n_trace *trace,pos newoff){
         trace->trace[trace->iter++] = newoff;
         return 0;
 }
-
+#define n_tr_offset n_tr_const
 typedef struct NailArenaPool{
         void *iter;void *end;
         struct NailArenaPool *next;
 } NailArenaPool;
-typedef struct NailArena_{
-        NailArenaPool *current;                
-        size_t blocksize;
-} NailArena ;
 
 void *n_malloc(NailArena *arena, size_t size)
 {

@@ -22,25 +22,33 @@ class CDataModel{
   }
 
   // Gets the type for a top-level parser (to be used in the typedef)
-  std::string typedef_type(const parser &p, std::string name){
+  std::string typedef_type(const parser &p, std::string name, std::string *post){
     const parserinner &inner(p.N_type == PR ? p.PR : p.PAREN);
     switch(inner.N_type){
     case INT:
       return int_type(inner.INT.parser);
     case WRAP:
-      return typedef_type(*inner.WRAP.parser,name);
+      return typedef_type(*inner.WRAP.parser,name,post);
     case OPTIONAL:
-      return (boost::format("%s*") % typedef_type(*inner.OPTIONAL,name)).str();
+      return (boost::format("%s*") % typedef_type(*inner.OPTIONAL,name,NULL)).str();
     case NAME:
       return mk_str(inner.NAME);
     case REF:
       return (boost::format("%s *") % mk_str(inner.NAME)).str();
+    case FIXEDARRAY:
+      if(post){
+        *post = (boost::format("[%s]%s") % intconstant_value(inner.FIXEDARRAY.length) % *post).str(); 
+        return typedef_type(*inner.FIXEDARRAY.inner,name,post);
+      } 
+      else
+        return (boost::format("%s *") % typedef_type(*inner.FIXEDARRAY.inner,name,NULL)).str();
     case UNION:
       /*   FOREACH(parser,inner.UNION){
            if(!type_equal(inner.UNION.elem[0],parser))
            throw std::runtime_error("Grammar invalid at UNION");
            } */
-      return typedef_type(*inner.UNION.elem[0],name);
+      return typedef_type(*inner.UNION.elem[0],name,post);
+      //  return (boost::format("%s[%s]") %typedef_type(*inner.FIXEDARRAY.inner,name)% intconstant_value(inner.FIXEDARRAY.length)).str();
     case STRUCT:
     case ARRAY:
     case CHOICE:
@@ -105,12 +113,19 @@ class CDataModel{
         break;
       }
       break;
+    case FIXEDARRAY:
+      emit_type(*p.FIXEDARRAY.inner);
+      out << "["<< intconstant_value(p.FIXEDARRAY.length) << "]";
+      break;
     case OPTIONAL:
       emit_type(*p.OPTIONAL);
       out << "*";
       break;
     case LENGTH:
       emit_array(*p.LENGTH.parser,name);
+      break;
+    case OFFSET:
+      emit_type(*p.OFFSET.parser,name);
       break;
     case UNION:
       {
@@ -173,7 +188,9 @@ public:
         if(definition->N_type!=PARSER)
           continue;
         std::string name(mk_str(definition->PARSER.name));
-        out << "typedef "<< typedef_type(definition->PARSER.definition,name)<< " " << name << ";" << std::endl;
+        std::string post; 
+        std::string typedef_t( typedef_type(definition->PARSER.definition,name,&post));
+        out << "typedef "<<typedef_t<< " " << name << post <<";" << std::endl;
       }
       FOREACH(definition, *grammar){
         emit_type(*definition);
@@ -197,6 +214,8 @@ std::string intconstant_value(const intconstant &val){
     else
       return boost::str(boost::format("'%c'") % val.ASCII.DIRECT);
     break;
+  case HEX:
+    return std::string("0x") + mk_str(val.HEX);
   case NUMBER:
     return mk_str(val.NUMBER);
   }
@@ -487,6 +506,15 @@ class CPrimitiveParser{
     case ARRAY:
       packrat(parser.PR.ARRAY,fail); 
       break;
+    case FIXEDARRAY:{
+      std::string iter = boost::str(boost::format("i%d") % num_iters++);
+      
+      out << "/*FIXEDARRAY*/ \n"
+          << "for(pos "<<iter<<"=0;"<<iter<<"<"<<intconstant_value(parser.PR.FIXEDARRAY.length)<<";"<<iter<<"++){\n";
+      packrat(*parser.PR.FIXEDARRAY.inner,fail);
+      out << "}\n";
+    }
+      break;
     case LENGTH:{
       std::string iter = boost::str(boost::format("i%d") % num_iters++);
       out << "{/*LENGTH*/"
@@ -499,6 +527,15 @@ class CPrimitiveParser{
       out << "n_tr_write_many(trace,many,count);\n";
       out << "}/*/LENGTH*/";
       break;
+    }
+    case OFFSET:{
+      out << "{/*OFFSET*/";
+      out << "pos backtrack = off;\n"
+          << "off = "<< mk_str(parser.PR.OFFSET.offset) << "* 8;\n";
+      out << "n_tr_offset(off);\n";
+      packrat(*parser.PR.LENGTH.parser,fail);
+      out << "off = backtrack;\n";
+      out << "}\n";
     }
     case OPTIONAL:
       packrat_optional(*parser.PR.OPTIONAL,fail);
@@ -636,6 +673,15 @@ class CAction{
         out << "}";
       }
       break;
+    case OFFSET:
+      {
+        out << "{pos backtrack = off;\n";
+        out << "off  = *tr;\n"
+            << "tr++;\n";
+        action(p.OFFSET.parser->PR, lval);
+        out <<"}\n";
+      }
+      break;
     case LENGTH:
     case ARRAY:
       {
@@ -680,6 +726,15 @@ class CAction{
         out << "}\n";
         out << "tr = trace_begin + save;\n}";
       }
+      break;
+    case FIXEDARRAY:{
+        std::string iter = boost::str(boost::format("i%d") % num_iters++);
+        ValExpr iexpr(iter);
+        ArrayElemExpr elem(&lval, &iexpr);
+        out << "for(pos "<< iter<< "=0;"<<iter<<"<"<<intconstant_value(p.FIXEDARRAY.length) << ";"<<iter<<"++){";
+        action(p.FIXEDARRAY.inner->PR,elem);
+        out << "}";
+    }
       break;
     case OPTIONAL:
       {
@@ -748,14 +803,31 @@ public:
   }
 };
 void emit_parser(std::ostream *out, grammar *grammar){
-  CDataModel data(out);
+
   CPrimitiveParser p(out);
   CAction a(out);
   *out << std::string(parser_template_start,parser_template_end - parser_template_start);
-  data.emit_parser(grammar);
   p.emit_parser(*grammar);
   a.emit_action(*grammar);
 }
+void emit_header(std::ostream *out, grammar *grammar){
+  CDataModel data(out);
+  data.emit_parser(grammar);
+  *out  <<  "struct NailArenaPool;"
+    "typedef struct NailArena_{"
+    "     struct NailArenaPool *current;"
+     "    size_t blocksize;"
+     " } NailArena ;\n"
+        << "int NailArena_init(NailArena *arena,size_t blocksize);\n"
+        << "int NailArena_release(NailArena *arena);\n";
+    
+    FOREACH(def, *grammar){
+      if(def->N_type == PARSER){
+        std::string name= mk_str(def->PARSER.name);
+        *out << name << "*parse_" << name << "(NailArena *arena, const uint8_t *data, size_t size);\n";
+      }
+    }
 
+}
 
 

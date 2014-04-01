@@ -149,6 +149,10 @@ class GenGenerator{
         out << mk_str(p.LENGTH.length) << "=" << count << ";";
       }
       break;
+    case OFFSET:
+      {
+        
+      }
     case ARRAY:
       {
         ValExpr count("count", &val);
@@ -172,10 +176,19 @@ class GenGenerator{
           generator(p.ARRAY.SEPBYONE.separator);
           out << "}";
           generator(p.ARRAY.SEPBYONE.inner->PR,elem);break;
+
         }
         out << "}";
       }
       break;
+    case FIXEDARRAY:{
+      ValExpr iter(boost::str(boost::format("i%d") % num_iters++)); 
+      ArrayElemExpr elem(&val,&iter);
+      out << "for(int "<< iter<<"=0;"<<iter << "<" << intconstant_value(p.FIXEDARRAY.length) << ";" << iter << "++){";
+      generator(p.FIXEDARRAY.inner->PR, elem);
+      out << "}\n";
+    }
+      break; 
     case OPTIONAL:
       {
         out << "if(NULL!="<<val << "){";
