@@ -17,8 +17,7 @@ padding\footnote{Say, the physical layer of most communication protocols is a po
   sequence and the actual contents of the transmission.}. However, if some features of Nail are
 avoided, there is a proper isomorphism between model and protocol.
 
-In the following, we present the combinators in Nail grouped by the combinators, if possible grouped
-by the combinator of conventional Parser Expression Grammars they replace.
+In the following, we present the combinators in Nail grouped by the combinators of conventional Parser Expression Grammars they replace.
 \paragraph{Fundamental parsers}
 The elementary parsers of Nail are the same as those of Hammer, signed and unsigned integers with
 arbitrary lengths up to 64 bits. Note that is possible to define parsers for sub-byte lengths, e.g.
@@ -27,8 +26,12 @@ smallest appropriately sized machine integer type, e.g. a 24 bit integer is stor
 Examples: \texttt{uint4}, \texttt{int32}
 
 Integer parsers can be constrained to fall either within an (inclusive) range of values or be an
-element of a set of allowed values. \\Examples: \texttt{uint8 | 1..3},\texttt{uint16| ..512},
-\texttt{int32| [1,255,512]}
+element of a set of allowed values. \\
+Examples: \texttt{uint8 | 1..3} (accepts an 8 bit unsigned
+integer between 1 and 3 inclusive) ,\\
+ \texttt{uint16| ..512} (an unsigned 16-bit integer less or
+equal than 512),\\
+\texttt{int32| [1,255,512]} (a signed 32 bit integer with value 1, 255 or 512). 
 
 \paragraph{Constant parser}
 Nail also has constant parsers, which do not return a value. The simplest constant parser is an
