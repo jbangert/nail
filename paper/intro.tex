@@ -39,6 +39,9 @@ grammar into the data structure---leading to another potential source
 of bugs and inconsistencies.
 
 Second, data formats can have constraints XXX todo.
+Lengths.
+Counts.
+Checksums.
 
 Third, applications often need to produce output in the same
 format as their input---for example, applications might both
@@ -55,5 +58,20 @@ into an AST\@.
 This paper presents the initial design and implementation of Nail, a
 parser generator that greatly reduces the programmer effort required to
 use a grammar-based parser.  Nail addresses the above three challenges
-with several key ideas.  First, Nail XXX todo.
+with several key ideas.  First, Nail XXX todo.  Bijections.  Reduced
+expressiveness.  Constraints.  External interaction (checksum, ports,
+etc).
+
+We have implemented an initial prototype of Nail in C\@.  Our experience
+so far suggests that it is a promising approach: we were able to construct
+a succinct grammar for DNS packets, and write a small DNS server that
+uses Nail for all packet input and output, and operates purely on
+Nail-generated data structures, with no need for any semantic actions.
+
+The rest of this paper is organized as follows.  \S\ref{s:relwk}
+puts Nail in the context of related work.  \S\ref{s:design} describes
+Nail's design.  \S\ref{s:impl} discusses our initial implementation
+of Nail.  \S\ref{s:eval} provides some initial evaluation results.
+\S\ref{s:future} suggests several directions for future work, and
+\S\ref{s:concl} concludes.
 
