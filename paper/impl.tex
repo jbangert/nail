@@ -29,8 +29,8 @@ Most parser generators, such as Bison do not have to dynamically allocate
 temporary data, as they evaluate a semantic action on every rule. However, as
 our goal is to perform as little computation as possible without having
 validated the input, and we do not want to mix temporary objects with the
-results of our parse, we need some intermediate structure to cache parse
-results. This structure is also used as a value in the Packrat hash table.
+results of our parse, we use an append-only trace to store intermediate parser
+results. 
 
 Hammer solves this problem by storing a full abstract syntax tree. However, this
 abstract syntax tree is at least an order of magnitude larger than the input,
@@ -43,12 +43,25 @@ the raw input stream.
 
 Under this premise, the actions need very limited information from the
 recogniser to correctly handle the input stream. In particular, the parsers
-control flow only branches at the choice and repeat combinators. For all other
-combinators, the action just has to assign a fixed sequence of fundamental
-parsers to a fixed sequence of internal model fields. Thus we can represent the
-parsers success as a sequence of selected choices and counted repeats and use
-this to reconstruct the syntax of the
-input. %TODO: This sentence is HORRIBLE. Re-work
+control flow only branches at the choice, repetition and constant
+combinators.
+Thus, for each of those combinators, we store the minimum amount of information
+required to reconstruct the syntactic structure of the input. The trace is an
+array of integers.
+ Whenever the parser encounters a choice, it appends two integers to the trace. After it
+successfully parses a choice, the parser writes the number of that choice and
+the length of the trace when it began parsing that choice. When backtracking in
+the input, the parser does not backtrack in the trace. This means that offsets
+within the trace can be used for a Packrat hash-table to memoise backtrack-heavy
+parsers.
+
+When encountering a repetition combinator, the parser records the number of
+times the inner parser succeeded and when encountering a constant parser of
+variable size, it records how much input was consumed by the constant parser. 
+
+In a second pass, the parser then allocates the internal representation from an
+arena allocator and binds the fields to values from the input, while following
+the trace to determine how many array fields to parse and which choices to pick.
 \paragraph{Dependency Fields}
 During parsing, dependency fields occur before the context in which they are
 used. The parser stores their value and retrieves it afterwards when
@@ -62,4 +75,5 @@ To demonstrate the feasibility of the nail parser generator, our parser
 generator uses a Nail parser to recognise Nail grammars. A superset of the
 grammar language described in this paper is implemented in 100 lines of Nail,
 which feed into about a thousand lines of C++ that implement the actual parser
-generator. Bootstrapping is supported via an LALR implementation.
+generator. Bootstrapping is supported via an implementation of the Nail language
+in the Lemon parser generator, a variant of Yacc.
