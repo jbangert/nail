@@ -63,7 +63,7 @@ In a second pass, the parser then allocates the internal representation from an
 arena allocator and binds the fields to values from the input, while following
 the trace to determine how many array fields to parse and which choices to pick.
 \paragraph{Dependency Fields}
-During parsing, dependency fields occur before the context in which they are
+During parsing, dependency are parsed  before the context in which they are
 used. The parser stores their value and retrieves it afterwards when
 encountering the combinator that uses them. When generating output, the
 dependency field is first filled with a filler value, then later when the first

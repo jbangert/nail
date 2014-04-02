@@ -2,12 +2,10 @@
 \label{s:future}
 
 The Nail parser generator is work in progress and feedback of all sorts is heavily
-encouraged. Source code is available upon request and will be released publicly pending clean-up and
-maturity. Short-term future work will include improving the scoping of dependency fields and adding
-support for offset fields.
+encouraged.
 
 A major problem with the current design of Nail is that the design of the grammar dictates the
-interna structure of the software. This makes changing grammars or adding Nail to existing software
+internal structure of the software. This makes changing grammars or adding Nail to existing software
 awkward. One possible solution to this problem would be to implement a concept similar to Relational
 Lenses~\cite{bohannon2006relational}, which would allow  the data model to be 'seen' by
 the rest of the program through an isomorphism. Such an isomorphism would still be much more concise
