@@ -17,7 +17,7 @@ the parsers input. To understand why this makes sense, consider a grammar for a
 text language that tolerates white space, or a binary protocol that tolerates
 arbitrarily long padding.\footnote{Say, the physical layer of most communication
   protocols is a possibly infinite sequence of symbols that are syntactically
-  nil followed by a pre-determined synchronisation sequence and the actual
+  nil followed by a pre-determined synchronization sequence and the actual
   contents of the transmission.} In that case, the program semantics should be
 independent of the number of padding elements in the input, and Nail therefore
 does not expose that information to the programmer. We call such discarded
@@ -72,7 +72,7 @@ The elementary parsers of Nail are the same as those of Hammer, signed
 and unsigned integers with arbitrary lengths up to 64 bits.  Note that is
 possible to define parsers for sub-byte lengths, e.g. to parse the 4-bit
 data offset within the TCP header; in Nail's syntax.  Integer parsers
-return their value in the smallest appropriately-sized machine integer
+return their value in the smallest appropriately sized machine integer
 type; e.g., a 24-bit integer is stored in a 32-bit wide variable.
 
 Integer parsers can be constrained to fall either within an (inclusive)

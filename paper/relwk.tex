@@ -34,7 +34,7 @@ By allowing developers to specify their data format just once, Nail
 avoids logic errors and inconsistencies in parsing and output generation.
 
 A subclass of logic errors are so-called \textit{weird machines}, where
-implementation side effects or under-specified parser behaviour leads to a
+implementation side effects or under-specified parser behavior leads to a
 protocol or data format inadvertently becoming a Turing-complete execution
 environment, even though the original grammar did not require it.
 Frequently, this execution environment can either
@@ -43,7 +43,7 @@ exploiting another bug feasible.\footnote{For example, by compiling a
 return-oriented-programming exploit from code fragments discovered on
 the fly.} Examples include x86 page tables~\cite{bangert2013page}, and
 ELF symbols and relocations~\cite{shapiro2013weird}. In the offensive
-research community, this has been generalised into treating a program
+research community, this has been generalized into treating a program
 as a \textit{weird machine}~\cite{bratus2011exploit} that operates on
 an input, analogous to a virtual machine operating on bytecode.
 Nail avoids these problems by having the parser precisely match the
@@ -85,7 +85,7 @@ inconvenient. Hammer allows the programmer to specify a grammar in
 terms of bits and bytes instead of characters. Common concerns, such as
 endianness and bit-packing are transparently hidden by the library. Hammer
 implements grammars as language-integrated parser combinators, an approach
-popularised by Parsec for Haskell~\cite{LeijenMeijer:parsec}. The
+popularized by Parsec for Haskell~\cite{LeijenMeijer:parsec}. The
 parser combinator style (to our knowledge, first  described
 in~\cite{burge1975recursive}) is a natural way of concisely expressing
 top-down grammars~\cite{Danielsson:2010:TPC:1863543.1863585}\footnote{For
@@ -102,14 +102,14 @@ Generated parsers have long been used to parse human input, such as programming 
 configuration files. Frequently, such languages are often specified with a formal grammar in an
 executable form.
 
-Unfortunately,  parser frameworks are seldom used  to recognise
+Unfortunately,  parser frameworks are seldom used  to recognize
 machine-created input. For example, the security-critical and
 well-engineered MIT Kerberos distribution uses parser generators, but
 only for handling configuration files. A notable exception is the Mongrel
 web server\footnote{\url{http://mongrel2.org/}} which uses a grammar
 for HTTP written in the Ragel~\cite{ragel-paper} regular expression
 language. Mongrel was re-written from scratch multiple times to achieve
-better scaleability and design, yet the grammar could be  re-used across
+better scalability and design, yet the grammar could be  re-used across
 all iterations~\cite{patterson-citation}.
 
 

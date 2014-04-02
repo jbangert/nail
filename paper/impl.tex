@@ -13,7 +13,7 @@ The source code of our implementation, together with the examples described in
 \paragraph{Parsing.}
 
 A generated Nail parser makes two passes through the input: the first to
-validate and recognise the input, and the second to bind this data to the internal
+validate and recognize the input, and the second to bind this data to the internal
 model. Currently the parser is a straightforward top-down parser, although
 facilities have been made to add Packrat parsing to achieve linear parsing
 times.
@@ -47,7 +47,7 @@ actions, we can trust it as much as we trust the parser, and thus can expose it
 to the raw input stream.
 
 Under this premise, the actions need limited information from the
-recogniser to correctly handle the input stream. In particular, the parser's
+recognizer to correctly handle the input stream. In particular, the parser's
 control flow branches only at the choice, repetition, and constant combinators.
 Thus, for each of those combinators, we store the minimum amount of information
 required to reconstruct the syntactic structure of the input. The trace is an
@@ -80,7 +80,7 @@ that the dependency field is correct.
 \paragraph{Bootstrapping.}
 
 To demonstrate the feasibility of the Nail parser generator, our parser
-generator uses a Nail parser to recognise Nail grammars. A superset of the
+generator uses a Nail parser to recognize Nail grammars. A superset of the
 grammar language described in this paper is implemented in 100 lines of Nail,
 which feed into about 1,000 lines of C++ that implement the actual parser
 generator. Bootstrapping is supported via an implementation of the Nail language
