@@ -1,118 +1,144 @@
 \section{Evaluation}
-
 \label{s:eval}
-In the following section we will present two short Nail grammars for UTF-16
-encoded strings and for a subset of DNS packets sent to and from an
-authoritative name server. Then we present a functioning toy DNS server that we
-have implemented to demonstrate the feasibility of using Nail's internal
-representation.
 
-As Nail is work in progress, many parts of the implementation, syntax and design
-are not complete yet and we do not yet have meaningful performance or security metrics.
-
-\subsection{Example Grammars}
-\paragraph{UTF-16.}
-This grammar recognises valid UTF-16 strings and exposes an array of code
-points.
-\hspace{-2em}\begin{tabular}{ll}
-  \textbf{Nail} & \textbf{Data Model}\\
-  \begin{minipage}{1.3in}
+\begin{figure*}
+\begin{minipage}{0.45\paperwidth}
 \begin{verbatim}
-utf = many choose {
- SUPP= {
-  lead uint16  |
-     0xD800..0xDBFF
-  trail uint16 | 
-     0xDC00..0xDFFF
- }
- BASIC = uint16 |
-    !0xD800..0xDFFF
+utfstring = many choose {
+  SUPP = {
+    lead  uint16 |  0xD800..0xDBFF
+    trail uint16 |  0xDC00..0xDFFF
+  }
+  BASIC = uint16 | !0xD800..0xDFFF
 }
 \end{verbatim}
-  \end{minipage}
-  & 
-  \begin{minipage}{2in}
+\end{minipage}
+~
+\begin{minipage}{0.45\paperwidth}
 \begin{verbatim}
 struct utfstring {
- struct {
-   enum  {SUPP,BASIC} 
-         N_type;
-   union {
-    struct {
-     uint16_t lead;
-     uint16_t trail;
-    } SUPP;
-    uint16_t BASIC;
-   };
- }*elem;
- size_t count;
+  struct {
+    enum { SUPP, BASIC } N_type;
+    union {
+      struct {
+        uint16_t lead;
+        uint16_t trail;
+      } SUPP;
+      uint16_t BASIC;
+    };
+  } *elem;
+  size_t count;
 };
 \end{verbatim} 
-  \end{minipage}
-  \\
-\end{tabular}
+\end{minipage}
+\caption{Nail grammar (left) and data model (right) for UTF-16 strings.}
+\label{fig:utf16}
+\end{figure*}
 
-\paragraph{DNS packet}
-This grammar recognises DNS packets without label compression, as per RFC1035.
+
+\begin{figure}
 \begin{verbatim}
-labels = <many {@length  uint8 | 1..255 
-                label n_of @length uint8 }
-             uint8 = 0>
-question= {   labels labels
-              qtype uint16 | 1..16 
-              qclass uint16 | [1,255]
-          }
-answer  = {   labels labels
-              rtype uint16 | 1..16
-              class uint16 | [1]
-              ttl uint32
-              @rlength uint16 
-              rdata n_of @rlength uint8 
-          }
-dnspacket = { id uint16
-              qr uint1
-              opcode uint4
-              aa uint1 
-              tc uint1
-              rd uint1
-              ra uint1
-              uint3 = 0
-              rcode uint4
-              @qc uint16
-              @ac uint16
-              uint16 = 0   // authority 
-              uint16 = 0 // additional
-// We don't support authority or 
-// additional sections in the prototype
-              questions n_of @qc question         
-              responses n_of @ac answer
-            }
+labels = <many { @length  uint8 | 1..255 
+                 label n_of @length uint8 }
+          uint8 = 0>
+
+question = {
+  labels labels
+  qtype uint16 | 1..16 
+  qclass uint16 | [1,255]
+}
+
+answer = {
+  labels labels
+  rtype uint16 | 1..16
+  class uint16 | [1]
+  ttl uint32
+  @rlength uint16 
+  rdata n_of @rlength uint8 
+}
+
+dnspacket = {
+  id uint16
+  qr uint1
+  opcode uint4
+  aa uint1 
+  tc uint1
+  rd uint1
+  ra uint1
+  uint3 = 0
+  rcode uint4
+  @qc uint16
+  @ac uint16
+  uint16 = 0    // authority 
+  uint16 = 0    // additional
+  // We don't support authority or 
+  // additional sections in the prototype
+  questions n_of @qc question
+  responses n_of @ac answer
+}
 \end{verbatim}
-  
-Furthermore, our GitHub\footnote{\url{https://github.com/jbangert/nail/tree/master/examples}}
-repository contains other Nail grammars, such as a TAP network stack that processes Ethernet, ARP,
-ICMP, IP and UDP and the grammar for Nail itself. 
+\caption{Nail grammar for DNS packets, used by our prototype DNS server.}
+\label{fig:dns-full}
+\end{figure}
 
-\subsection{Applications}
 
-In order to test the Nail framework, we cloned the test DNS server from the Hammer distribution to
-Nail. Hammer ships with a toy DNS server written in 683 lines of code, excluding the hammer
-framework itself that responds to any valid DNS query with a CNAME record to the domain
-``spargelze.it''.  Most of this code is taken up with custom validators, semantic actions and data
-structure definitions, with only 52 lines of code defining the grammar with Hammer's combinators.
+In our preliminary evaluation of Nail, we try to answer two questions:
 
-Our DNS server measures 148 lines of C and 48 lines of Nail grammar, and supports a custom zone file format
-with A,NS,MX and CNAME records. The same grammar is used together with 98 lines of C to implement a
-functional toy clone of the host command line tool. However, because our grammar does not yet
-support DNS label compression, the latter tool will occasionally reject valid real world DNS
-responses. Both clients have functional anti-spoofing measures.
+\begin{itemize}
+\item Can Nail grammars support real-world data formats?
+\item How much programmer effort is required to build an
+      application that uses Nail for data input and output?
+\end{itemize}
 
-It is hard to compare our efforts to a real world DNS server, as we have less functionality, in
-particular for DNS compression and additional hint records real-world DNS servers send. 
-However, the closest in functionality and intent is Dan Bernstein's djbdns\footnote{\url{http://cr.yp.to/djbdns.html}}, which aims
-to be a minimalist, highly secure DNS server. The latest release of DJBDNS, however, including
-various support tools is about ten thousand lines of C as measured by SLOCCOUNT. We are confident
-that it is possible to a feature-par version with Nail that is an order of magnitude smaller and
-intend to do so.
+\paragraph{Data formats.}
 
+To answer the first question, we implemented two Nail grammars:
+one for UTF-16 encoded strings, exposing an array of code points
+(shown in Figure~\ref{fig:utf16}), and another for a subset of DNS
+packets sent to and from an authoritative name server, without label
+compression, as per RFC1035 (shown in Figure~\ref{fig:dns-full}).
+Furthermore, our GitHub repository contains other Nail
+grammars, such as a TAP network stack that processes Ethernet,
+ARP, ICMP, IP, and UDP packets, and the grammar for Nail
+itself.\footnote{\url{https://github.com/jbangert/nail/tree/master/examples}}
+The results suggest that Nail is a good fit for these data formats.
+
+
+\paragraph{Programmer effort.}
+
+To answer the second question, we implemented a functioning toy DNS
+server.  In particular, we cloned the test DNS server from the Hammer
+distribution to Nail.  Hammer ships with a toy DNS server written in 683
+lines of code, excluding the Hammer framework itself, that responds to
+any valid DNS query with a CNAME record to the domain ``spargelze.it''.
+Most of this code is taken up with custom validators, semantic actions,
+and data structure definitions, with only 52 lines of code defining the
+grammar with Hammer's combinators.
+
+Our DNS server consists of 148 lines of C code and 48 lines of Nail
+grammar, and supports a custom zone file format with A, NS, MX, and
+CNAME records. The same grammar is used, together with 98 lines of C,
+to implement a functional toy clone of the \texttt{host} command-line
+tool. However, because our grammar does not yet support DNS label
+compression, the latter tool will occasionally reject valid real-world
+DNS responses. Both clients have functional anti-spoofing measures.
+
+It is hard to compare the programming effort required to implement
+our toy DNS server to that of a real world DNS server, since
+we have less functionality, in particular for DNS compression
+and additional hint records that real-world DNS servers send.
+However, the closest in functionality and intent is Dan Bernstein's
+djbdns,\footnote{\url{http://cr.yp.to/djbdns.html}} which aims to be
+a minimalist, highly secure DNS server. The latest release of djbdns,
+including various support tools, is about 10,000 lines of C as measured by
+\texttt{sloccount}.  We expect that it is possible to build a feature-par
+version with Nail that is an order of magnitude smaller and intend to
+do so.
+
+
+\paragraph{Other issues.}
+
+As Nail is work in progress, many parts of the implementation, syntax and
+design are not complete yet and we do not yet have meaningful performance
+or security metrics.
 
