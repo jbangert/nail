@@ -172,30 +172,36 @@ integer with a value of at most 256 (option B).}
 
 \subsection{Constant parsers}
 
-Nail also features \emph{constant parsers}, which are not affecting the internal
+Nail also features \emph{constant parsers}, which do not affect the internal
 representation. Constant parsers can appear instead of structure fields and as
-separators in the SepBy combinator.
+separators in the sepBy combinator.
 
 The simplest constant parser is an integer or array of integers with fixed
-value, e.g. \texttt{uint8=0}, \texttt{many uint8=[1,2]}. A convenience notation
+value; for example, \texttt{uint8=0}, or \texttt{many uint8=[1,2]}. A convenience notation
 for strings is also supported: \texttt{many uint8 = "foo"}.
 
-\paragraph{Wrap combinator.} When implementing real protocols with Nail, we often found that many structures
-consist of many constant parsers and only one named field. This pattern is
+\paragraph{Wrap combinator.} When implementing real protocols with Nail, we often found that
+structures that consist of many constant parsers and only one named field. This pattern is
 common in binary protocols which use fixed headers to denote the type of data
 structure to be parsed.  In order to keep the internal representation cleaner,
 we introduced the wrap combinator, which takes a sequence of parsers containing
 exactly one non-constant parser. The parser and generator act as though the wrap
 combinator was a sequence of parsers, but the data model does not wrap the
-single value in another structure, making the application code more concise.\\
-Example: \\ \verb+<uint8='"';many int8|'a'..'z'; uint8='"'>+  parses a quoted
-lowercase word into an array - excluding the quotation marks.
+single value in another structure, making the application-visible representation
+(and thus application code) more concise.
+
+For example, \texttt{<uint8='"'; many int8 | 'a'..'z'; uint8='"'>} parses a quoted
+lowercase word into an array, excluding the quotation marks.
 
 \paragraph{Constant combinators.}
 In some protocols, there might be many ways to represent the same constant field
-and there is no semantic difference between different syntaxes.  Nail therefore
-supports choice (\texttt{|| uint8 = 0 || uint16 = 0xFFFF}) and repetition
-(\texttt{many (uint8= ' ')}). This is particularly useful for handling padding or whitespace.
+and there is no semantic difference between the different syntactic representations.
+To support this pattern, Nail allows developers to use choice and repetition
+combinators together with constant fields, such as
+\texttt{many (uint8=' ')} (representing any number of space characters), or
+\texttt{|| uint8 = 0 || uint16 = 0xFFFF} (\XXX[what is this doing?  what is this
+syntax?  it looks notably different from Figure~\ref{fig:choice}]).
+This is particularly useful for handling padding or whitespace.
 
 As discussed above, choosing to use these combinators on constant parsers
 removes the bijection between byte-strings and our data model, as there are
@@ -207,54 +213,80 @@ parser, because they lead to ambiguities in the generator.
 
 \subsection{Dependent fields}
 Another problem for parser generators is that binary protocols often contain
-length and offset fields. While conventional parsing algorithms can deal with
-bounded offset fields - a finite automaton can count a bounded integer, and we
+length and offset fields. Conventional parsing algorithms can, in principle,
+deal with
+bounded offset fields: a finite automaton can count a bounded integer, and we
 can feed the (finite) input multiple times to the finite automaton. However,
-this implementation is both time-inefficient - why feed many bytes into the
-automaton that will just be skipped - and very cumbersome to express with
-current parser generators. Therefore, if languages with offset fields are parsed
-with parser generators, the only currently feasible way is to add 'ad-hoc' hacks
-such as changing the input pointer of the generated parser on the fly from
-semantic actions.
+this implementation is both time-inefficient (it feeds many bytes into the
+automaton that will just be skipped) and very cumbersome to express with
+current parser generators. Therefore, if languages with offset fields need
+to be parsed
+with parser generators, the only currently practical way is to add ad-hoc hacks
+such as changing the input pointer of the generated parser on the fly, as part
+of the code in the semantic action for the offset field.
 
 Nail will properly support both offset and length fields and much of the
-following discussion applies to both , although the current prototype only
+following discussion applies to both, although the current prototype only
 implements lengths, which we will focus on.
 
 We call length or offset fields \textit{dependent fields}, because during
 parsing, another parser depends on them, and while generating output, their
 value depends on some other structure in the data model. Dependency fields
-appear in a structure combinator as would any other integer field, but their
-name begins with an '@' sign. Dependency fields are not exposed in the data
-model, but transparently computed.
+appear in a structure combinator as would any other integer field, but
+their name begins with an \texttt{@} sign.  A dependency field has to
+appear in the grammar before it can be used.
 
-A dependency field has to appear in the grammar before it can be used. 
-\paragraph{Length fields: n_of}
-The length combinator takes a dependency field and a parser, evaluating the
-parser as often as the value of the dependency field, returning an array of the
-values. When generating output, it emits the array and writes its length to the
-dependency field.
-\paragraph{Offsets: offset} 
-The offset combinator takes a dependency field and a parser. It moves the parser
-to the position specified in the offset field and invokes the inner parser, and
-then moves the input back to its original position.
-While generating output, all structures referred to by offset are generated
-after the main structure and the dependent offset fields patched up.
+Dependency fields are not exposed in the data model, but instead are
+transparently computed.  This frees the developer from checking that
+these fields are correct (for input) or having to keep their values in
+sync with the rest of the data structure (for output).
 
-\paragraph{Checksums: raw_depend}
-In many data formats, some values depend on external representation, such as
-checksums and cryptographic signatures. While it would be possible to extend
-our constraint language to be powerful enough to support such constructs, we
-would essentially be building a separate, Turing complete language that has all
-the same pitfalls existing programs have. Therefore, we intend to  allow the programmer to
-very carefully escape Nail's programming model and write a function that takes a
-pointer to the dependent value and a range of bytes. 
-This feature is not implemented in the current prototype. \\
-Example:\\
- \verb+{ data many uint8; @checksum uint32+\\
- \verb+raw_depend @checksum data crc32 }+\\
- \verb+/*bool crc32(uint32_t *out, uint8_t *in);*/+
-Because this feature compromises Nail's security guarantees, it should only be
-used in limited circumstances and with carefully prepared checksum functions. 
+\paragraph{Length fields.}
 
+The length combinator, \texttt{n_of}, takes a dependency field $n$
+and a parser, evaluates the parser exactly $n$ times (i.e., setting
+the number of iterations to be the $n$ field's value), and returns
+an array of the parser's values. When generating output, it emits
+the array and writes its length to the dependency field.
+
+\paragraph{Offsets.}
+
+The \texttt{offset} combinator takes a dependency field and a parser. It
+moves the parser to the position specified in the offset field and
+invokes the inner parser, and then moves the input back to its original
+position.  While generating output, all structures referred to by offset
+are generated after the main structure and the dependent offset fields
+are patched up.
+
+\paragraph{Checksums.}
+
+In many data formats, some values depend on external representation,
+such as checksums and cryptographic signatures.  While it would be
+possible to extend our constraint language to be powerful enough to
+support such constructs, we would essentially be building a separate,
+Turing-complete language that has all the same pitfalls existing programs
+have.  Therefore, we intend to allow the programmer to carefully escape
+Nail's programming model and write a function that takes a pointer to
+the dependent value and a range of bytes, using the \texttt{raw_depend}
+combinator.
+
+For example, we imagine the following grammar could be used to represent
+a sequence of bytes \texttt{data} followed by its CRC32 checksum:
+
+\begin{verbatim}
+data many uint8; @checksum uint32
+raw_depend @checksum data crc32
+\end{verbatim}
+
+\noindent
+where \texttt{crc32} is a function supplied by the application, with
+the following signature:
+
+\begin{verbatim}
+bool crc32(uint32_t *out, uint8_t *in);
+\end{verbatim}
+
+Because this feature compromises Nail's security guarantees, it should
+only be used in limited circumstances and with carefully prepared checksum
+functions.  This feature is not implemented in the current prototype.
 
