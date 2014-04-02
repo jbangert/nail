@@ -2,13 +2,14 @@
 \label{s:impl}
 
 The current prototype of the Nail parser generator supports the C programming
-language and top down parsers. Options for C++ STL data models and emitting
-Packrat parser~\cite{packrat-parsing:icfp02} are under heavy development. In
+language and top-down parsers. Options for C++ STL data models and emitting
+Packrat parser~\cite{packrat-parsing:icfp02} are under development. In
 this section, we will discuss some particular features of our parser
 implementation.
 
 The source code of our implementation, together with the examples described in
-\S\ref{s:eval} are available on GitHub\footnote{\url{https://github.com/jbangert/nail}}.
+\S\ref{s:eval} are available on GitHub at \url{https://github.com/jbangert/nail}.
+
 \paragraph{Parsing}
 A generated Nail parser makes two passes through the input , the first to
 validate and recognise the input, the second to bind this data to the internal
