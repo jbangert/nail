@@ -95,11 +95,11 @@ parsing algorithm used by Hammer.} by composing them from one or multiple
 sub-parsers.  Hammer then constructs a tree of function pointers which
 can be invoked to parse a given input into an abstract syntax tree (AST).
 
-Nail improves upon Hammer in three ways. First, Nail  generates output besides recognising input.
+Nail improves upon Hammer in three ways. First, Nail  generates output besides recognizing input.
 Second, Nail does not require the programmer to write potentially insecure semantic actions. Last,
-Nail's structural dependencies allow it to work with protocols Hammer cannot recognise, such as
+Nail's structural dependencies allow it to work with protocols Hammer cannot recognize, such as
 protocols with offset fields or length fields (Hammer has extremely limited support for length
-fields: it can parse arrays immediately preceeded by their length).
+fields: it can parse arrays immediately preceded by their length).
 
 \paragraph{Application use of parsers.}
 Generated parsers have long been used to parse human input, such as programming languages and
