@@ -1,21 +1,17 @@
 \section{Conclusion}
 \label{s:concl}
-This paper presented the initial design and implementation of \textit{Nail}, a usable interface
-generator for data formats. Nail allows programmers to avoid memory corruption and ambiguity
-vulnerabilities while reducing effort in parsing and generating real world protocols and file
-formats. We have demonstrated Nail's expressive power by implementing DNS and Ethernet. 
 
-Our code is open source on GitHub\footnote{\url{https://github.com/jbangert/nail/}}.
+This paper presented the initial design and implementation of
+\textit{Nail}, an interface generator for data formats.  Nail helps
+programmers to avoid memory corruption and ambiguity vulnerabilities
+while reducing effort in parsing and generating real-world protocols
+and file formats.  Nail achieves this by reducing the expressive
+power of the grammar, maintaining a \emph{semantic bijection} between
+data formats and internal representations, and allowing programmers to
+specify \emph{structural dependencies} in the data format.  Preliminary
+experience with implementing a DNS server using Nail suggests that this
+is a promising approach.
 
-%This paper presented the initial design and implementation of
-%\textit{Nail}, a parser generator that aims to minimize the amount
-%of programmer effort.  Nail achieves this by reducing the expressive
-%power of the grammar, maintaining a \emph{semantic bijection} between
-%data formats and internal representations, and allowing programmers to
-%specify \emph{structural dependencies} on the data format.  This avoids
-%the need for programmers to write explicit semantic actions for input
-%and output processing.  We hope that by reducing programmer effort
-%required to use a parser generator, Nail will enable more application
-%developers to use generated parsers in practice.  Our prototype source
-%code is available at \url{https://github.com/jbangert/nail}.
+The source code for our prototype of Nail is available at
+\url{https://github.com/jbangert/nail}.
 
