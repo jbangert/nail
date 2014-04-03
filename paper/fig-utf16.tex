@@ -1,0 +1,34 @@
+\begin{figure*}
+\begin{minipage}{\columnwidth}
+\begin{verbatim}
+utfstring = many choose {
+  SUPP = {
+    lead  uint16 |  0xD800..0xDBFF
+    trail uint16 |  0xDC00..0xDFFF
+  }
+  BASIC = uint16 | !0xD800..0xDFFF
+}
+\end{verbatim}
+\end{minipage}
+\hspace{\columnsep}
+\begin{minipage}{\columnwidth}
+\begin{verbatim}
+struct utfstring {
+  struct {
+    enum { SUPP, BASIC } N_type;
+    union {
+      struct {
+        uint16_t lead;
+        uint16_t trail;
+      } SUPP;
+      uint16_t BASIC;
+    };
+  } *elem;
+  size_t count;
+};
+\end{verbatim}
+\end{minipage}
+\caption{Nail grammar (left) and data model (right) for UTF-16 strings.}
+\label{fig:utf16}
+\end{figure*}
+

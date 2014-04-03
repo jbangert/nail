@@ -11,6 +11,8 @@ provide memory safety guarantees (such as C), and can be partially
 mitigated by a wide range of techniques, such as static analysis,
 dynamic instrumentation, and address space layout randomization, that
 make it more difficult for an adversary to exploit these bugs.
+Nail helps developers of lower-level languages avoid these bugs
+in the first place.
 
 The second class is logic errors, where application code misinterprets
 input data.  This can lead to serious security consequences when two
@@ -28,17 +30,24 @@ underlying SSL~\cite{DBLP:conf/fc/KaminskyPS10}.  These mistakes are
 highly application-specific, and are difficult to mitigate using existing
 techniques, and these mistakes can occur even in high-level languages
 that guarantee memory safety.
+By allowing developers to specify their data format just once, Nail
+avoids logic errors and inconsistencies in parsing and output generation.
 
-A subclass of logic errors are so-called \textit{weird machines}, where implementation side effects
-or under-specified parser behaviour leads to a protocol inadvertently becoming a Turing complete
-execution environment. Frequently, this execution environment can either then directly manipulate
-data in unwanted ways or be used to make exploiting another bug feasible\footnote{For example, by
-  compiling a return-oriented-programming exploit from code fragments discovered on the fly}.
- Examples include X86 page tables~\cite{bangert2013page},
-ELF symbols and relocations~\cite{shapiro2013weird}. In the offensive research community,
-this has been generalised into treating a program as a \textit{weird
-machine}~\cite{bratus2011exploit} that operates on an input, analogous
-to a virtual machine operating on bytecode. 
+A subclass of logic errors are so-called \textit{weird machines}, where
+implementation side effects or under-specified parser behavior leads to a
+protocol or data format inadvertently becoming a Turing-complete execution
+environment, even though the original grammar did not require it.
+Frequently, this execution environment can either
+then directly manipulate data in unwanted ways or be used to make
+exploiting another bug feasible.\footnote{For example, by compiling a
+return-oriented-programming exploit from code fragments discovered on
+the fly.} Examples include x86 page tables~\cite{bangert2013page}, and
+ELF symbols and relocations~\cite{shapiro2013weird}. In the offensive
+research community, this has been generalized into treating a program
+as a \textit{weird machine}~\cite{bratus2011exploit} that operates on
+an input, analogous to a virtual machine operating on bytecode.
+Nail avoids these problems by having the parser precisely match the
+specified grammar, eliminating under-specified behavior.
 
 % With currently prevalent software design methods, it is hard to isolate
 % input-handling code from the rest of the program, as user input is
@@ -62,44 +71,45 @@ format of the output, so cannot be used to implement legacy protocols.
 Very related work has been done at Bell Labs with the PacketTypes
 system~\cite{mccann2000packet}, however PacketTypes works only as a
 parser, not as an output generator and does not support the expressive
-power of PEGs, but rather implements a C like structure model enhanced
-with data-dependent length fields and constraints.
+power of parsing expression grammars (PEGs), but rather implements a
+C-like structure model enhanced with data-dependent length fields and
+constraints.
 
 Parser generators for binary protocols were first introduced by the
 Hammer~\cite{hammer-parser} parser.
 While previous parser generators could also be used to write grammars
-for binary protocols\footnote{Theoretically speaking, the alphabet
+for binary protocols,\footnote{Theoretically speaking, the alphabet
 over which a grammar is an  abstract set, so most algorithms work
-just as well on an alphabet of $\{0,1\}$}, doing so is impractically
+just as well on an alphabet of $\{0,1\}$.} doing so is practically
 inconvenient. Hammer allows the programmer to specify a grammar in
 terms of bits and bytes instead of characters. Common concerns, such as
 endianness and bit-packing are transparently hidden by the library. Hammer
 implements grammars as language-integrated parser combinators, an approach
-popularised by Parsec for Haskell~\cite{LeijenMeijer:parsec}. The
+popularized by Parsec for Haskell~\cite{LeijenMeijer:parsec}. The
 parser combinator style (to our knowledge, first  described
 in~\cite{burge1975recursive}) is a natural way of concisely expressing
 top-down grammars~\cite{Danielsson:2010:TPC:1863543.1863585}\footnote{For
 more background on the history of expressing grammars, see Bryan Ford's
 masters thesis~\cite{ford2002packrat}, which also describes the default
-parsing algorithm used by Hammer} by composing them from one or multiple
+parsing algorithm used by Hammer.} by composing them from one or multiple
 sub-parsers.  Hammer then constructs a tree of function pointers which
 can be invoked to parse a given input into an abstract syntax tree (AST).
-
-
+\XXX[how does Nail relate to Hammer, in terms of what's new, what it
+solves, etc?]
 
 \paragraph{Application use of parsers.}
 Generated parsers have long been used to parse human input, such as programming languages and
 configuration files. Frequently, such languages are often specified with a formal grammar in an
 executable form.
 
-Unfortunately,  parser frameworks are seldom used  to recognise
-machine-created input. For example, the security-critical and very
+Unfortunately,  parser frameworks are seldom used  to recognize
+machine-created input. For example, the security-critical and
 well-engineered MIT Kerberos distribution uses parser generators, but
 only for handling configuration files. A notable exception is the Mongrel
 web server\footnote{\url{http://mongrel2.org/}} which uses a grammar
 for HTTP written in the Ragel~\cite{ragel-paper} regular expression
 language. Mongrel was re-written from scratch multiple times to achieve
-better scaleability and design, yet the grammar could be  re-used across
+better scalability and design, yet the grammar could be  re-used across
 all iterations~\cite{patterson-citation}.
 
 

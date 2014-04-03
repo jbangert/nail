@@ -15,7 +15,7 @@ past.\footnote{\url{http://www.cvedetails.com/vulnerability-list/vendor_id-72/pr
 
 A promising approach to avoid such vulnerabilities is to specify
 a precise grammar for the input data format, and to use a parser
-generator, such as {\tt lex} and {\tt yacc}, to synthesise the input
+generator, such as {\tt lex} and {\tt yacc}, to synthesize the input
 processing code.  Developers that use a parser generator do not need
 to write error-prone input processing code on their own, and as long
 as the parser generator is bug-free, the application will be safe from
@@ -51,10 +51,10 @@ semantic actions to be written, transforming the internal representation
 into an AST\@.
 
 
-Third, data formats, especially binary formats such as PNG or PDF, can have \emph{structural dependencies}, such as offset, length and checksum fields
+Third, data formats, especially binary formats such as PNG or PDF, can have \emph{structural dependencies}, such as offset, length, and checksum fields
 that are hard to express in state-of-the-art grammar languages. Often the programmer is required to
 manually write control code, such as re-positioning the parser's input stream, looping over the
-invocation of a sub-parser or computing a
+invocation of a sub-parser, or computing a
 checksum over raw input bytes.  Besides leaving much room for errors with offset arithmetic, such
 code is usually not reusable when generating output.
 
@@ -70,7 +70,7 @@ transform between the AST and the parser output. Instead, Nail derives the
 structure of its output automatically from the grammar, forcing the programmer
 to clearly separate syntactic validation and semantic processing.
 
-Second, this well-defined internal representation allows Nail to inverse the
+Second, this well-defined internal representation allows Nail to invert the
 parser and generate output. However, Nail allows \emph{constants} in the
 external format to have multiple representations if they should not affect the
 semantics of the data. For example, in a text protocol, the amount of

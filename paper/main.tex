@@ -1,6 +1,6 @@
 \documentclass[10pt,twocolumn]{article}
 \usepackage[10pt,nocopyright]{sigmin}
-\usepackage[letterpaper, breaklinks, pdfborder={0 0 0},bookmarks={false}]{hyperref}
+\usepackage[letterpaper, breaklinks, pdfborder={0 0 0}]{hyperref}
 \usepackage[square,comma,numbers,sort&compress]{natbib}
 \usepackage{times}
 \usepackage{microtype}
@@ -9,6 +9,7 @@
 \usepackage{graphicx}
 \usepackage{url}
 \usepackage{listings}
+\usepackage{hyperref}
 \usepackage{underscore}
 \usepackage[T1]{fontenc}
 \usepackage{amsmath}
@@ -16,12 +17,17 @@
 \usepackage{amssymb}
 \usepackage{verbatim}
 \usepackage{fullpage}
-\pdfminorversion=4
+\usepackage{color}
+\usepackage{xspace}
+\usepackage{multirow}
+
 \renewcommand{\ttdefault}{pxtt}   %% better \tt font
 
 %% Ensure ligatures (e.g., ``fine official flag'') can be copy/pasted from PDF.
 \input{glyphtounicode}
 \pdfgentounicode=1
+
+\input{cmds}
 
 
 \begin{document}
