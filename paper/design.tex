@@ -199,8 +199,8 @@ and there is no semantic difference between the different syntactic representati
 To support this pattern, Nail allows developers to use choice and repetition
 combinators together with constant fields, such as
 \texttt{many (uint8=' ')} (representing any number of space characters), or
-\texttt{|| uint8 = 0 || uint16 = 0xFFFF} (\XXX[what is this doing?  what is this
-syntax?  it looks notably different from Figure~\ref{fig:choice}]).
+\texttt{|| uint8 = 0x90 || uint16 = 0x1F0F} (parsing two of the many representations of NOP on the
+x86 architecture). Note that constant may have varying lengths.
 This is particularly useful for handling padding or whitespace.
 
 As discussed above, choosing to use these combinators on constant parsers
