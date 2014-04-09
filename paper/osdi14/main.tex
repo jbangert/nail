@@ -1,0 +1,53 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[10pt,nocopyright]{sigmin}
+\usepackage[letterpaper, breaklinks, pdfborder={0 0 0}]{hyperref}
+\usepackage[square,comma,numbers,sort&compress]{natbib}
+\usepackage{times}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{mathptmx}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{underscore}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\usepackage{fullpage}
+\usepackage{color}
+\usepackage{xspace}
+\usepackage{multirow}
+
+\renewcommand{\ttdefault}{pxtt}   %% better \tt font
+
+%% Ensure ligatures (e.g., ``fine official flag'') can be copy/pasted from PDF.
+\input{glyphtounicode}
+\pdfgentounicode=1
+
+\input{cmds}
+
+
+\begin{document}
+\author{Julian Bangert and Nickolai Zeldovich \\ \em MIT CSAIL}
+\date{}
+\title{Nail: A practical interface generator for data formats}
+
+\maketitle
+
+\input{abstract}
+\input{intro}
+\input{relwk}
+\input{design}
+\input{impl}
+\input{eval}
+\input{future}
+\input{concl}
+\input{ack}
+
+\bibliography{n-str,main,locasto,phrack,langsec,n,n-conf}
+\bibliographystyle{plain}
+
+\end{document} 
