@@ -1,0 +1,8 @@
+bar = {
+    a uint8
+    b uint8
+}
+foo = { 
+ @offset uint16 
+ foo offset @offset bar 
+}

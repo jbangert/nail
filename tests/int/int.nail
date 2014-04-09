@@ -1,0 +1,1 @@
+foo = { @length uint8;  test n_of @length uint8 }
