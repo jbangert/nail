@@ -26,4 +26,8 @@ extern void emit_generator(std::ostream *out,grammar *grammar);
 extern void emit_parser(std::ostream *out,grammar *grammar);
 extern void emit_header(std::ostream *out,grammar *grammar);
 std::string intconstant_value(const intconstant &val);
+
+bool parameter_type_check(parameterlist *param, parameterdefinitionlist *def);
+
+#define mk_str(x) std::string((const char *)x.elem,x.count)
 #endif

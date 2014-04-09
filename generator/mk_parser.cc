@@ -455,14 +455,14 @@ class CPrimitiveParser{
         case FIELD:
           packrat(*field->FIELD.parser,fail);
           break;
-        case CONTEXT:{
+        case DEPENDENCY:{
           //TODO: Make better
-          int width = boost::lexical_cast<int>(mk_str(field->CONTEXT.parser.parser.UNSIGNED));
+          int width = boost::lexical_cast<int>(mk_str(field->DEPENDENCY.parser.parser.UNSIGNED));
           check_int(width,fail);
-          out << "long " << mk_str(field->CONTEXT.name) << " = " << int_expr(width) << ";\n";
-          if(field->CONTEXT.parser.constraint != NULL){
+          out << "long " << mk_str(field->DEPENDENCY.name) << " = " << int_expr(width) << ";\n";
+          if(field->DEPENDENCY.parser.constraint != NULL){
             out << "if(";
-            constraint(mk_str(field->CONTEXT.name), *field->CONTEXT.parser.constraint);
+            constraint(mk_str(field->DEPENDENCY.name), *field->DEPENDENCY.parser.constraint);
             out << "){"<<fail<<"}\n";
             }
           out << "off +=" << width << ";\n";
@@ -617,8 +617,8 @@ class CAction{
           action(field->FIELD.parser->PR,fieldname);
           break;
         }
-        case CONTEXT:{
-          int width = boost::lexical_cast<int>(mk_str(field->CONTEXT.parser.parser.UNSIGNED));
+        case DEPENDENCY:{
+          int width = boost::lexical_cast<int>(mk_str(field->DEPENDENCY.parser.parser.UNSIGNED));
           out << "off+=" << width<<";";
         }
         }

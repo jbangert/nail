@@ -5,7 +5,8 @@
 number = many1 digit
 varidentifier   = <WHITE; many1 lower>
 constidentifier = <WHITE; many1 upper>
-contextidentifier = <WHITE uint8='@'; many1 lower>
+channelidentifier = <WHITE; uint8='#'; many1 lower>
+dependencyidentifier = <WHITE uint8='@'; many1 lower>
 WHITE = many || uint8 = ' ' || uint8 = '\n'
 SEPERATOR = {many uint8=' '; many || uint8 = '\n' || uint8 = ';'}
 intconstant = <WHITE;  choose {
@@ -51,12 +52,11 @@ constrainedint = {
                 parser intp
                 constraint optional <t("|")  intconstraint  >  
 }
-
+transform = {left sepBy t(",") streamidentifier; t("transform"); right many parameter}
 structparser = <t("{"); sepBy SEPERATOR choose{
               CONSTANT = constparser                      
-              CONTEXT = {name contextidentifier; parser constrainedint}    
+              DEPENDENCY = {name dependencyidentifier; parser constrainedint}    
               FIELD= { name varidentifier;  parser *parser }
-
               } 
          t("}")>
 wrapparser = {t("<"); constbefore optional <sepBy1 SEPERATOR constparser; SEPERATOR>
@@ -71,7 +71,20 @@ arrayparser =   choose{
                 SEPBYONE={ t("sepBy1"); separator constparser; inner *parser}    
                 SEPBY= { t("sepBy") ; separator constparser; inner *parser}
                 }
+parameter = choose { 
+                            P_DEPENDENCY = dependencyidentifier
+                            P_STREAM  = streamidentifier
+                      }
+parameterlist = < t("("); sepBy1 t(",") parameter; t(")") > 
 
+//XXX:  Allow non-integer contexts
+parameterdefinition = choose { 
+                    D_STREAM = streamidentifier
+                    D_CONTEXT = {name dependencyidentifier; type constrainedint }
+                    }
+parameterdefinitionlist = <t("(") sepBy1 t(",") parameterdefinition t(")")>
+parserinvocation = { name varidentifier; 
+                     parameters optional parameterlist  }
 parserinner =  choose {// because we don't do left recursive grammars yet
                 INT= constrainedint
                 STRUCT= structparser
@@ -79,17 +92,18 @@ parserinner =  choose {// because we don't do left recursive grammars yet
                 CHOICE= choiceparser
                 ARRAY = arrayparser
                 FIXEDARRAY = { t("["); length intconstant; t("]"); inner *parser}
-                LENGTH = <t("n_of") { length contextidentifier; parser *parser}>
-                OFFSET = <t("offset") {offset contextidentifier; parser *parser}>
+                LENGTH = <t("n_of") { length dependencyidentifier; parser *parser}>
                 OPTIONAL= <t("optional ") *parser>
                 UNION = many1 <t("||") *parser>
-                REF   =  <t("*") varidentifier >
-                NAME  =  varidentifier
-         } // replace with a proper wrap
+                REF   =  <t("*") parserinvocation >
+                NAME  =  parserinvocation
+                BIND  =  {t("bind"); stream streamidentifier;  *parser}
+         } 
 parser = choose {PAREN=<t("(") parserinner t(")")>
                  PR= parserinner}
 definition = choose {
            PARSER = {name  varidentifier
+                     parameters optional parameterdefinitionlist 
                     t("=")
                     definition parser }
            CONST = {

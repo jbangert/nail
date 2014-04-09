@@ -4,7 +4,6 @@
 
 #define p_arg(x) x.count,(const char*)x.elem
 
-#define mk_str(x) std::string((const char *)x.elem,x.count)
 #define printf(...)  ERROR
 
 static unsigned long strntoud(unsigned siz,const char *num){
@@ -80,10 +79,10 @@ class GenGenerator{
           generator(field->FIELD.parser->PR,fieldname);
           break;
         }
-        case CONTEXT:{
-          int width = boost::lexical_cast<int>(mk_str(field->CONTEXT.parser.parser.UNSIGNED));
-          out << "long "<< mk_str(field->CONTEXT.name) << " = 0;"; // TODO: pick proper type
-          out << "HBitWriter rewind_"<< mk_str(field->CONTEXT.name) << " = *out;";
+        case DEPENDENCY:{
+          int width = boost::lexical_cast<int>(mk_str(field->DEPENDENCY.parser.parser.UNSIGNED));
+          out << "long "<< mk_str(field->DEPENDENCY.name) << " = 0;"; // TODO: pick proper type
+          out << "HBitWriter rewind_"<< mk_str(field->DEPENDENCY.name) << " = *out;";
           out << "h_bit_writer_put(out,0,"<< width << ");";
           break;
         }
@@ -92,12 +91,12 @@ class GenGenerator{
       
       out << "{/*Context-rewind*/\n HBitWriter end_of_struct= *out;\n";
       FOREACH(field,p.STRUCT){
-        if(field->N_type != CONTEXT)
+        if(field->N_type != DEPENDENCY)
           continue;
-        int width = boost::lexical_cast<int>(mk_str(field->CONTEXT.parser.parser.UNSIGNED));
-        out << "out->index = rewind_"<< mk_str(field->CONTEXT.name)<<".index;\n";
-        out << "out->bit_offset = rewind_"<< mk_str(field->CONTEXT.name)<<".bit_offset;\n";
-        out << "h_bit_writer_put(out,"<<mk_str(field->CONTEXT.name)<<","<<width<<");\n";
+        int width = boost::lexical_cast<int>(mk_str(field->DEPENDENCY.parser.parser.UNSIGNED));
+        out << "out->index = rewind_"<< mk_str(field->DEPENDENCY.name)<<".index;\n";
+        out << "out->bit_offset = rewind_"<< mk_str(field->DEPENDENCY.name)<<".bit_offset;\n";
+        out << "h_bit_writer_put(out,"<<mk_str(field->DEPENDENCY.name)<<","<<width<<");\n";
       }
       out << "out->index = end_of_struct.index;\n";
       out << "out->bit_offset = end_of_struct.bit_offset;\n}";

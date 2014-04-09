@@ -3,14 +3,14 @@ cd $(dirname $1)
 TEST=$(basename $1)
 
 echo "Running $TEST"
-../../generator/nail $TEST   2&>/dev/null || exit 
+NAIL=`../../generator/nail $TEST   2>&1`  || ( echo "Failed generating $case \n"  $NAIL; exit -1) || exit -1 
 cat ../test_harness.c >> $TEST.c
-astyle $TEST.c
+astyle $TEST.c > /dev/null
 rm $TEST.c.orig
-gcc  -ggdb -DXYCONST=0 -lhammer -std=gnu99 -o $TEST-test $TEST.c 
+COMPILER=`gcc  -ggdb -DXYCONST=0 -lhammer -std=gnu99 -o $TEST-test $TEST.c  2>&1` || (echo "Failed compiling $case \n $COMPILER"; exit -1 ) || exit -1 
     
 for case in in.*
  do 
-   ./$TEST-test < $case
+   OUT=`./$TEST-test < $case 2>&1` || ( echo "Failed  testcase $case \n" $OUT; exit -1) || exit -1 
  done
 
