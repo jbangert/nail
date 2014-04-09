@@ -5,6 +5,10 @@
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
+
+#include <boost/format.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/foreach.hpp>
 extern "C"{
 #include <hammer/hammer.h>
 #include <hammer/glue.h>

@@ -5,8 +5,9 @@
 number = many1 digit
 varidentifier   = <WHITE; many1 lower>
 constidentifier = <WHITE; many1 upper>
-channelidentifier = <WHITE; uint8='#'; many1 lower>
-dependencyidentifier = <WHITE uint8='@'; many1 lower>
+streamidentifier = <WHITE; uint8='#'; many1 lower>
+dependencyidentifier = <WHITE; uint8='@'; many1 lower>
+
 WHITE = many || uint8 = ' ' || uint8 = '\n'
 SEPERATOR = {many uint8=' '; many || uint8 = '\n' || uint8 = ';'}
 intconstant = <WHITE;  choose {
@@ -77,7 +78,6 @@ parameter = choose {
                       }
 parameterlist = < t("("); sepBy1 t(",") parameter; t(")") > 
 
-//XXX:  Allow non-integer contexts
 parameterdefinition = choose { 
                     D_STREAM = streamidentifier
                     D_CONTEXT = {name dependencyidentifier; type constrainedint }
@@ -85,6 +85,7 @@ parameterdefinition = choose {
 parameterdefinitionlist = <t("(") sepBy1 t(",") parameterdefinition t(")")>
 parserinvocation = { name varidentifier; 
                      parameters optional parameterlist  }
+
 parserinner =  choose {// because we don't do left recursive grammars yet
                 INT= constrainedint
                 STRUCT= structparser
@@ -97,7 +98,7 @@ parserinner =  choose {// because we don't do left recursive grammars yet
                 UNION = many1 <t("||") *parser>
                 REF   =  <t("*") parserinvocation >
                 NAME  =  parserinvocation
-                BIND  =  {t("bind"); stream streamidentifier;  *parser}
+                BIND  =  {t("bind"); stream streamidentifier;  inner *parser}
          } 
 parser = choose {PAREN=<t("(") parserinner t(")")>
                  PR= parserinner}
