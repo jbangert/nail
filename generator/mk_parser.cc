@@ -49,7 +49,8 @@ class CDataModel{
     case ARRAY:
     case CHOICE:
       return (boost::format("struct %s") % name).str();
- 
+    case BIND:
+      return typedef_type(*p.BIND.inner,name, post);
     }
   }
   void emit_array(const parser &inner, const std::string name = ""){
@@ -145,10 +146,13 @@ class CDataModel{
       }
       break;
     case REF:
-      out << mk_str(p.REF.name)<<"* ";
+      out << mk_str(p.REF.name)<<"* "; // TODO: Make ref more powerful, featuring ALIAS
       break;
     case NAME:
       out << mk_str(p.NAME.name);
+      break;
+    case BIND:
+      emit_type(*p.BIND.inner); 
       break;
     }
   }
