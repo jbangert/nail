@@ -145,10 +145,10 @@ class CDataModel{
       }
       break;
     case REF:
-      out << mk_str(p.REF)<<"* ";
+      out << mk_str(p.REF.name)<<"* ";
       break;
     case NAME:
-      out << mk_str(p.NAME);
+      out << mk_str(p.NAME.name);
       break;
     }
   }
@@ -233,7 +233,7 @@ class CPrimitiveParser{
   int num_iters;
   int bit_offset = 0; // < 0 = unknown alignment, 0 == byte aligned, 1 = byte + 1, etc 
 
-  /*Packrat pass emits a light-weight trace of data structure*/
+  /*Parse pass emits a light-weight trace of data structure*/
   //TODO: Keep track of bit alignment
   void check_int(unsigned int width, const std::string &fail){
     out << "if(off + "<< width <<"> max) {"<<fail<<"}\n";
@@ -261,7 +261,7 @@ class CPrimitiveParser{
     }
   }
   
-  void packrat(const constrainedint &c, const std::string &fail){
+  void peg(const constrainedint &c, const std::string &fail){
     int width = boost::lexical_cast<int>(mk_str(c.parser.UNSIGNED));
     check_int(width,fail);
     if(c.constraint != NULL){
@@ -353,7 +353,7 @@ class CPrimitiveParser{
     }
 
   }
-  void packrat(const constparser &c, const std::string &fail){
+  void peg(const constparser &c, const std::string &fail){
     peg_const(c,fail);
     out << "if(parser_fail(n_tr_const(trace,off))){"<<fail<<"}\n";
   }
@@ -376,7 +376,7 @@ class CPrimitiveParser{
       std::string fallthrough_memo  =  (boost::format("choice_%u_%s_out") % this_choice %p.name).str();
       std::string fallthrough_goto = boost::str(boost::format("goto %s;") % fallthrough_memo);
       out << "choice = n_tr_memo_choice(trace);\n";
-      packrat(*p.p,fallthrough_goto);
+      peg(*p.p,fallthrough_goto);
       out << "n_tr_pick_choice(trace,choice_begin,"<<p.name<<",choice);";
       out << "goto " << success_label<< ";\n";
       out << fallthrough_memo << ":\n";
@@ -396,10 +396,10 @@ class CPrimitiveParser{
         << "succ_repeat_" << this_many << ":\n";
     if(separator != NULL){
       out << "if(count>0){\n";
-      packrat(*separator,gotofail);
+      peg(*separator,gotofail);
       out << "}\n";
     }
-    packrat(p, gotofail);
+    peg(p, gotofail);
     out << "count++;\n";
     out << " goto succ_repeat_"<< this_many << ";\n";
     out << "fail_repeat_" << this_many << ":\n";
@@ -410,7 +410,7 @@ class CPrimitiveParser{
     out << "}\n";
     
   }
-  void packrat(const arrayparser &array, const std::string &fail){
+  void peg(const arrayparser &array, const std::string &fail){
     switch(array.N_type){
     case MANYONE:
       peg_repeat(*array.MANYONE,fail, 1,NULL);
@@ -430,26 +430,26 @@ class CPrimitiveParser{
     int this_many = nr_many++;
     out << "{\n";
     out << "pos many = n_tr_memo_optional(trace);\n";
-    packrat(p, (boost::format("goto fail_optional_%d;") % this_many).str());
+    peg(p, (boost::format("goto fail_optional_%d;") % this_many).str());
     out << "n_tr_optional_succeed(trace,many); goto succ_optional_"<< this_many << ";\n";
     out << "fail_optional_" << this_many << ":\n";
     out << "n_tr_optional_fail(trace,many);\n"
         << "succ_optional_" << this_many << ":;\n";
     out << "}";
   }
-  void packrat(const parser &parser, const std::string &fail ){
+  void peg(const parser &parser, const std::string &fail ){
     switch(parser.PR.N_type){
     case INT:
-      packrat(parser.PR.INT,fail);
+      peg(parser.PR.INT,fail);
       break;
     case STRUCT:
       FOREACH(field,parser.PR.STRUCT){
         switch(field->N_type){
         case CONSTANT:
-          packrat(field->CONSTANT,fail);
+          peg(field->CONSTANT,fail);
           break;
         case FIELD:
-          packrat(*field->FIELD.parser,fail);
+          peg(*field->FIELD.parser,fail);
           break;
         case DEPENDENCY:{
           //TODO: Make better
@@ -470,13 +470,13 @@ class CPrimitiveParser{
     case WRAP:
       if(parser.PR.WRAP.constbefore){
         FOREACH(c,*parser.PR.WRAP.constbefore){
-          packrat(*c,fail);
+          peg(*c,fail);
         }
       }
-      packrat(*parser.PR.WRAP.parser,fail);
+      peg(*parser.PR.WRAP.parser,fail);
       if(parser.PR.WRAP.constafter){
         FOREACH(c,*parser.PR.WRAP.constafter){
-          packrat(*c,fail);
+          peg(*c,fail);
         }
       }
       break;
@@ -500,14 +500,14 @@ class CPrimitiveParser{
         peg_choice(l,fail);
       }
     case ARRAY:
-      packrat(parser.PR.ARRAY,fail); 
+      peg(parser.PR.ARRAY,fail); 
       break;
     case FIXEDARRAY:{
       std::string iter = boost::str(boost::format("i%d") % num_iters++);
       
       out << "/*FIXEDARRAY*/ \n"
           << "for(pos "<<iter<<"=0;"<<iter<<"<"<<intconstant_value(parser.PR.FIXEDARRAY.length)<<";"<<iter<<"++){\n";
-      packrat(*parser.PR.FIXEDARRAY.inner,fail);
+      peg(*parser.PR.FIXEDARRAY.inner,fail);
       out << "}\n";
     }
       break;
@@ -518,7 +518,7 @@ class CPrimitiveParser{
           << "pos count= "<< mk_str(parser.PR.LENGTH.length)<<";\n"
           << "pos "<<iter<<"=0;";
       out<< "for( "<<iter<<"=0;"<<iter<<"<count;"<<iter<<"++){";
-      packrat(*parser.PR.LENGTH.parser,fail);
+      peg(*parser.PR.LENGTH.parser,fail);
       out << "}";
       out << "n_tr_write_many(trace,many,count);\n";
       out << "}/*/LENGTH*/";
@@ -529,7 +529,7 @@ class CPrimitiveParser{
       out << "pos backtrack = off;\n"
           << "off = "<< mk_str(parser.PR.OFFSET.offset) << "* 8;\n";
       out << "n_tr_offset(off);\n";
-      packrat(*parser.PR.LENGTH.parser,fail);
+      peg(*parser.PR.LENGTH.parser,fail);
       out << "off = backtrack;\n";
       out << "}\n";
     }
@@ -539,7 +539,7 @@ class CPrimitiveParser{
       //TODO: Do caching here
     case NAME: // Fallthrough intentional, and kludgy
     case REF: 
-      out << "i = peg_" << mk_str(parser.PR.REF)<< "(trace,data,off,max);";
+      out << "i = peg_" << mk_str(parser.PR.REF.name)<< "(trace,data,off,max);";
       out << "if(parser_fail(i)){" << fail << "}\n"
           << "else{off=i;}\n";
       break;
@@ -547,19 +547,19 @@ class CPrimitiveParser{
   }
 public:
   CPrimitiveParser(std::ostream *os) : out(*os), nr_choice(1),nr_many(0),nr_const(0),num_iters(1){}
-  void packrat(const definition &def) {
+  void peg(const definition &def) {
     if(def.N_type == PARSER){
       std::string name = mk_str(def.PARSER.name);
-      out <<"static pos peg_" << name <<"(n_trace *trace, const uint8_t *data, pos off, pos max){\n";
+      out <<"static pos peg_" << name <<"(n_trace *trace, NailStream *str_current){\n";
       out << "pos i;\n"; //Used in name and ref as temp variables
-      packrat(def.PARSER.definition, "goto fail;");
+      peg(def.PARSER.definition, "goto fail;");
       out << "return off;\n"
           << "fail:\n return -1;\n";
       out << "}\n";
     }
     else if(def.N_type == CONST){
       std::string name = mk_str(def.CONST.name);
-      out << "static pos peg_" << name << "(const uint8_t *data, pos off, pos max){\n";
+      out << "static pos peg_" << name << "(NailStream *str_current){\n";
       peg_const(def.CONST.definition, "goto fail;");
       out << "return off;\n"
           << "fail: return -1;\n"
@@ -571,15 +571,15 @@ public:
       //Declaration
       switch(def->N_type){
       case PARSER:
-        out << "static pos peg_" << mk_str(def->PARSER.name) <<"(n_trace *trace, const uint8_t *data, pos off, pos max);\n";
+        out << "static pos peg_" << mk_str(def->PARSER.name) <<"(n_trace *trace,NailStream *str_current);\n";
         break;
       case CONST:
-        out << "static pos peg_" << mk_str(def->CONST.name) <<"(const uint8_t *data, pos off, pos max);\n";
+        out << "static pos peg_" << mk_str(def->CONST.name) <<"(NailStream *str_current);\n";
         break;
       }
     }
     FOREACH(def, gram){
-      packrat(*def);
+      peg(*def);
     }
     out << std::endl;
   }
@@ -767,13 +767,13 @@ public:
     FOREACH(def, grammar){
       if(def->N_type == PARSER){ 
         std::string name= mk_str(def->PARSER.name);
-        out << "static pos bind_"<< name<< "(NailArena *arena," << name <<"*out,const uint8_t *data, pos off, pos **trace,  pos * trace_begin);";
+        out << "static pos bind_"<< name<< "(NailArena *arena," << name <<"*out,NailStream *stream, pos **trace,  pos * trace_begin);";
       }
     }
     FOREACH(def, grammar){
       if(def->N_type == PARSER){
         std::string name= mk_str(def->PARSER.name);
-        out << "static pos bind_"<<name<< "(NailArena *arena," << name <<"*out,const uint8_t *data, pos off, pos **trace ,  pos * trace_begin){\n";
+        out << "static pos bind_"<<name<< "(NailArena *arena," << name <<"*out,NailStream *stream, pos **trace ,  pos * trace_begin){\n";
         out << " pos *tr = *trace;";
         //  out << name << "*ret = malloc(sizeof("<<name<<")); if(!ret) return -1;";
         ValExpr outexpr("out",NULL,1);
@@ -781,15 +781,17 @@ public:
         out << "*trace = tr;";
         out<< "return off;}";
         out << name << "*parse_" << name << "(NailArena *arena, const uint8_t *data, size_t size){\n"
+            << "NailStream stream = {.data = data, .off= 0, .size = size*8};\n"
             <<"n_trace trace;\n"
             <<"pos *tr_ptr;\n pos pos;\n"
             << name <<"* retval;\n"
             << "n_trace_init(&trace,4096,4096);\n"
             << "tr_ptr = trace.trace;"
-            << "if(size*8 != peg_"<<name<<"(&trace,data,0,size*8)) return NULL;"
+            << "if(size*8 != peg_"<<name<<"(&trace,&stream)) return NULL;"
             << "retval = n_malloc(arena,sizeof(*retval));\n"
             <<"if(!retval) return NULL;\n"
-            << "if(bind_"<<name<<"(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;\n"
+            << "stream.off = 0;\n"
+            << "if(bind_"<<name<<"(arena,retval,stream,&tr_ptr,trace.trace) < 0) return NULL;\n"
             << "n_trace_release(&trace);\n"
             <<"return retval;"
             <<"}";
