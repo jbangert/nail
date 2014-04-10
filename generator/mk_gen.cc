@@ -86,9 +86,13 @@ class GenGenerator{
           out << "h_bit_writer_put(out,0,"<< width << ");";
           break;
         }
+        case TRANSFORM:{
+          assert(!"Implemented");
+          //TODO: build an implementation
+        }
         }
       }
-      
+      //TODO: Do a proper way of updating these!
       out << "{/*Context-rewind*/\n HBitWriter end_of_struct= *out;\n";
       FOREACH(field,p.STRUCT){
         if(field->N_type != DEPENDENCY)
@@ -148,10 +152,11 @@ class GenGenerator{
         out << mk_str(p.LENGTH.length) << "=" << count << ";";
       }
       break;
-    case OFFSET:
+    case BIND: 
       {
-        
+        assert(!"Implemented");
       }
+      break;
     case ARRAY:
       {
         ValExpr count("count", &val);
@@ -198,6 +203,7 @@ class GenGenerator{
       break;
     case REF:
       out << "gen_" << mk_str(p.REF) << "(out,"<< val << ");";
+      
       break;
     case NAME:
       out << "gen_"<< mk_str(p.NAME) << "(out,&"<< val << ");";

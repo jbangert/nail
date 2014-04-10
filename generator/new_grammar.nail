@@ -53,11 +53,12 @@ constrainedint = {
                 parser intp
                 constraint optional <t("|")  intconstraint  >  
 }
-transform = {left sepBy t(",") streamidentifier; t("transform"); right many parameter}
+transform = {left sepBy t(",") streamidentifier; t("transform"); transform varidentifier; right many parameter}
 structparser = <t("{"); sepBy SEPERATOR choose{
               CONSTANT = constparser                      
               DEPENDENCY = {name dependencyidentifier; parser constrainedint}    
               FIELD= { name varidentifier;  parser *parser }
+              TRANSFORM  = transform
               } 
          t("}")>
 wrapparser = {t("<"); constbefore optional <sepBy1 SEPERATOR constparser; SEPERATOR>

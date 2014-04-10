@@ -223,7 +223,7 @@ static std::string int_expr(unsigned int width){
   }
   //TODO: x
   // TODO: Make big endian. Flip n bytes
-  return boost::str(boost::format("read_unsigned_bits(data,off,%d)") % width);
+  return boost::str(boost::format("read_unsigned_bits(stream,%d)") % width);
 }
 class CPrimitiveParser{
   std::ostream &out;
@@ -235,8 +235,11 @@ class CPrimitiveParser{
 
   /*Parse pass emits a light-weight trace of data structure*/
   //TODO: Keep track of bit alignment
+  void stream_advance(unsigned int width){
+    out << "stream_advance(str_current,"<<width<<");\n";
+  }
   void check_int(unsigned int width, const std::string &fail){
-    out << "if(off + "<< width <<"> max) {"<<fail<<"}\n";
+    out << "if(!stream_check(str_current,"<<width<<")) {"<<fail<<"}\n";
   }
   void constraint(std::string val,  intconstraint &c){
     switch(c.N_type){
@@ -271,12 +274,12 @@ class CPrimitiveParser{
       out << "){"<<fail<<"}\n";
       out << "}\n";
     }
-    out << "off +="<< width<<";\n";
+    stream_advance(width);
   }
   void peg_constint(int width, const std::string value,const std::string &fail){
     check_int(width,fail);
     out << "if( "<< int_expr(width) << "!= "<<value<<"){"<<fail<<"}";
-    out << "off += " << width << ";\n"; //TODO deal with bits
+    stream_advance(width);
   }
   void peg_const(const constarray &c, const std::string &fail){
     switch(c.value.N_type){
@@ -293,13 +296,10 @@ class CPrimitiveParser{
       }
       break;
     }
-      
     }
-
   }
 
   void peg_const(const constparser &c, const std::string &fail){
-
     switch(c.N_type){
     case CARRAY:
       peg_const(c.CARRAY,fail);
@@ -332,7 +332,7 @@ class CPrimitiveParser{
       break;
     case CUNION:{
       out << "{\n"
-          <<"pos backtrack = off;";
+          <<"backtrack back = stream_memo(str_current);";
       int thischoice = nr_choice++;
       std::string succ_label = boost::str(boost::format("cunion_%d_succ") % thischoice);
       int n_option = 1;
@@ -342,7 +342,7 @@ class CPrimitiveParser{
         peg_const(*option,failopt);
         out << "goto " << succ_label << ";\n";
         out << fallthrough_label << ":\n";
-        out << "off = backtrack;\n";
+        out << "stream_backtrack(str_current,back);\n";
       }
       out << fail << "\n";
       out << succ_label << ":;\n";
@@ -366,7 +366,7 @@ class CPrimitiveParser{
   void peg_choice(const parserlist &list, const std::string &fail){
     int this_choice = nr_choice++;
   
-    out << "{pos backtrack = off;\n"
+    out << "{backtrack back = stream_memo(str_current);\n"
         << "pos choice_begin = n_tr_begin_choice(trace); \n"
         << "pos choice;\n"
         << "if(parser_fail(choice_begin)) {" << fail <<"}\n";
@@ -380,7 +380,7 @@ class CPrimitiveParser{
       out << "n_tr_pick_choice(trace,choice_begin,"<<p.name<<",choice);";
       out << "goto " << success_label<< ";\n";
       out << fallthrough_memo << ":\n";
-      out << "off = backtrack;\n";
+      out << "stream_backtrack(str_current, back);\n";
 
     }
     out << fail << "\n";
@@ -451,19 +451,37 @@ class CPrimitiveParser{
         case FIELD:
           peg(*field->FIELD.parser,fail);
           break;
-        case DEPENDENCY:{
-          //TODO: Make better
-          int width = boost::lexical_cast<int>(mk_str(field->DEPENDENCY.parser.parser.UNSIGNED));
-          check_int(width,fail);
-          out << "long " << mk_str(field->DEPENDENCY.name) << " = " << int_expr(width) << ";\n";
-          if(field->DEPENDENCY.parser.constraint != NULL){
-            out << "if(";
-            constraint(mk_str(field->DEPENDENCY.name), *field->DEPENDENCY.parser.constraint);
-            out << "){"<<fail<<"}\n";
+        case DEPENDENCY:
+          {
+            //TODO: Make better
+            int width = boost::lexical_cast<int>(mk_str(field->DEPENDENCY.parser.parser.UNSIGNED));
+            check_int(width,fail);
+            out << "long dep_" << mk_str(field->DEPENDENCY.name) << " = " << int_expr(width) << ";\n";
+            if(field->DEPENDENCY.parser.constraint != NULL){
+              out << "if(";
+              constraint(mk_str(field->DEPENDENCY.name), *field->DEPENDENCY.parser.constraint);
+              out << "){"<<fail<<"}\n";
             }
-          out << "off +=" << width << ";\n";
+            stream_advance(width);
+          }
+          break;
+          case 
         }
-          
+      case TRANSFORM:
+        {
+          assert(!"Implement");
+          FOREACH(stream, field->TRANSFORM.left){
+            // Allocate a variable for the transform
+          }
+          out << mk_str(field->TRANSFORM.transform) << "_parse(arena";
+          FOREACH(stream, field->TRANSFORM.left){
+            out << ",";
+          }
+         
+          FOREACH(field, field->TRANSFORM.right){
+            out << ",&"; 
+            //Check that they are in scope, pass to the transform
+          }
         }
       }
       break;
