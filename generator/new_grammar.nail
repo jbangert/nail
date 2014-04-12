@@ -53,7 +53,7 @@ constrainedint = {
                 parser intp
                 constraint optional <t("|")  intconstraint  >  
 }
-transform = {left sepBy t(",") streamidentifier; t("transform"); transform varidentifier; right many parameter}
+transform = {left sepBy t(",") streamidentifier; t("transform"); cfunction varidentifier; right many parameter}
 structparser = <t("{"); sepBy SEPERATOR choose{
               CONSTANT = constparser                      
               DEPENDENCY = {name dependencyidentifier; parser constrainedint}    
@@ -81,7 +81,7 @@ parameterlist = < t("("); sepBy1 t(",") parameter; t(")") >
 
 parameterdefinition = choose { 
                     D_STREAM = streamidentifier
-                    D_CONTEXT = {name dependencyidentifier; type constrainedint }
+                    D_DEPENDENCY = {name dependencyidentifier; type constrainedint }
                     }
 parameterdefinitionlist = <t("(") sepBy1 t(",") parameterdefinition t(")")>
 parserinvocation = { name varidentifier; 
@@ -99,7 +99,7 @@ parserinner =  choose {// because we don't do left recursive grammars yet
                 UNION = many1 <t("||") *parser>
                 REF   =  <t("*") parserinvocation >
                 NAME  =  parserinvocation
-                BIND  =  {t("bind"); stream streamidentifier;  inner *parser}
+                APPLY  =  {t("apply"); stream streamidentifier;  inner *parser}
          } 
 parser = choose {PAREN=<t("(") parserinner t(")")>
                  PR= parserinner}

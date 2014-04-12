@@ -152,7 +152,7 @@ class GenGenerator{
         out << mk_str(p.LENGTH.length) << "=" << count << ";";
       }
       break;
-    case BIND: 
+    case APPLY: 
       {
         assert(!"Implemented");
       }
@@ -202,11 +202,12 @@ class GenGenerator{
       }
       break;
     case REF:
-      out << "gen_" << mk_str(p.REF) << "(out,"<< val << ");";
+      //TODO: Each of these needs to deal with parameters
+      out << "gen_" << mk_str(p.REF.name) << "(out,"<< val << ");";
       
       break;
     case NAME:
-      out << "gen_"<< mk_str(p.NAME) << "(out,&"<< val << ");";
+      out << "gen_"<< mk_str(p.NAME.name) << "(out,&"<< val << ");";
       break;
     }
   }
