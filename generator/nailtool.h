@@ -35,8 +35,12 @@ bool parameter_type_check(parameterlist *param, parameterdefinitionlist *def);
 
 #define mk_str(x) std::string((const char *)(x).elem,(x).count)
 
+struct Dependency{
+  std::string name;
+  std::string typedef_type;
+};
 class Scope{ 
-  std::map<std::string,std::string> dependencies;
+  std::map<std::string,Dependency> dependencies;
   std::map<std::string,std::string> streams;
   Scope *parent;
 
@@ -47,8 +51,11 @@ public:
       throw new std::string("Duplicate stream "+value);
     }
   }
-  void add_dependency_parameter(std::string value){
-    if(!dependencies.emplace(value, std::string("dep_")+value).second){
+  void add_dependency_parameter(std::string value, std::string type){
+    Dependency dep;
+    dep.name = std::string("dep_")+value;
+    dep.typedef_type = type;
+    if(!dependencies.emplace(value,dep).second){
       throw new std::string("Duplicate dependency "+value);
     }
   }
@@ -57,12 +64,24 @@ public:
       throw new std::string("Duplicate dependency "+value);
     }
   }
-  void add_dependency_definition(std::string value){
-    if(!dependencies.emplace(value,std::string("&def_")+ value).second){
+  void add_dependency_definition(std::string value,std::string type){
+    Dependency dep;
+    dep.name = std::string("&dep_")+value;
+    dep.typedef_type = type;
+    if(!dependencies.emplace(value,dep).second){
       throw new std::string("Duplicate dependency "+value);
     }
   }
-
+  std::string dependency_type(std::string name){
+    auto i = dependencies.find(name);
+    if(i==dependencies.end()){
+      if(!parent)
+        throw std::string("Undefined reference to ") +  name;
+      else
+        return parent->dependency_type(name);
+    }
+    return i->second.typedef_type;                
+  }
     std::string dependency_ptr(std::string name){
     auto i = dependencies.find(name);
     if(i==dependencies.end()){
@@ -71,7 +90,7 @@ public:
       else
         return parent->dependency_ptr(name);
     }
-    return i->second;                
+    return i->second.name;                
   }
   std::string stream_ptr(std::string name){
     auto i = streams.find(name);
