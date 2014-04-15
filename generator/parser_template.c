@@ -150,8 +150,8 @@ void *n_malloc(NailArena *arena, size_t size)
                         siz = size + sizeof(NailArenaPool);
                 NailArenaPool *newpool  = (NailArenaPool *)malloc(siz);
                 if(!newpool) return NULL;
-                newpool->end = (void *)((char *)newpool + siz);
-                newpool->iter = (void*)(newpool+1);
+                newpool->end = (char *)((char *)newpool + siz);
+                newpool->iter = (char*)(newpool+1);
                 newpool->next = arena->current;
                 arena->current= newpool;
         }
@@ -167,7 +167,7 @@ int NailArena_init(NailArena *arena, size_t blocksize){
         arena->current = (NailArenaPool*)malloc(blocksize);
         if(!arena->current) return 0;
         arena->current->next = NULL;
-        arena->current->iter = arena->current + 1;
+        arena->current->iter = (char *)(arena->current + 1);
         arena->current->end = (char *) arena->current + blocksize;
         arena->blocksize = blocksize;
         return 1;
