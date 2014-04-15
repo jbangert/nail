@@ -366,7 +366,11 @@ class CPrimitiveParser{
   struct namedparser{
     const parser *p;
     std::string name;
-    namedparser(std::string _name, const parser *_p): p(_p), name(_name){}
+    std::string tag;
+    namedparser(std::string _name, const parser *_p): p(_p), name(_name){
+      tag = name;
+      boost::algorithm::to_lower(tag);
+    }
   };
   typedef  std::list<namedparser> parserlist;
   void packrat_choice(const parserlist &list, const std::string &fail){
@@ -383,7 +387,7 @@ class CPrimitiveParser{
       std::string fallthrough_goto = boost::str(boost::format("goto %s;") % fallthrough_memo);
       out << "choice = n_tr_memo_choice(trace);\n";
       packrat(*p.p,fallthrough_goto);
-      out << "n_tr_pick_choice(trace,choice_begin,"<<p.name<<",choice);";
+      out << "n_tr_pick_choice(trace,choice_begin,"<<p.tag<<",choice);";
       out << "goto " << success_label<< ";\n";
       out << fallthrough_memo << ":\n";
       out << "off = backtrack;\n";
@@ -644,12 +648,13 @@ class CAction{
 #ifdef DEBUG_OUT
         out << "fprintf(stderr,\"%d = choice %d %d\\n\",tr-trace_begin, tr[0], tr[1]);";
 #endif
-
         out << "switch(*(tr++)){\n";
         FOREACH(c, p.CHOICE){
-          out << "case " << mk_str(c->tag) << ":\n";
+          std::string enum_tag = mk_str(c->tag);
+          boost::algorithm::to_lower(enum_tag);
+          out << "case " << enum_tag << ":\n";
           out << "tr = trace_begin + *tr;\n";
-          out << ValExpr("N_type", &lval) << "= "<< mk_str(c->tag) <<";\n";
+          out << ValExpr("N_type", &lval) << "= "<< enum_tag <<";\n";
           ValExpr expr(mk_str(c->tag),&lval);
           action(c->parser->PR, expr );
           out << "break;\n";

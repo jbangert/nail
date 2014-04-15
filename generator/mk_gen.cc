@@ -1,6 +1,7 @@
 #include "nailtool.h"
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 
 #define p_arg(x) x.count,(const char*)x.elem
 
@@ -121,7 +122,9 @@ class GenGenerator{
         out << "switch("<< ValExpr("N_type",&val)<<"){\n";
         FOREACH(c, p.CHOICE){
           std::string tag = mk_str(c->tag);
-          out << "case " << tag << ":\n";
+          std::string enum_tag = tag;
+          boost::algorithm::to_lower(enum_tag);
+          out << "case " << enum_tag << ":\n";
           ValExpr expr(tag,&val);
           generator(c->parser->PR, expr );
           out << "break;\n";
