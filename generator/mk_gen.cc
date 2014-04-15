@@ -23,15 +23,15 @@ class GenGenerator{
   }
   void generator(constarray &c){ 
     switch(c.value.N_type){
-    case STRING:
-      assert(mk_str(c.parser.UNSIGNED) == "8");
-      FOREACH(ch, c.value.STRING){
+    case arrayvalue::STRING:
+      assert(mk_str(c.parser.unsign) == "8");
+      FOREACH(ch, c.value.string){
         constint(8,(boost::format("'%c'") % ch).str());
       }
       break;
-    case VALUES:{
-      int width = boost::lexical_cast<int>(mk_str(c.parser.UNSIGNED));
-      FOREACH(v,c.value.VALUES){
+    case arrayvalue::VALUES:{
+      int width = boost::lexical_cast<int>(mk_str(c.parser.unsign));
+      FOREACH(v,c.value.values){
         constint(width, intconstant_value(*v));
       }
       break;
@@ -40,50 +40,50 @@ class GenGenerator{
   }
   void generator(constparser &p){
     switch(p.N_type){
-    case CARRAY:
-      generator(p.CARRAY); break;
-    case CREPEAT:
-      generator(*p.CREPEAT); break; //Emit just one of the elements
-    case CINT: {
-      int width = boost::lexical_cast<int>(mk_str(p.CINT.parser.UNSIGNED));
-      constint(width, intconstant_value(p.CINT.value));
+    case constparser::CARRAY:
+      generator(p.carray); break;
+    case constparser::CREPEAT:
+      generator(*p.crepeat); break; //Emit just one of the elements
+    case constparser::CINT: {
+      int width = boost::lexical_cast<int>(mk_str(p.cint.parser.unsign));
+      constint(width, intconstant_value(p.cint.value));
     }
       break;
-    case CREF:
-      out << "gen_"<< mk_str(p.CREF)<<"(out);";break;
-    case CSTRUCT:
-      FOREACH(field,p.CSTRUCT){
+    case constparser::CREF:
+      out << "gen_"<< mk_str(p.cref)<<"(out);";break;
+    case constparser::CSTRUCT:
+      FOREACH(field,p.cstruct){
         generator(*field);
       }
       break;
-    case CUNION:
-      generator(p.CUNION.elem[0]);
+    case constparser::CUNION:
+      generator(p.cunion.elem[0]);
       break;
     }
   }
   void generator(parserinner &p,Expr &val){
     switch(p.N_type){
-    case INT:{
-      int width = boost::lexical_cast<int>(mk_str(p.INT.parser.UNSIGNED));
+    case parserinner::INTEGER:{
+      int width = boost::lexical_cast<int>(mk_str(p.integer.parser.unsign));
       out << "h_bit_writer_put(out,"<<val<<","<< width << ");";
       break;
     }
-    case STRUCT:
-      FOREACH(field, p.STRUCT){
+    case parserinner::STRUCTURE:
+      FOREACH(field, p.structure){
         switch(field->N_type){
-        case CONSTANT:
-          generator(field->CONSTANT);
+        case structparser::CONSTANT:
+          generator(field->constant);
           break;
-        case FIELD:{
-          ValExpr fieldname(mk_str(field->FIELD.name),&val);
-          generator(field->FIELD.parser->PR,fieldname);
+        case structparser::FIELD:{
+          ValExpr fieldname(mk_str(field->field.name),&val);
+          generator(field->field.parser->pr,fieldname);
           break;
         }
-        case DEPENDENCY:{
+        case structparser::DEPENDENCY:{
           out << "//XXX: No dependencies in generator yet\n";
           break;
         }
-        case TRANSFORM:{ 
+        case structparser::TRANSFORM:{ 
           out  << "//XXX: No transform in generator yet\n";
           //TODO: build an implementation
         }
@@ -91,57 +91,57 @@ class GenGenerator{
       }
       //TODO: Do a proper way of updating these!
       out << "{/*Context-rewind*/\n HBitWriter end_of_struct= *out;\n";
-      FOREACH(field,p.STRUCT){
-        if(field->N_type != DEPENDENCY)
+      FOREACH(field,p.structure){
+        if(field->N_type != structparser::DEPENDENCY)
           continue;
         out<< "NO dependencies in generator yet!\n";
       }
       out << "out->index = end_of_struct.index;\n";
       out << "out->bit_offset = end_of_struct.bit_offset;\n}";
       break;
-    case WRAP:
-      if(p.WRAP.constbefore){
-        FOREACH(c,*p.WRAP.constbefore){
+    case parserinner::WRAP:
+      if(p.Wrap.constbefore){
+        FOREACH(c,*p.wrap.constbefore){
           generator(*c);
         }
       }
-      generator(p.WRAP.parser->PR,val);
-      if(p.WRAP.constafter){
-        FOREACH(c,*p.WRAP.constafter){
+      generator(p.wrap.parser->pr,val);
+      if(p.wrap.constafter){
+        FOREACH(c,*p.wrap.constafter){
           generator(*c);
         }
       }      
       break;
 
-    case CHOICE:
+    case parserinner::CHOICE:
       {
         out << "switch("<< ValExpr("N_type",&val)<<"){\n";
-        FOREACH(c, p.CHOICE){
+        FOREACH(c, p.choice){
           std::string tag = mk_str(c->tag);
           out << "case " << tag << ":\n";
           ValExpr expr(tag,&val);
-          generator(c->parser->PR, expr );
+          generator(c->parser->pr, expr );
           out << "break;\n";
         }
         out << "}";
       }      
       break;
-    case UNION:
+    case parserinner::NUNION:
       {
         //What to do with UNION? Is union a bijection - 
         // Parentheses or the like might be NECESSARY for bijection. For now, fail?
         fprintf(stderr,"Warning, UNION is dangerous\n");
-        generator(p.UNION.elem[0]->PR,val);
+        generator(p.nunion.elem[0]->PR,val);
       }
       break;
-    case LENGTH:
+    case parserinner::LENGTH:
       {
         ValExpr count("count", &val);
         ValExpr data("elem", &val);
         ValExpr iter(boost::str(boost::format("i%d") % num_iters++));
         ArrayElemExpr elem(&data,&iter);
         out << "for(int "<< iter<<"=0;"<<iter << "<" << count << ";" << iter << "++){";
-        generator(p.LENGTH.parser->PR,elem);
+        generator(p.length.parser->pr,elem);
         out<< "}";
         out << mk_str(p.LENGTH.length) << "=" << count << ";";
       }
@@ -161,19 +161,19 @@ class GenGenerator{
         out << "for(int "<< iter<<"=0;"<<iter << "<" << count << ";" << iter << "++){";
         switch(p.ARRAY.N_type){
         case MANYONE:
-          generator(p.ARRAY.MANYONE->PR,elem);break;
+          generator(p.ARRAY.MANYONE->pr,elem);break;
         case MANY:
-          generator(p.ARRAY.MANY->PR,elem);break;
+          generator(p.ARRAY.MANY->pr,elem);break;
         case SEPBY:
           out << "if("<<iter<<"!= 0){";
           generator(p.ARRAY.SEPBY.separator);
           out << "}";
-          generator(p.ARRAY.SEPBY.inner->PR,elem);break;
+          generator(p.ARRAY.SEPBY.inner->pr,elem);break;
         case SEPBYONE:
           out << "if("<<iter<<"!= 0){";
           generator(p.ARRAY.SEPBYONE.separator);
           out << "}";
-          generator(p.ARRAY.SEPBYONE.inner->PR,elem);break;
+          generator(p.ARRAY.SEPBYONE.inner->pr,elem);break;
 
         }
         out << "}";
@@ -183,7 +183,7 @@ class GenGenerator{
       ValExpr iter(boost::str(boost::format("i%d") % num_iters++)); 
       ArrayElemExpr elem(&val,&iter);
       out << "for(int "<< iter<<"=0;"<<iter << "<" << intconstant_value(p.FIXEDARRAY.length) << ";" << iter << "++){";
-      generator(p.FIXEDARRAY.inner->PR, elem);
+      generator(p.FIXEDARRAY.inner->pr, elem);
       out << "}\n";
     }
       break; 
@@ -191,7 +191,7 @@ class GenGenerator{
       {
         out << "if(NULL!="<<val << "){";
         DerefExpr opt(val);
-        generator(p.OPTIONAL->PR,opt);
+        generator(p.OPTIONAL->pr,opt);
         out << "}";
       }
       break;

@@ -22,9 +22,9 @@ intconstant = <WHITE;  choose {
             }>
 
 intp = choose{
-          UNSIGNED = < t("uint")
+          UNSIGN = < t("uint")
                       many1 digit>
-          SIGNED =   < t("int")
+          SIGN =   < t("int")
                       many1 uint8 | '0' .. '9'>
 }  
 constint = { parser intp
@@ -92,15 +92,15 @@ parserinvocation = { name varidentifier;
                      parameters optional parameterlist  }
 
 parserinner =  choose {// because we don't do left recursive grammars yet
-                INT= constrainedint
-                STRUCT= structparser
+                INTEGER= constrainedint
+                STRUCTURE= structparser
                 WRAP = wrapparser
                 CHOICE= choiceparser
                 ARRAY = arrayparser
                 FIXEDARRAY = { t("["); length intconstant; t("]"); inner *parser}
                 LENGTH = <t("n_of") { length dependencyidentifier; parser *parser}>
                 OPTIONAL= <t("optional ") *parser>
-                UNION = many1 <t("||") *parser>
+                NUNION = many1 <t("||") *parser>
                 REF   =  <t("*") parserinvocation >
                 NAME  =  parserinvocation
                 APPLY  =  {t("apply"); stream streamidentifier;  inner *parser}
@@ -112,7 +112,7 @@ definition = choose {
                      parameters optional parameterdefinitionlist 
                     t("=")
                     definition parser }
-           CONST = {
+           CONSTANT = {
                  name constidentifier 
                  WHITE
                  uint8 = '='

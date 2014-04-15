@@ -197,7 +197,7 @@ public:
   void action (const parserinner &p, Expr &lval){
     switch(p.N_type){
     case INT:{
-      int width = boost::lexical_cast<int>(mk_str(p.INT.parser.UNSIGNED));
+      int width = boost::lexical_cast<int>(mk_str(p.INT.parser.UNSIGN));
       out << lval << "=" << int_expr(width) << ";\n";
       out<< "off += " << width<<";\n";
     }
@@ -475,7 +475,7 @@ class CPrimitiveParser{
   }
   
   void peg(const constrainedint &c, const std::string &fail){
-    int width = boost::lexical_cast<int>(mk_str(c.parser.UNSIGNED));
+    int width = boost::lexical_cast<int>(mk_str(c.parser.UNSIGN));
     check_int(width,fail);
     if(c.constraint != NULL){
       out << "{\n uint64_t val = "<< int_expr(width) << ";\n";
@@ -494,13 +494,13 @@ class CPrimitiveParser{
   void peg_const(const constarray &c, const std::string &fail){
     switch(c.value.N_type){
     case STRING:
-      assert(mk_str(c.parser.UNSIGNED) == "8");
+      assert(mk_str(c.parser.UNSIGN) == "8");
       FOREACH(ch, c.value.STRING){
         peg_constint(8,(boost::format("'%c'") % ch).str(),fail);
       }
       break;
     case VALUES:{
-      int width = boost::lexical_cast<int>(mk_str(c.parser.UNSIGNED));
+      int width = boost::lexical_cast<int>(mk_str(c.parser.UNSIGN));
       FOREACH(v,c.value.VALUES){
         peg_constint(width, intconstant_value(*v),fail);
       }
@@ -524,7 +524,7 @@ class CPrimitiveParser{
       break;
     }
     case CINT:{
-      int width = boost::lexical_cast<int>(mk_str(c.CINT.parser.UNSIGNED));
+      int width = boost::lexical_cast<int>(mk_str(c.CINT.parser.UNSIGN));
       peg_constint(width,intconstant_value(c.CINT.value),fail);
     }
       break;
@@ -669,7 +669,7 @@ class CPrimitiveParser{
             std::string depfail = (boost::format("goto faildep_%d;") % this_dep).str();
             std::string type_suffix;
             std::string type = typedef_type(*field->DEPENDENCY.parser,"", &type_suffix);
-            //            int width = boost::lexical_cast<int>(mk_str(field->DEPENDENCY.parser.parser.UNSIGNED));
+            //            int width = boost::lexical_cast<int>(mk_str(field->DEPENDENCY.parser.parser.UNSIGN));
             std::string name(mk_str(field->DEPENDENCY.name));
             out << "pos trace_" << name << " = n_trace_getpos(trace);\n";
             assert(type_suffix == "");
