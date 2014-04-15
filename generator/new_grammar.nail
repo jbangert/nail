@@ -78,14 +78,14 @@ arrayparser =   choose{
                 SEPBY= { t("sepBy") ; separator constparser; inner *parser}
                 }
 parameter = choose { 
-                            P_DEPENDENCY = dependencyidentifier
-                            P_STREAM  = streamidentifier
+                            PDEPENDENCY = dependencyidentifier
+                            PSTREAM  = streamidentifier
                       }
 parameterlist = < t("("); sepBy1 t(",") parameter; t(")") > 
 
 parameterdefinition = choose { 
-                    D_STREAM = streamidentifier
-                    D_DEPENDENCY = {name dependencyidentifier; type * parser }
+                    DSTREAM = streamidentifier
+                    DDEPENDENCY = {name dependencyidentifier; type * parser }
                     }
 parameterdefinitionlist = <t("(") sepBy1 t(",") parameterdefinition t(")")>
 parserinvocation = { name varidentifier; 

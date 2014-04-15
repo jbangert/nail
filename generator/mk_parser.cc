@@ -700,17 +700,17 @@ class CPrimitiveParser{
             header << "extern int " << mk_str(field->TRANSFORM.cfunction) << "_parse(NailArena *tmp,";
             FOREACH(param, field->TRANSFORM.right){
               switch(param->N_type){
-              case P_DEPENDENCY:{
-                std::string name (mk_str(param->P_DEPENDENCY));
+              case PDEPENDENCY:{
+                std::string name (mk_str(param->PDEPENDENCY));
                 //                if(newscope.dependency_type(name))
                 //we need to emit a type for this function!
                 body << "," << newscope.dependency_ptr(name); 
                 header << "," << newscope.dependency_type(name) << "* " << name;
               }
                 break;
-              case P_STREAM:
-                body << "," <<  newscope.stream_ptr(mk_str(param->P_STREAM));  
-                header << ",NailStream *" << mk_str(param->P_STREAM);
+              case PSTREAM:
+                body << "," <<  newscope.stream_ptr(mk_str(param->PSTREAM));  
+                header << ",NailStream *" << mk_str(param->PSTREAM);
                 break;
               }
             }
@@ -820,6 +820,7 @@ public:
     if(def.N_type == PARSER){
       Scope scope;
       std::string name = mk_str(def.PARSER.name);
+      //TODO: Parameters
       out <<"static pos peg_" << name <<"(n_trace *trace, NailStream *str_current){\n";
       out << "pos i;\n"; //Used in name and ref as temp variables
       peg(def.PARSER.definition, "goto fail;",scope);
