@@ -69,5 +69,8 @@ std::string typedef_type(const parser &p, std::string name, std::string *post){
       return (boost::format("struct %s") % name).str();
     case APPLY:
       return typedef_type(*inner.apply.inner,name, post);
+    default:
+      assert(0);
+      return 0;
     }
   }

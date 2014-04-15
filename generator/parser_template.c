@@ -8,9 +8,11 @@ typedef struct{
         pos *trace;
         pos capacity,iter,grow;
 } n_trace; 
-uint64_t read_unsigned_bits(const uint8_t *data, pos pos, unsigned count){ 
+static uint64_t read_unsigned_bits(const NailStream *stream, unsigned count){ 
         uint64_t retval = 0;
         unsigned int out_idx=count;
+        size_t pos = stream->pos;
+        const uint8_t *data = stream->data;
         //TODO: Implement little endian too
         //Count LSB to MSB
         while(count>0) {
@@ -31,6 +33,23 @@ uint64_t read_unsigned_bits(const uint8_t *data, pos pos, unsigned count){
         }
     return retval;
 }
+static int stream_check(const NailStream *stream, unsigned count){
+        return stream->size - count >= stream->pos;
+}
+static int stream_advance(NailStream *stream, unsigned count){
+        stream->pos += count;
+        return 0;
+}
+static int stream_reposition(NailStream *stream, NailStreamPos p)
+{
+        assert(p <= stream->size);
+        stream->pos = p;
+        return 0;
+}
+static NailStreamPos   stream_getpos(NailStream *stream){
+        return stream->pos;
+}
+
 #define BITSLICE(x, off, len) read_unsigned_bits(x,off,len)
 /* trace is a minimalistic representation of the AST. Many parsers add a count, choice parsers add
  * two pos parameters (which choice was taken and where in the trace it begins)
@@ -128,9 +147,10 @@ static void n_tr_pick_choice(n_trace *trace, pos where, pos which_choice, pos  c
         trace->trace[where + 1] = choice_begin;
         fprintf(stderr,"%d = pick %d %d\n",where, which_choice,choice_begin);
 }
-static int n_tr_const(n_trace *trace,pos newoff){
+static int n_tr_const(n_trace *trace,NailStream *stream){
         if(n_trace_grow(trace,1))
-                        return -1;
+                return -1;
+        NailStreamPos newoff = stream_getpos(stream);
         fprintf(stderr,"%d = const %d \n",trace->iter, newoff);        
         trace->trace[trace->iter++] = newoff;
         return 0;
@@ -179,6 +199,7 @@ int NailArena_release(NailArena *arena){
                 free(p);
         }
         arena->blocksize = 0;
+        return 0;
 }
 //Returns the pointer where the taken choice is supposed to go.
 
