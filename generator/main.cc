@@ -23,12 +23,14 @@ int main(int argc, char**argv)
     struct grammar *result;
     std::string filename; 
     std::string header_filename;
+    NailArena arena;
     inputsize = fread(input, 1, sizeof(input), infile(argc,argv));
     //fprintf(stderr, "inputsize=%zu\ninput=", inputsize);
     //fwrite(input, 1, inputsize, stderr);  
     // print_parser_invocation(parse_parser_invocation(input,inputsize),stdout,0);
     // exit(0);
-     result =  parse_grammar(input,inputsize);
+    NailArena_init(&arena, 4096);
+    result =  parse_grammar(&arena,input,inputsize);
     //    result = parse_grammar(input,inputsize);
     //    if(result)
     //      print_grammar(result, stderr,0);    exit(1);

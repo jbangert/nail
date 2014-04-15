@@ -171,6 +171,8 @@ std::string intconstant_value(const intconstant &val){
     return std::string("0x") + mk_str(val.hex);
   case NUMBER:
     return mk_str(val.number);
+  default:
+    assert(!"Foo");
   }
 }
 
@@ -831,7 +833,7 @@ public:
     else if(def.N_type == CONSTANTDEF){
       std::string name = mk_str(def.constantdef.name);
       out << "static pos peg_" << name << "(NailStream *str_current){\n";
-      peg_const(def.constdef.definition, "goto fail;");
+      peg_const(def.constantdef.definition, "goto fail;");
       out << "return off;\n"
           << "fail: return -1;\n"
           << "}";
