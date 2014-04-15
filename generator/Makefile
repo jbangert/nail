@@ -13,7 +13,7 @@ new_grammar.nail.c new_grammar.nail.h: new_grammar.nail
 parser_template.o: parser_template.c 
 	ld -r -o $@ --format=binary $<
 
-nail: main.cc mk_parser.cc mk_gen.cc grammar.c new_grammar.nail.c
+nail: main.cc mk_parser.cc mk_gen.cc util.cc new_grammar.nail.c parser_template.o
 	clang++ $(CXXFLAGS) -o $@ $^
 
 

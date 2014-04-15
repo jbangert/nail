@@ -1,6 +1,6 @@
-extern "C" {
+
 #include "new_grammar.nail.h"
-}
+
 /* #include <nail/macros.h>
 #define N_SEPBY1 N_SEPBY
 #define false 0
