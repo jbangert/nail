@@ -424,10 +424,37 @@ class CPrimitiveParser{
   void check_int(unsigned int width, const std::string &fail){
     out << "if(!stream_check(str_current,"<<width<<")) {"<<fail<<"}\n";
   }
+  //Negative of a constraint. 
+  void constraint(std::string val, constraintelem &e){
+    switch(e.N_type){
+    case VALUE:
+      out << val << "!="<< intconstant_value(e.VALUE);
+      break;
+    case RANGE:
+      out << "(";
+      if(e.RANGE.max){
+        out << val << ">" << intconstant_value(*e.RANGE.max);
+      }
+      else {
+        out << "0";
+      }
+      out << "||";
+      if(e.RANGE.min){
+        out << val << "<" << intconstant_value(*e.RANGE.min);
+      }
+      else {
+        out << "0";
+      }
+      out << ")";
+      break;
+    default:
+      assert("!foo");
+    }
+  }
   void constraint(std::string val,  intconstraint &c){
     switch(c.N_type){
-    case RANGE:
-      out <<val<< ">"<<intconstant_value(*c.RANGE.max) << "|| "<< val <<" < "<<intconstant_value(*c.RANGE.min);
+    case SINGLE:
+      constraint(val,c.SINGLE);
       break;
     case SET:
       {
@@ -435,7 +462,7 @@ class CPrimitiveParser{
         FOREACH(allowed,c.SET){
           if(first++ != 0)
             out << " && ";
-          out << val << " != "<<intconstant_value(*allowed);
+          constraint(val,*allowed);
         }
       }
       break;

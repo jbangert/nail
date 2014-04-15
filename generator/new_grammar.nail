@@ -44,9 +44,13 @@ constparser = choose{
             CSTRUCT =          < t("{"); constfields ;t("}")>
             CUNION = many1 <t("||") constparser>
 }         
-intconstraint  = choose {
+constraintelem = choose {
+               VALUE = intconstant
                RANGE = { min optional intconstant; t(".."); max optional intconstant}
-               SET = < t("[");  sepBy1 uint8 = ','  intconstant ; t("]") >
+}
+intconstraint  = choose {
+               SINGLE = constraintelem
+               SET = < t("[");  sepBy1 uint8 = ','  constraintelem ; t("]") >
                NEGATE = < t("!") *intconstraint>
                }
 constrainedint = {
