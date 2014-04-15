@@ -45,8 +45,8 @@ constparser = choose{
             CUNION = many1 <t("||") constparser>
 }         
 constraintelem = choose {
-               VALUE = intconstant
                RANGE = { min optional intconstant; t(".."); max optional intconstant}
+               VALUE = intconstant
 }
 intconstraint  = choose {
                SINGLE = constraintelem
