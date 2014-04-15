@@ -123,7 +123,7 @@ class GenGenerator{
         FOREACH(c, p.CHOICE){
           std::string tag = mk_str(c->tag);
           std::string enum_tag = tag;
-          boost::algorithm::to_lower(enum_tag);
+          boost::algorithm::to_lower(tag);
           out << "case " << enum_tag << ":\n";
           ValExpr expr(tag,&val);
           generator(c->parser->PR, expr );

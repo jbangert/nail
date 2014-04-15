@@ -90,14 +90,15 @@ class CDataModel{
         std::string tag = mk_str(option->tag);
         if(idx++ >0) 
           out << ',';
-        boost::algorithm::to_lower(tag);
         out << tag;
       }
       out << "} N_type; \n";
       out << "union {\n";
       FOREACH(option, p.CHOICE){
+        std::string tag = mk_str(option->tag);
+        boost::algorithm::to_lower(tag);
         emit_type(*option->parser);
-        out << " "<<  mk_str(option->tag) << ";\n";
+        out << " "<< tag << ";\n";
       }
       out<< "};\n}";
     }
@@ -366,10 +367,7 @@ class CPrimitiveParser{
   struct namedparser{
     const parser *p;
     std::string name;
-    std::string tag;
     namedparser(std::string _name, const parser *_p): p(_p), name(_name){
-      tag = name;
-      boost::algorithm::to_lower(tag);
     }
   };
   typedef  std::list<namedparser> parserlist;
@@ -387,7 +385,7 @@ class CPrimitiveParser{
       std::string fallthrough_goto = boost::str(boost::format("goto %s;") % fallthrough_memo);
       out << "choice = n_tr_memo_choice(trace);\n";
       packrat(*p.p,fallthrough_goto);
-      out << "n_tr_pick_choice(trace,choice_begin,"<<p.tag<<",choice);";
+      out << "n_tr_pick_choice(trace,choice_begin,"<<p.name<<",choice);";
       out << "goto " << success_label<< ";\n";
       out << fallthrough_memo << ":\n";
       out << "off = backtrack;\n";
@@ -650,12 +648,13 @@ class CAction{
 #endif
         out << "switch(*(tr++)){\n";
         FOREACH(c, p.CHOICE){
-          std::string enum_tag = mk_str(c->tag);
-          boost::algorithm::to_lower(enum_tag);
+          std::string struct_tag = mk_str(c->tag);
+          std::string enum_tag = struct_tag;
+          boost::algorithm::to_lower(struct_tag);
           out << "case " << enum_tag << ":\n";
           out << "tr = trace_begin + *tr;\n";
           out << ValExpr("N_type", &lval) << "= "<< enum_tag <<";\n";
-          ValExpr expr(mk_str(c->tag),&lval);
+          ValExpr expr(struct_tag,&lval);
           action(c->parser->PR, expr );
           out << "break;\n";
         }
