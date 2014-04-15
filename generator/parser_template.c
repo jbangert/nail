@@ -51,7 +51,7 @@ static int  n_trace_init(n_trace *out,pos size,pos grow){
         if(size <= 1){
                 return 0;
         }
-        out->trace = malloc(size * sizeof(pos));
+        out->trace = (pos *)malloc(size * sizeof(pos));
         if(!out){
                 return 0;
         }
@@ -75,7 +75,7 @@ static int n_trace_grow(n_trace *out, int space){
                 return 0;
         }
 
-        pos * new_ptr= realloc(out->trace, out->capacity + out->grow);
+        pos * new_ptr= (pos *)realloc(out->trace, out->capacity + out->grow);
         if(!new_ptr){
                 return 1;
         }
@@ -137,7 +137,7 @@ static int n_tr_const(n_trace *trace,pos newoff){
 }
 #define n_tr_offset n_tr_const
 typedef struct NailArenaPool{
-        void *iter;void *end;
+        char *iter;char *end;
         struct NailArenaPool *next;
 } NailArenaPool;
 
@@ -148,14 +148,14 @@ void *n_malloc(NailArena *arena, size_t size)
                 size_t siz = arena->blocksize;
                 if(size>siz)
                         siz = size + sizeof(NailArenaPool);
-                NailArenaPool *newpool  = malloc(siz);
+                NailArenaPool *newpool  = (NailArenaPool *)malloc(siz);
                 if(!newpool) return NULL;
-                newpool->end = (void *)((char *)newpool + siz);
-                newpool->iter = (void*)(newpool+1);
+                newpool->end = (char *)((char *)newpool + siz);
+                newpool->iter = (char*)(newpool+1);
                 newpool->next = arena->current;
                 arena->current= newpool;
         }
-        retval = arena->current->iter;
+        retval = (void *)arena->current->iter;
         arena->current->iter += size;
         memset(retval,0,size);
         return retval;
@@ -164,10 +164,10 @@ void *n_malloc(NailArena *arena, size_t size)
 int NailArena_init(NailArena *arena, size_t blocksize){
         if(blocksize< 2*sizeof(NailArena))
                 blocksize = 2*sizeof(NailArena);
-        arena->current = malloc(blocksize);
+        arena->current = (NailArenaPool*)malloc(blocksize);
         if(!arena->current) return 0;
         arena->current->next = NULL;
-        arena->current->iter = arena->current + 1;
+        arena->current->iter = (char *)(arena->current + 1);
         arena->current->end = (char *) arena->current + blocksize;
         arena->blocksize = blocksize;
         return 1;

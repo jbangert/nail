@@ -1,12 +1,241 @@
 #include "nailtool.h"
-
+#include <boost/format.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/foreach.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <list>
 #define MAP(f,collection) FOREACH(iter,collection){ f(*iter);}
 #define DEBUG_OUT
+class CAction{
+  std::ostream &out;
+  int num_iters;
+  void action_constparser(){
+#ifdef DEBUG_OUT
+    out << "fprintf(stderr,\"%d = const %d\\n\",tr-trace_begin, *tr);\n";
+#endif
+    out << "off  = *tr;\n"
+        << "tr++;\n";
+  }
+  void action (const parserinner &p, Expr &lval){
+    switch(p.N_type){
+    case INT:{
+      int width = boost::lexical_cast<int>(mk_str(p.INT.parser.UNSIGNED));
+      out << lval << "=" << int_expr(width) << ";\n";
+      out<< "off += " << width<<";\n";
+    }
+      break;
+    case STRUCT:
+      FOREACH(field, p.STRUCT){
+        switch(field->N_type){
+        case CONSTANT:
+          action_constparser();
+          break;
+        case FIELD:{
+          ValExpr fieldname(mk_str(field->FIELD.name),&lval);
+          action(field->FIELD.parser->PR,fieldname);
+          break;
+        }
+        case CONTEXT:{
+          int width = boost::lexical_cast<int>(mk_str(field->CONTEXT.parser.parser.UNSIGNED));
+          out << "off+=" << width<<";";
+        }
+        }
+      }
+      break;
+    case WRAP:
+      if(p.WRAP.constbefore){
+        FOREACH(c,*p.WRAP.constbefore){
+          action_constparser();
+        }
+      }
+      action(p.WRAP.parser->PR,lval);
+      if(p.WRAP.constafter){
+        FOREACH(c,*p.WRAP.constafter){
+          action_constparser();
+        }
+      }      
+      break;
+    case CHOICE:
+      {
+#ifdef DEBUG_OUT
+        out << "fprintf(stderr,\"%d = choice %d %d\\n\",tr-trace_begin, tr[0], tr[1]);";
+#endif
+        out << "switch(*(tr++)){\n";
+        FOREACH(c, p.CHOICE){
+          std::string struct_tag = mk_str(c->tag);
+          std::string enum_tag = struct_tag;
+          boost::algorithm::to_lower(struct_tag);
+          out << "case " << enum_tag << ":\n";
+          out << "tr = trace_begin + *tr;\n";
+          out << ValExpr("N_type", &lval) << "= "<< enum_tag <<";\n";
+          ValExpr expr(struct_tag,&lval);
+          action(c->parser->PR, expr );
+          out << "break;\n";
+        }
+        out << "default: assert(\"BUG\");";
+        out << "}";
+      }      
+      break;
+    case UNION:
+      {
+#ifdef DEBUG_OUT
+        out << "fprintf(stderr,\"%d = choice %d %d\\n\",tr-trace_begin, tr[0], tr[1]);\n";
+#endif
+        int nr_option = 1;
+        out << "switch(*(tr++)){\n";
+        FOREACH(c, p.UNION){
+          out << "case " << nr_option++ << ":\n";
+          out << "tr = trace_begin + *tr;\n";
+          action((*c)->PR, lval);
+          out << "break;\n";
+        }
+        out << "default: assert(!\"Error\"); exit(-1);";
+        out << "}";
+      }
+      break;
+    case OFFSET:
+      {
+        out << "{pos backtrack = off;\n";
+        out << "off  = *tr;\n"
+            << "tr++;\n";
+        action(p.OFFSET.parser->PR, lval);
+        out <<"}\n";
+      }
+      break;
+    case LENGTH:
+    case ARRAY:
+      {
+#ifdef DEBUG_OUT
+        out << "fprintf(stderr,\"%d = many %d %d\\n\",tr-trace_begin, tr[0], tr[1]);\n";
+#endif
+        const parser *i;
+        ValExpr count("count", &lval);
+        ValExpr data("elem", &lval);
+        if(p.N_type == ARRAY){
+          switch(p.ARRAY.N_type){
+          case MANYONE:
+            i = p.ARRAY.MANYONE;break;
+          case MANY:
+            i = p.ARRAY.MANY; break;
+          case SEPBY:
+            i = p.ARRAY.SEPBY.inner; break;
+          case SEPBYONE:
+            i= p.ARRAY.SEPBYONE.inner; break;
+          }
+        }
+        else{ /* LENGTH*/
+          i = p.LENGTH.parser;
+        }
+          
+        out << "{ /*ARRAY*/ \n pos save = 0;";
+        out << count << "=" << "*(tr++);\n"
+            << "save = *(tr++);\n";
+        out <<data << "= " << "(typeof("<<data<<"))n_malloc(arena," << count << "* sizeof(*"<<data<<"));\n"
+            << "if(!"<< data<< "){return 0;}\n";
 
+        std::string iter = boost::str(boost::format("i%d") % num_iters++);
+          out << "for(pos "<<iter<<"=0;"<<iter<<"<"<<count<<";"<<iter<<"++){";
+        if(p.N_type == ARRAY && (p.ARRAY.N_type == SEPBY || p.ARRAY.N_type == SEPBYONE)){
+          out<< "if("<<iter<<">0){";
+          action_constparser();
+          out << "}";
+        }
+        ValExpr iexpr(iter);
+        ArrayElemExpr elem(&data,&iexpr);
+        action(i->PR,elem);
+        out << "}\n";
+        out << "tr = trace_begin + save;\n}";
+      }
+      break;
+    case FIXEDARRAY:{
+        std::string iter = boost::str(boost::format("i%d") % num_iters++);
+        ValExpr iexpr(iter);
+        ArrayElemExpr elem(&lval, &iexpr);
+        out << "for(pos "<< iter<< "=0;"<<iter<<"<"<<intconstant_value(p.FIXEDARRAY.length) << ";"<<iter<<"++){";
+        action(p.FIXEDARRAY.inner->PR,elem);
+        out << "}";
+    }
+      break;
+    case OPTIONAL:
+      {
+        out<< "if(*tr<0) /*OPTIONAL*/ {\n"
+           << "tr++;\n"
+           << lval << "= "<< "(typeof("<<lval<<"))n_malloc(arena,sizeof(*"<<lval<<"));\n";
+        out << "if(!"<<lval<<") return -1;\n";
+        DerefExpr deref(lval);
+        action(p.OPTIONAL->PR,deref);
+        out << "}\n"
+            << "else{tr = trace_begin + *tr;\n "<< lval <<"= NULL;}";
+      }
+      break;
+    case REF:
+      {
+        out << lval << "= (typeof("<<lval<<"))n_malloc(arena,sizeof(*"<<lval<<"));\n"
+            << "if(!"<<lval<<"){return -1;}";
+        out << "off = bind_"<<mk_str(p.REF)<< "(arena," << lval << ", data,off,&tr,trace_begin);"
+            << "if(parser_fail(off)){return -1;}\n";
+        break;
+      }
+    case NAME:
+      {
+        out << "off = bind_"<<mk_str(p.REF)<< "(arena,&" << lval << ", data,off,&tr,trace_begin);"
+            << "if(parser_fail(off)){return -1;}";
+        break;
+      }
+    }
+  }
+public:
+  CAction(std::ostream *os): out(*os), num_iters(1){}
+ 
+  void emit_action(const grammar &grammar){
+    FOREACH(def, grammar){
+      if(def->N_type == PARSER){ 
+        std::string name= mk_str(def->PARSER.name);
+        out << "static pos bind_"<< name<< "(NailArena *arena," << name <<"*out,const uint8_t *data, pos off, pos **trace,  pos * trace_begin);";
+      }
+    }
+    FOREACH(def, grammar){
+      if(def->N_type == PARSER){
+        std::string name= mk_str(def->PARSER.name);
+        out << "static pos bind_"<<name<< "(NailArena *arena," << name <<"*out,const uint8_t *data, pos off, pos **trace ,  pos * trace_begin){\n";
+        out << " pos *tr = *trace;";
+        //  out << name << "*ret = malloc(sizeof("<<name<<")); if(!ret) return -1;";
+        ValExpr outexpr("out",NULL,1);
+        action(def->PARSER.definition.PR,outexpr);
+        out << "*trace = tr;";
+        out<< "return off;}";
+        out << name << "*parse_" << name << "(NailArena *arena, const uint8_t *data, size_t size){\n"
+            <<"n_trace trace;\n"
+            <<"pos *tr_ptr;\n pos pos;\n"
+            << name <<"* retval;\n"
+            << "n_trace_init(&trace,4096,4096);\n"
+            << "tr_ptr = trace.trace;"
+            << "if(size*8 != packrat_"<<name<<"(&trace,data,0,size*8)) return NULL;"
+            << "retval = (typeof(retval))n_malloc(arena,sizeof(*retval));\n"
+            <<"if(!retval) return NULL;\n"
+            << "if(bind_"<<name<<"(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;\n"
+            << "n_trace_release(&trace);\n"
+            <<"return retval;"
+            <<"}";
+      }
+      out << std::endl;
+    }
+  }
+};
 //static const std::string parser_template(_binary_parser_template_c_start,_binary_parser_template_c_end - _binary_parser_template_c_start);
 class CDataModel{
-  std::ostream &out;
+  std::stringstream out;
+  std::ostream &outs;
+  std::list<std::string> global_enum;
+  std::string int_type(const intp &intp ){
+    int length = boost::lexical_cast<int>(mk_str(intp.SIGNED));
+    if(length<=8) length = 8;
+    else if(length<=16) length=16;
+    else if(length<=32) length=32;
+    else if(length<=64) length=64;
+    else throw std::range_error("Integer longer than 64 bits");
+    return (boost::format("%s%d_t") % (intp.N_type == UNSIGNED ? "uint":"int" )% length).str();
+  }
 
   void emit_array(const parser &inner, const std::string name = ""){
 
@@ -36,18 +265,29 @@ class CDataModel{
       emit_type(*p.wrap.parser);
       break;
     case CHOICE:{
-      out << "struct " << name<< "{\n enum  {";
-      int idx=0;
-      FOREACH(option, p.choice){
-        if(idx++ >0) 
-          out << ',';
-        out << mk_str(option->tag);
+      out << "struct " << name<< "{\n";
+      if(0){//TODO: global enum option 
+        out<< " enum  {";
+        int idx=0;
+        FOREACH(option, p.CHOICE){
+          std::string tag = mk_str(option->tag);
+          if(idx++ >0) 
+            out << ',';
+          out << tag;
+        }
+        out << "} N_type; \n";
+      }  else{
+        FOREACH(option, p.CHOICE){
+          global_enum.push_front(mk_str(option->tag));
+        }
+        out<< "enum N_types N_type;\n";
       }
-      out << "} N_type; \n";
       out << "union {\n";
       FOREACH(option, p.choice){
+        std::string tag = mk_str(option->tag);
+        boost::algorithm::to_lower(tag);
         emit_type(*option->parser);
-        out << " "<<  mk_str(option->tag) << ";\n";
+        out << " "<< tag << ";\n";
       }
       out<< "};\n}";
     }
@@ -134,8 +374,8 @@ class CDataModel{
 public:
   void emit_parser( grammar *grammar){
     try{
-      assert(out.good());
-      out << "#include <stdint.h>\n #include <string.h>\n#include <assert.h>\n";
+      assert(outs.good());
+      outs << "#include <stdint.h>\n #include <string.h>\n#include <assert.h>\n";
       //Emit forward declarations
       FOREACH(definition,*grammar){
         if(definition->N_type!=PARSER)
@@ -149,13 +389,20 @@ public:
         emit_type(*definition);
       }
       out<< std::endl;
+
+      outs << "enum N_types {_NAIL_NULL";
+      for(std::string e: global_enum){
+        outs << "," << e;
+      }
+      outs << "};\n";
+      outs << out.str()<< std::endl;
     } catch(std::exception &e){
       std::cerr << "Exception while generating parser" << e.what()<<std::endl;
       exit(-1);
     }
   }
 
-  CDataModel(std::ostream *os) : out(*os){}
+  CDataModel(std::ostream *os) : outs(*os){}
   
 };
 
@@ -572,7 +819,8 @@ class CPrimitiveParser{
   struct namedparser{
     const parser *p;
     std::string name;
-    namedparser(std::string _name, const parser *_p): p(_p), name(_name){}
+    namedparser(std::string _name, const parser *_p): p(_p), name(_name){
+    }
   };
   typedef  std::list<namedparser> parserlist;
   void peg_choice(const parserlist &list, const std::string &fail, const Scope &scope){
@@ -857,7 +1105,6 @@ public:
     out << std::endl;
   }
 };
-
 void emit_parser(std::ostream *out, grammar *grammar){
 
   CPrimitiveParser p(out);
