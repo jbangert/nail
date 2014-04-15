@@ -112,7 +112,7 @@ class CDataModel{
   void emit_type_definition( const parser &p,const std::string name)
   {
     switch(p.pr.N_type){
-    case STRUCT:
+    case STRUCTURE:
     case ARRAY:
     case CHOICE:
       emit_type(p,name);
@@ -196,8 +196,8 @@ class CAction{
 public:
   void action (const parserinner &p, Expr &lval){
     switch(p.N_type){
-    case INT:{
-      int width = boost::lexical_cast<int>(mk_str(p.INT.parser.unsign));
+    case INTEGER:{
+      int width = boost::lexical_cast<int>(mk_str(p.integer.parser.unsign));
       out << lval << "=" << int_expr(width) << ";\n";
       out<< "off += " << width<<";\n";
     }
@@ -501,7 +501,7 @@ class CPrimitiveParser{
       break;
     case VALUES:{
       int width = boost::lexical_cast<int>(mk_str(c.parser.unsign));
-      FOREACH(v,c.value.valueS){
+      FOREACH(v,c.value.values){
         peg_constint(width, intconstant_value(*v),fail);
       }
       break;
@@ -649,12 +649,12 @@ class CPrimitiveParser{
   }
   void peg(const parser &parser, const std::string &fail,const Scope &scope ){
     switch(parser.pr.N_type){
-    case INT:
-      peg(parser.pr.INT,fail);
+    case INTEGER:
+      peg(parser.pr.integer,fail);
       break;
-    case STRUCT:{
+    case STRUCTURE:{
       Scope newscope(scope);
-      FOREACH(field,parser.pr.STRUCT){
+      FOREACH(field,parser.pr.structure){
         switch(field->N_type){
         case CONSTANT:
           peg(field->constant,fail);
@@ -749,11 +749,11 @@ class CPrimitiveParser{
         peg_choice(l,fail,scope);
       }
       break;
-    case UNION:
+    case NUNION:
       {
         parserlist l;
         int i = 0;
-        FOREACH(c, parser.pr.UNION){
+        FOREACH(c, parser.pr.nunion){
           i++;
           l.push_back(namedparser(boost::lexical_cast<std::string>(i),*c));
         }
@@ -828,8 +828,8 @@ public:
           << "fail:\n return -1;\n";
       out << "}\n";
     }
-    else if(def.N_type == CONSTDEF){
-      std::string name = mk_str(def.constdef.name);
+    else if(def.N_type == CONSTANTDEF){
+      std::string name = mk_str(def.constantdef.name);
       out << "static pos peg_" << name << "(NailStream *str_current){\n";
       peg_const(def.constdef.definition, "goto fail;");
       out << "return off;\n"
@@ -844,8 +844,8 @@ public:
       case PARSER:
         out << "static pos peg_" << mk_str(def->parser.name) <<"(n_trace *trace,NailStream *str_current);\n";
         break;
-      case CONST:
-        out << "static pos peg_" << mk_str(def->CONST.name) <<"(NailStream *str_current);\n";
+      case CONSTANTDEF:
+        out << "static pos peg_" << mk_str(def->constantdef.name) <<"(NailStream *str_current);\n";
         break;
       }
     }
