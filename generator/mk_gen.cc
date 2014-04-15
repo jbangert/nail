@@ -80,14 +80,11 @@ class GenGenerator{
           break;
         }
         case DEPENDENCY:{
-          int width = boost::lexical_cast<int>(mk_str(field->DEPENDENCY.parser.parser.UNSIGNED));
-          out << "long "<< mk_str(field->DEPENDENCY.name) << " = 0;"; // TODO: pick proper type
-          out << "HBitWriter rewind_"<< mk_str(field->DEPENDENCY.name) << " = *out;";
-          out << "h_bit_writer_put(out,0,"<< width << ");";
+          out << "//XXX: No dependencies in generator yet\n";
           break;
         }
-        case TRANSFORM:{
-          assert(!"Implemented");
+        case TRANSFORM:{ 
+          out  << "//XXX: No transform in generator yet\n";
           //TODO: build an implementation
         }
         }
@@ -97,10 +94,7 @@ class GenGenerator{
       FOREACH(field,p.STRUCT){
         if(field->N_type != DEPENDENCY)
           continue;
-        int width = boost::lexical_cast<int>(mk_str(field->DEPENDENCY.parser.parser.UNSIGNED));
-        out << "out->index = rewind_"<< mk_str(field->DEPENDENCY.name)<<".index;\n";
-        out << "out->bit_offset = rewind_"<< mk_str(field->DEPENDENCY.name)<<".bit_offset;\n";
-        out << "h_bit_writer_put(out,"<<mk_str(field->DEPENDENCY.name)<<","<<width<<");\n";
+        out<< "NO dependencies in generator yet!\n";
       }
       out << "out->index = end_of_struct.index;\n";
       out << "out->bit_offset = end_of_struct.bit_offset;\n}";

@@ -1,5 +1,5 @@
 all: nail 
-CFLAGS+= -I../ -lhammer -ggdb -std=gnu++11
+CFLAGS+= -I../ -lhammer -ggdb -std=gnu++11 -Wno-enum-compare
 CXXFLAGS=$(CFLAGS) -std=gnu++11
 mk_parser.o: mk_parser.cc *.h
 mk_gen.o: mk_gen.cc *.h

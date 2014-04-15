@@ -56,7 +56,7 @@ constrainedint = {
 transform = {left sepBy t(",") streamidentifier; t("transform"); cfunction varidentifier; right many parameter}
 structparser = <t("{"); sepBy SEPERATOR choose{
               CONSTANT = constparser                      
-              DEPENDENCY = {name dependencyidentifier; parser constrainedint}    
+              DEPENDENCY = {name dependencyidentifier; parser *parser}    
               FIELD= { name varidentifier;  parser *parser }
               TRANSFORM  = transform
               } 
@@ -81,7 +81,7 @@ parameterlist = < t("("); sepBy1 t(",") parameter; t(")") >
 
 parameterdefinition = choose { 
                     D_STREAM = streamidentifier
-                    D_DEPENDENCY = {name dependencyidentifier; type constrainedint }
+                    D_DEPENDENCY = {name dependencyidentifier; type * parser }
                     }
 parameterdefinitionlist = <t("(") sepBy1 t(",") parameterdefinition t(")")>
 parserinvocation = { name varidentifier; 

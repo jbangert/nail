@@ -72,7 +72,7 @@ public:
       throw new std::string("Duplicate dependency "+value);
     }
   }
-  std::string dependency_type(std::string name){
+  std::string dependency_type(std::string name) const{
     auto i = dependencies.find(name);
     if(i==dependencies.end()){
       if(!parent)
@@ -82,7 +82,7 @@ public:
     }
     return i->second.typedef_type;                
   }
-    std::string dependency_ptr(std::string name){
+    std::string dependency_ptr(std::string name) const{
     auto i = dependencies.find(name);
     if(i==dependencies.end()){
       if(!parent)
@@ -92,7 +92,7 @@ public:
     }
     return i->second.name;                
   }
-  std::string stream_ptr(std::string name){
+  std::string stream_ptr(std::string name) const{
     auto i = streams.find(name);
     if(i==streams.end()){
       if(!parent)
@@ -103,4 +103,7 @@ public:
     return i->second;                
   }
 };
+
+std::string int_type(const intp &intp );
+std::string typedef_type(const parser &p, std::string name, std::string *post);
 #endif
