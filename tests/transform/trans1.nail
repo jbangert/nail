@@ -1,18 +1,18 @@
-zip(#contentstream) = {
+zip($contentstream) = {
     @filecount uint16
     files n_of @filecount {
      @offset uint32
      @filesize uint32
      filename many int8 | ![0]
      uint8 = 0
-     #filestream transform offsetsize #contentstream @offset @filesize
-     content bind #filestream (many uint8)
+     $filestream transform offsetsize $contentstream @offset @filesize
+     content bind $filestream (many uint8)
 
-     //Alternative #filestream transform offset #contentstream @offset
-      //          content bind #filestream (n_of @filesize uint8)
+     //Alternative $filestream transform offset $contentstream @offset
+      //          content bind $filestream (n_of @filesize uint8)
     }
 }
 zipfile = <
-                #header,  #content = transform split_zip #current // #current always refers to the stream the parser/generator is currently operating on.
-                 header bind #header zip(#content) // parse the zip(#content) parser in #header
+                $header,  $content = transform split_zip $current // $current always refers to the stream the parser/generator is currently operating on.
+                 header bind $header zip($content) // parse the zip($content) parser in $header
               >
