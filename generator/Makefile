@@ -4,7 +4,7 @@ CFLAGS+= -I../ -lhammer -ggdb -std=gnu++11 -Wno-enum-compare
 
 .SUFFIXES:
 
-CXXFLAGS=$(CFLAGS) -std=gnu++11
+CXXFLAGS=$(CFLAGS) -Wno-format -Wno-switch
 util.o: util.cc *.h
 %.c:%.nail 
 	make nail && ./nail $< $@ -parser_hammer -generator && cat testharness.c >> $@ && astyle $@  
@@ -14,7 +14,7 @@ parser_template.o: parser_template.c
 	ld -r -o $@ --format=binary $<
 
 nail: main.cc mk_parser.cc mk_gen.cc grammar.c new_grammar.nail.c
-	clang++ $(CFLAGS) -o $@ $^
+	clang++ $(CXXFLAGS) -o $@ $^
 
 
 foo.c: grammar.c newgrammar.h *.h ../nail/macros/*.h 
