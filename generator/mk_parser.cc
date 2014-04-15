@@ -10,7 +10,9 @@
 #define mk_str(x) std::string((const char *)x.elem,x.count)
 //static const std::string parser_template(_binary_parser_template_c_start,_binary_parser_template_c_end - _binary_parser_template_c_start);
 class CDataModel{
-  std::ostream &out;
+  std::stringstream out;
+  std::ostream &outs;
+  std::list<std::string> global_enum;
   std::string int_type(const intp &intp ){
     int length = boost::lexical_cast<int>(mk_str(intp.SIGNED));
     if(length<=8) length = 8;
@@ -84,15 +86,23 @@ class CDataModel{
       emit_type(*p.WRAP.parser);
       break;
     case CHOICE:{
-      out << "struct " << name<< "{\n enum  {";
-      int idx=0;
-      FOREACH(option, p.CHOICE){
-        std::string tag = mk_str(option->tag);
-        if(idx++ >0) 
-          out << ',';
-        out << tag;
-      }
+      out << "struct " << name<< "{\n";
+        if(0){//TODO: global enum option 
+          out<< " enum  {";
+          int idx=0;
+          FOREACH(option, p.CHOICE){
+            std::string tag = mk_str(option->tag);
+            if(idx++ >0) 
+              out << ',';
+            out << tag;
+          }
       out << "} N_type; \n";
+        }  else{
+          FOREACH(option, p.CHOICE){
+            global_enum.push_front(mk_str(option->tag));
+          }
+          out<< "enum N_types N_type;\n";
+        }
       out << "union {\n";
       FOREACH(option, p.CHOICE){
         std::string tag = mk_str(option->tag);
@@ -184,8 +194,8 @@ class CDataModel{
 public:
   void emit_parser( grammar *grammar){
     try{
-      assert(out.good());
-      out << "#include <stdint.h>\n #include <string.h>\n#include <assert.h>\n";
+      assert(outs.good());
+      outs << "#include <stdint.h>\n #include <string.h>\n#include <assert.h>\n";
       //Emit forward declarations
       FOREACH(definition,*grammar){
         if(definition->N_type!=PARSER)
@@ -199,13 +209,20 @@ public:
         emit_type(*definition);
       }
       out<< std::endl;
+
+      outs << "enum N_types {_NAIL_NULL";
+      for(std::string e: global_enum){
+        outs << "," << e;
+      }
+      outs << "};\n";
+      outs << out.str()<< std::endl;
     } catch(std::exception &e){
       std::cerr << "Exception while generating parser" << e.what()<<std::endl;
       exit(-1);
     }
   }
 
-  CDataModel(std::ostream *os) : out(*os){}
+  CDataModel(std::ostream *os) : outs(*os){}
   
 };
 
