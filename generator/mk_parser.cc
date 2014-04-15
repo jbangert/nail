@@ -429,7 +429,7 @@ public:
             << name <<"* retval;\n"
             << "n_trace_init(&trace,4096,4096);\n"
             << "tr_ptr = trace.trace;"
-            << "if(size*8 != peg_"<<name<<"(&trace,&stream)) return NULL;"
+            << "if(parser_fail(peg_"<<name<<"(&trace,&stream))) return NULL;"
             << "retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));\n"
             <<"if(!retval) return NULL;\n"
             << "stream.pos = 0;\n"

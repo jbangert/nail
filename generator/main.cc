@@ -52,6 +52,7 @@ int main(int argc, char**argv)
        header << std::endl;       
        return 0;
      } else {
+       error("Syntax error in grammar\n");
        return 1;
      }
 }

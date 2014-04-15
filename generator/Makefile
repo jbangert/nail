@@ -9,7 +9,7 @@ util.o: util.cc *.h
 %.c:%.nail 
 	make nail && ./nail $< $@ -parser_hammer -generator && cat testharness.c >> $@ && astyle $@  
 new_grammar.nail.c new_grammar.nail.h: new_grammar.nail
-	tools/old2new new_grammar.nail  2&>/dev/null > newgrammar.h
+	./nail new_grammar.nail && astyle new_grammar.nail.c && astyle new_grammar.nail.h
 parser_template.o: parser_template.c 
 	ld -r -o $@ --format=binary $<
 

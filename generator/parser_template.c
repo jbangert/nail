@@ -94,7 +94,7 @@ static int n_trace_grow(n_trace *out, int space){
                 return 0;
         }
 
-        pos * new_ptr= (pos *)realloc(out->trace, out->capacity + out->grow);
+        pos * new_ptr= (pos *)realloc(out->trace, (out->capacity + out->grow) * sizeof(pos));
         if(!new_ptr){
                 return 1;
         }

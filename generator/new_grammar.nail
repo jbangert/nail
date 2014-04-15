@@ -5,7 +5,7 @@
 number = many1 digit
 varidentifier   = <WHITE; many1 lower>
 constidentifier = <WHITE; many1 upper>
-streamidentifier = <WHITE; uint8='#'; many1 lower>
+streamidentifier = <WHITE; uint8='$'; many1 lower>
 dependencyidentifier = <WHITE; uint8='@'; many1 lower>
 
 WHITE = many || uint8 = ' ' || uint8 = '\n'
