@@ -733,7 +733,7 @@ class CAction{
         out << "{ /*ARRAY*/ \n pos save = 0;";
         out << count << "=" << "*(tr++);\n"
             << "save = *(tr++);\n";
-        out <<data << "= " << "n_malloc(arena," << count << "* sizeof(*"<<data<<"));\n"
+        out <<data << "= " << "(typeof("<<data<<"))n_malloc(arena," << count << "* sizeof(*"<<data<<"));\n"
             << "if(!"<< data<< "){return 0;}\n";
 
         std::string iter = boost::str(boost::format("i%d") % num_iters++);
@@ -763,7 +763,7 @@ class CAction{
       {
         out<< "if(*tr<0) /*OPTIONAL*/ {\n"
            << "tr++;\n"
-           << lval << "= "<< "n_malloc(arena,sizeof(*"<<lval<<"));\n";
+           << lval << "= "<< "(typeof("<<lval<<"))n_malloc(arena,sizeof(*"<<lval<<"));\n";
         out << "if(!"<<lval<<") return -1;\n";
         DerefExpr deref(lval);
         action(p.OPTIONAL->PR,deref);
@@ -773,7 +773,7 @@ class CAction{
       break;
     case REF:
       {
-        out << lval << "= n_malloc(arena,sizeof(*"<<lval<<"));\n"
+        out << lval << "= (typeof("<<lval<<"))n_malloc(arena,sizeof(*"<<lval<<"));\n"
             << "if(!"<<lval<<"){return -1;}";
         out << "off = bind_"<<mk_str(p.REF)<< "(arena," << lval << ", data,off,&tr,trace_begin);"
             << "if(parser_fail(off)){return -1;}\n";
