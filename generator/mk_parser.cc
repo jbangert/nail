@@ -814,7 +814,7 @@ public:
             << "n_trace_init(&trace,4096,4096);\n"
             << "tr_ptr = trace.trace;"
             << "if(size*8 != packrat_"<<name<<"(&trace,data,0,size*8)) return NULL;"
-            << "retval = n_malloc(arena,sizeof(*retval));\n"
+            << "retval = (pos *)n_malloc(arena,sizeof(*retval));\n"
             <<"if(!retval) return NULL;\n"
             << "if(bind_"<<name<<"(arena,retval,data,0,&tr_ptr,trace.trace) < 0) return NULL;\n"
             << "n_trace_release(&trace);\n"

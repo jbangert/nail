@@ -51,7 +51,7 @@ static int  n_trace_init(n_trace *out,pos size,pos grow){
         if(size <= 1){
                 return 0;
         }
-        out->trace = malloc(size * sizeof(pos));
+        out->trace = (pos *)malloc(size * sizeof(pos));
         if(!out){
                 return 0;
         }
@@ -148,7 +148,7 @@ void *n_malloc(NailArena *arena, size_t size)
                 size_t siz = arena->blocksize;
                 if(size>siz)
                         siz = size + sizeof(NailArenaPool);
-                NailArenaPool *newpool  = malloc(siz);
+                NailArenaPool *newpool  = (NailArenaPool *)malloc(siz);
                 if(!newpool) return NULL;
                 newpool->end = (void *)((char *)newpool + siz);
                 newpool->iter = (void*)(newpool+1);
@@ -164,7 +164,7 @@ void *n_malloc(NailArena *arena, size_t size)
 int NailArena_init(NailArena *arena, size_t blocksize){
         if(blocksize< 2*sizeof(NailArena))
                 blocksize = 2*sizeof(NailArena);
-        arena->current = malloc(blocksize);
+        arena->current = (NailArenaPool*)malloc(blocksize);
         if(!arena->current) return 0;
         arena->current->next = NULL;
         arena->current->iter = arena->current + 1;
