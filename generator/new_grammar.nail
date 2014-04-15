@@ -112,7 +112,7 @@ definition = choose {
                      parameters optional parameterdefinitionlist 
                     t("=")
                     definition parser }
-           CONSTANT = {
+           CONSTANTDEF = {
                  name constidentifier 
                  WHITE
                  uint8 = '='

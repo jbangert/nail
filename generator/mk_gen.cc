@@ -23,13 +23,13 @@ class GenGenerator{
   }
   void generator(constarray &c){ 
     switch(c.value.N_type){
-    case arrayvalue::STRING:
+    case STRING:
       assert(mk_str(c.parser.unsign) == "8");
       FOREACH(ch, c.value.string){
         constint(8,(boost::format("'%c'") % ch).str());
       }
       break;
-    case arrayvalue::VALUES:{
+    case VALUES:{
       int width = boost::lexical_cast<int>(mk_str(c.parser.unsign));
       FOREACH(v,c.value.values){
         constint(width, intconstant_value(*v));
@@ -40,50 +40,50 @@ class GenGenerator{
   }
   void generator(constparser &p){
     switch(p.N_type){
-    case constparser::CARRAY:
+    case CARRAY:
       generator(p.carray); break;
-    case constparser::CREPEAT:
+    case CREPEAT:
       generator(*p.crepeat); break; //Emit just one of the elements
-    case constparser::CINT: {
+    case CINT: {
       int width = boost::lexical_cast<int>(mk_str(p.cint.parser.unsign));
       constint(width, intconstant_value(p.cint.value));
     }
       break;
-    case constparser::CREF:
+    case CREF:
       out << "gen_"<< mk_str(p.cref)<<"(out);";break;
-    case constparser::CSTRUCT:
+    case CSTRUCT:
       FOREACH(field,p.cstruct){
         generator(*field);
       }
       break;
-    case constparser::CUNION:
+    case CUNION:
       generator(p.cunion.elem[0]);
       break;
     }
   }
   void generator(parserinner &p,Expr &val){
     switch(p.N_type){
-    case parserinner::INTEGER:{
+    case INTEGER:{
       int width = boost::lexical_cast<int>(mk_str(p.integer.parser.unsign));
       out << "h_bit_writer_put(out,"<<val<<","<< width << ");";
       break;
     }
-    case parserinner::STRUCTURE:
+    case STRUCTURE:
       FOREACH(field, p.structure){
         switch(field->N_type){
-        case structparser::CONSTANT:
+        case CONSTANT:
           generator(field->constant);
           break;
-        case structparser::FIELD:{
+        case FIELD:{
           ValExpr fieldname(mk_str(field->field.name),&val);
           generator(field->field.parser->pr,fieldname);
           break;
         }
-        case structparser::DEPENDENCY:{
+        case DEPENDENCY:{
           out << "//XXX: No dependencies in generator yet\n";
           break;
         }
-        case structparser::TRANSFORM:{ 
+        case TRANSFORM:{ 
           out  << "//XXX: No transform in generator yet\n";
           //TODO: build an implementation
         }
@@ -92,15 +92,15 @@ class GenGenerator{
       //TODO: Do a proper way of updating these!
       out << "{/*Context-rewind*/\n HBitWriter end_of_struct= *out;\n";
       FOREACH(field,p.structure){
-        if(field->N_type != structparser::DEPENDENCY)
+        if(field->N_type != DEPENDENCY)
           continue;
         out<< "NO dependencies in generator yet!\n";
       }
       out << "out->index = end_of_struct.index;\n";
       out << "out->bit_offset = end_of_struct.bit_offset;\n}";
       break;
-    case parserinner::WRAP:
-      if(p.Wrap.constbefore){
+    case WRAP:
+      if(p.wrap.constbefore){
         FOREACH(c,*p.wrap.constbefore){
           generator(*c);
         }
@@ -113,7 +113,7 @@ class GenGenerator{
       }      
       break;
 
-    case parserinner::CHOICE:
+    case CHOICE:
       {
         out << "switch("<< ValExpr("N_type",&val)<<"){\n";
         FOREACH(c, p.choice){
@@ -126,15 +126,15 @@ class GenGenerator{
         out << "}";
       }      
       break;
-    case parserinner::NUNION:
+    case NUNION:
       {
         //What to do with UNION? Is union a bijection - 
         // Parentheses or the like might be NECESSARY for bijection. For now, fail?
         fprintf(stderr,"Warning, UNION is dangerous\n");
-        generator(p.nunion.elem[0]->PR,val);
+        generator(p.nunion.elem[0]->pr,val);
       }
       break;
-    case parserinner::LENGTH:
+    case LENGTH:
       {
         ValExpr count("count", &val);
         ValExpr data("elem", &val);
@@ -143,7 +143,7 @@ class GenGenerator{
         out << "for(int "<< iter<<"=0;"<<iter << "<" << count << ";" << iter << "++){";
         generator(p.length.parser->pr,elem);
         out<< "}";
-        out << mk_str(p.LENGTH.length) << "=" << count << ";";
+        out << mk_str(p.length.length) << "=" << count << ";";
       }
       break;
     case APPLY: 
@@ -159,21 +159,21 @@ class GenGenerator{
         ValExpr iter(boost::str(boost::format("i%d") % num_iters++));
         ArrayElemExpr elem(&data,&iter);
         out << "for(int "<< iter<<"=0;"<<iter << "<" << count << ";" << iter << "++){";
-        switch(p.ARRAY.N_type){
+        switch(p.array.N_type){
         case MANYONE:
-          generator(p.ARRAY.MANYONE->pr,elem);break;
+          generator(p.array.manyone->pr,elem);break;
         case MANY:
-          generator(p.ARRAY.MANY->pr,elem);break;
+          generator(p.array.many->pr,elem);break;
         case SEPBY:
           out << "if("<<iter<<"!= 0){";
-          generator(p.ARRAY.SEPBY.separator);
+          generator(p.array.sepby.separator);
           out << "}";
-          generator(p.ARRAY.SEPBY.inner->pr,elem);break;
+          generator(p.array.sepby.inner->pr,elem);break;
         case SEPBYONE:
           out << "if("<<iter<<"!= 0){";
-          generator(p.ARRAY.SEPBYONE.separator);
+          generator(p.array.sepbyone.separator);
           out << "}";
-          generator(p.ARRAY.SEPBYONE.inner->pr,elem);break;
+          generator(p.array.sepbyone.inner->pr,elem);break;
 
         }
         out << "}";
@@ -182,8 +182,8 @@ class GenGenerator{
     case FIXEDARRAY:{
       ValExpr iter(boost::str(boost::format("i%d") % num_iters++)); 
       ArrayElemExpr elem(&val,&iter);
-      out << "for(int "<< iter<<"=0;"<<iter << "<" << intconstant_value(p.FIXEDARRAY.length) << ";" << iter << "++){";
-      generator(p.FIXEDARRAY.inner->pr, elem);
+      out << "for(int "<< iter<<"=0;"<<iter << "<" << intconstant_value(p.fixedarray.length) << ";" << iter << "++){";
+      generator(p.fixedarray.inner->pr, elem);
       out << "}\n";
     }
       break; 
@@ -191,17 +191,17 @@ class GenGenerator{
       {
         out << "if(NULL!="<<val << "){";
         DerefExpr opt(val);
-        generator(p.OPTIONAL->pr,opt);
+        generator(p.optional->pr,opt);
         out << "}";
       }
       break;
     case REF:
       //TODO: Each of these needs to deal with parameters
-      out << "gen_" << mk_str(p.REF.name) << "(out,"<< val << ");";
+      out << "gen_" << mk_str(p.ref.name) << "(out,"<< val << ");";
       
       break;
     case NAME:
-      out << "gen_"<< mk_str(p.NAME.name) << "(out,&"<< val << ");";
+      out << "gen_"<< mk_str(p.name.name) << "(out,&"<< val << ");";
       break;
     }
   }
@@ -215,28 +215,28 @@ public:
     out << "#include <hammer/internal.h>\n";
     FOREACH(definition,*grammar){
 
-      if(definition->N_type == CONST){
-        std::string name = mk_str(definition->CONST.name);
+      if(definition->N_type == CONSTANTDEF){
+        std::string name = mk_str(definition->constantdef.name);
         out<<"void gen_"<<name<<"(HBitWriter* out);";
       }
       else if(definition->N_type==PARSER){
-        std::string name = mk_str(definition->PARSER.name);
+        std::string name = mk_str(definition->parser.name);
         out << "void gen_" << (name)<<"(HBitWriter *out,"<< name << " * val);";
       }          
     }
     FOREACH(definition,*grammar){
 
-      if(definition->N_type == CONST){
-        std::string name = mk_str(definition->CONST.name);
+      if(definition->N_type == CONSTANTDEF){
+        std::string name = mk_str(definition->constantdef.name);
         out<<"void gen_"<<name<<"(HBitWriter* out){\n";
-        generator(definition->CONST.definition);
+        generator(definition->constantdef.definition);
         out << "}";
       }
       else if(definition->N_type==PARSER){
-        std::string name = mk_str(definition->PARSER.name);
+        std::string name = mk_str(definition->parser.name);
         out << "void gen_" << (name)<<"(HBitWriter *out,"<< name << " * val){";
         ValExpr outval("val",NULL,1);
-        generator(definition->PARSER.definition.PR,outval);
+        generator(definition->parser.definition.pr,outval);
         out << "}";
       }          
     }
