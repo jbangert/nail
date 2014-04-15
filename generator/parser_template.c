@@ -75,7 +75,7 @@ static int n_trace_grow(n_trace *out, int space){
                 return 0;
         }
 
-        pos * new_ptr= realloc(out->trace, out->capacity + out->grow);
+        pos * new_ptr= (pos *)realloc(out->trace, out->capacity + out->grow);
         if(!new_ptr){
                 return 1;
         }
@@ -137,7 +137,7 @@ static int n_tr_const(n_trace *trace,pos newoff){
 }
 #define n_tr_offset n_tr_const
 typedef struct NailArenaPool{
-        void *iter;void *end;
+        char *iter;char *end;
         struct NailArenaPool *next;
 } NailArenaPool;
 
@@ -155,7 +155,7 @@ void *n_malloc(NailArena *arena, size_t size)
                 newpool->next = arena->current;
                 arena->current= newpool;
         }
-        retval = arena->current->iter;
+        retval = (void *)arena->current->iter;
         arena->current->iter += size;
         memset(retval,0,size);
         return retval;
