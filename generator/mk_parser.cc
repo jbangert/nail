@@ -2,7 +2,7 @@
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/foreach.hpp>
-
+#include <boost/algorithm/string/case_conv.hpp>
 #include <list>
 #define MAP(f,collection) FOREACH(iter,collection){ f(*iter);}
 #define DEBUG_OUT
@@ -87,9 +87,11 @@ class CDataModel{
       out << "struct " << name<< "{\n enum  {";
       int idx=0;
       FOREACH(option, p.CHOICE){
+        std::string tag = mk_str(option->tag);
         if(idx++ >0) 
           out << ',';
-        out << mk_str(option->tag);
+        boost::algorithm::to_lower(tag);
+        out << tag;
       }
       out << "} N_type; \n";
       out << "union {\n";
