@@ -139,6 +139,14 @@ static pos n_tr_begin_choice(n_trace *trace){
         trace->iter+= 2;
         return trace->iter - 2;
 }
+static int n_tr_stream(n_trace *trace, const NailStream *stream){
+        assert(sizeof(stream) % sizeof(pos) == 0);
+        if(n_trace_grow(trace,sizeof(stream)/sizeof(pos)))
+                return -1;
+        *(const NailStream **)(trace->trace + trace->iter) = stream;
+        trace->iter += sizeof(stream)/sizeof(pos);
+        return 0;
+}
 static pos n_tr_memo_choice(n_trace *trace){
         return trace->iter;
 }

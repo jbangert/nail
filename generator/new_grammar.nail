@@ -99,11 +99,11 @@ parserinner =  choose {// because we don't do left recursive grammars yet
                 ARRAY = arrayparser
                 FIXEDARRAY = { t("["); length intconstant; t("]"); inner *parser}
                 LENGTH = <t("n_of") { length dependencyidentifier; parser *parser}>
+                APPLY  =  {t("apply"); stream streamidentifier;  inner *parser}
                 OPTIONAL= <t("optional ") *parser>
                 NUNION = many1 <t("||") *parser>
                 REF   =  <t("*") parserinvocation >
                 NAME  =  parserinvocation
-                APPLY  =  {t("apply"); stream streamidentifier;  inner *parser}
          } 
 parser = choose {PAREN=<t("(") parserinner t(")")>
                  PR= parserinner}

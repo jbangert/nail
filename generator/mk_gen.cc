@@ -95,7 +95,7 @@ class GenGenerator{
       FOREACH(field,p.structure){
         if(field->N_type != DEPENDENCY)
           continue;
-        out<< "NO dependencies in generator yet!\n";
+        out<< "//NO dependencies in generator yet!\n";
       }
       out << "out->index = end_of_struct.index;\n";
       out << "out->bit_offset = end_of_struct.bit_offset;\n}";
@@ -151,7 +151,7 @@ class GenGenerator{
       break;
     case APPLY: 
       {
-        assert(!"Implemented");
+        //assert(!"Implemented");
       }
       break;
     case ARRAY:
@@ -232,14 +232,15 @@ public:
       if(definition->N_type == CONSTANTDEF){
         std::string name = mk_str(definition->constantdef.name);
         out<<"void gen_"<<name<<"(HBitWriter* out){\n";
-        generator(definition->constantdef.definition);
+        //        generator(definition->constantdef.definition);
         out << "}";
       }
       else if(definition->N_type==PARSER){
         std::string name = mk_str(definition->parser.name);
         out << "void gen_" << (name)<<"(HBitWriter *out,"<< name << " * val){";
         ValExpr outval("val",NULL,1);
-        generator(definition->parser.definition.pr,outval);
+        
+        //        generator(definition->parser.definition.pr,outval);
         out << "}";
       }          
     }

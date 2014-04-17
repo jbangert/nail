@@ -312,10 +312,11 @@ public:
     case APPLY:
       {
         out << "{/*Apply*/ "
-            <<"NailStream original_stream = str_current;\n #error \" not implemented \"";
-        out << "str_current = n_tr_read_stream(n_trace);";
+            <<"NailStream *original_stream = stream;\n;";
+        out << "stream = (NailStream *)tr;";
+        out << "tr+= sizeof(NailStream *) / sizeof(*tr);";
         action(p.apply.inner->pr, lval);
-        out << "str_current = original_stream;";
+        out << "stream = original_stream;";
         out <<"}\n";
       }
       break;
@@ -422,21 +423,26 @@ public:
         action(def->parser.definition.pr,outexpr);
         out << "*trace = tr;";
         out<< "return 0;}";
-        out << name << "*parse_" << name << "(NailArena *arena, const uint8_t *data, size_t size){\n"
-            << "NailStream stream = {.data = data, .pos= 0, .size = size*8};\n"
-            <<"n_trace trace;\n"
-            <<"pos *tr_ptr;\n pos pos;\n"
-            << name <<"* retval;\n"
-            << "n_trace_init(&trace,4096,4096);\n"
-            << "tr_ptr = trace.trace;"
-            << "if(parser_fail(peg_"<<name<<"(&trace,&stream))) return NULL;"
-            << "retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));\n"
-            <<"if(!retval) return NULL;\n"
-            << "stream.pos = 0;\n"
-            << "if(bind_"<<name<<"(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;\n"
-            << "n_trace_release(&trace);\n"
-            <<"return retval;"
-            <<"}";
+        if(!def->parser.parameters || def->parser.parameters->count==0){
+          out << name << "*parse_" << name << "(NailArena *arena, const uint8_t *data, size_t size){\n"
+              << "NailStream stream = {.data = data, .pos= 0, .size = size*8};\n"
+              << "NailArena tmp_arena;"
+              << "NailArena_init(&tmp_arena, 4096);"
+              <<"n_trace trace;\n"
+              <<"pos *tr_ptr;\n pos pos;\n"
+              << name <<"* retval;\n"
+              << "n_trace_init(&trace,4096,4096);\n"
+              << "tr_ptr = trace.trace;"
+              << "if(parser_fail(peg_"<<name<<"(&tmp_arena,&trace,&stream))) return NULL;"
+              << "if(stream.pos != stream.size) return NULL; "
+              << "retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));\n"
+              <<"if(!retval) return NULL;\n"
+              << "stream.pos = 0;\n"
+              << "if(bind_"<<name<<"(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;\n"
+              << "n_trace_release(&trace);\n"
+              <<"return retval;"
+              <<"}";
+        }
       }
       out << std::endl;
     }
@@ -444,7 +450,9 @@ public:
 };
 
 class CPrimitiveParser{
-  std::ostream &out;
+  std::stringstream out;
+  std::ostream &final;
+  std::stringstream header;
   int nr_choice,nr_option;
   int nr_many;
   int nr_const;
@@ -710,8 +718,13 @@ class CPrimitiveParser{
             assert(type_suffix == "");
 
             ValExpr lval(std::string ("dep_") + name);
-            peg(*field->dependency.parser, depfail, scope);
-            dependency_action.action(field->dependency.parser->pr,lval); // TODO: Make action use a different arena
+            out << type << " dep_" << name << ";\n";
+            out  << "{\n"
+                 << "NailStream tmpstream = *str_current;\n";
+            peg(*field->dependency.parser, fail, scope);
+            out  << "NailStream *stream = &tmpstream;"; //TODO: parametrize this on action
+            dependency_action.action(field->dependency.parser->pr,lval); 
+            out << "}";
             newscope.add_dependency_definition(name,type);
             out << "n_tr_setpos(trace,trace_"<<name<<");\n";
             out << "n_tr_const(trace,str_current);\n";
@@ -720,41 +733,39 @@ class CPrimitiveParser{
           
         case TRANSFORM:
           {
-            std::stringstream header; //TODO: Actually put this into a header
-            std::stringstream body;
-            assert(!"Implement");
+            //            assert(!"Implement");
+            header << "extern int " << mk_str(field->transform.cfunction) << "_parse(NailArena *tmp";
             FOREACH(stream, field->transform.left){
-              body << "NailStream str_" << mk_str(*stream) <<";\n";
+              out << "NailStream str_" << mk_str(*stream) <<";\n";
               // str_current cannot appear on the left
             }
-            body << mk_str(field->transform.cfunction) << "_parse(arena";
-            assert("!Check parameters");
-            FOREACH(stream, field->transform.left){
-              body << ", &str_"  << mk_str(*stream);
+            out << mk_str(field->transform.cfunction) << "_parse(tmp_arena"; //TODO: use temp arena
+
+            FOREACH(stream, field->transform.left){           
+              header << ",NailStream *str_" << mk_str(*stream);
+              out << ", &str_"  << mk_str(*stream);
             }      
-            header << "extern int " << mk_str(field->transform.cfunction) << "_parse(NailArena *tmp,";
             FOREACH(param, field->transform.right){
               switch(param->N_type){
               case PDEPENDENCY:{
                 std::string name (mk_str(param->pdependency));
                 //                if(newscope.dependency_type(name))
                 //we need to emit a type for this function!
-                body << "," << newscope.dependency_ptr(name); 
+                out << "," << newscope.dependency_ptr(name); 
                 header << "," << newscope.dependency_type(name) << "* " << name;
               }
                 break;
               case PSTREAM:
-                body << "," <<  newscope.stream_ptr(mk_str(param->pstream));  
+                out << "," <<  newscope.stream_ptr(mk_str(param->pstream));  
                 header << ",NailStream *" << mk_str(param->pstream);
                 break;
               }
             }
-            body << ");";
-            header << (");");
+            out << ");\n";
+            header << ");\n";
             FOREACH(stream, field->transform.left){
               newscope.add_stream_definition(mk_str(*stream));
             }
-            out << header << body; //TODO: put in separate files
           }
           break;
         }
@@ -810,7 +821,7 @@ class CPrimitiveParser{
       std::string iter = boost::str(boost::format("i%d") % num_iters++);
       out << "{/*LENGTH*/"
           << "pos many = n_tr_memo_many(trace);\n"
-          << "pos count= "<< mk_str(parser.pr.length.length)<<";\n"
+          << "pos count= dep_"<< mk_str(parser.pr.length.length)<<";\n"
           << "pos "<<iter<<"=0;";
       out<< "for( "<<iter<<"=0;"<<iter<<"<count;"<<iter<<"++){";
       peg(*parser.pr.length.parser,fail,scope);
@@ -823,12 +834,13 @@ class CPrimitiveParser{
       //TODO: Record in trace - specify NailStream in the trace?
       int this_many = nr_many++;
       //TODO: Make sure each stream is only bound once!
+      //TODO: How to backtrack within this stream?
       out << "{/*APPLY*/";
-      out << "NailStream orig_str = str_current;\n"
-          << "str_current = "<< mk_str(parser.pr.apply.stream) << ";\n"
-          << "n_tr_stream(n_trace, str_current)\n";
-      peg(*parser.pr.apply.inner,(boost::format("goto fail_apply_%d") % this_many).str(), scope);
-      out << "goto succ_apply_" << this_many << "\n";
+      out << "NailStream  * orig_str = str_current;\n"
+          << "str_current = "<< scope.stream_ptr(mk_str(parser.pr.apply.stream)) << ";\n"
+          << "n_tr_stream(trace, str_current);\n";
+      peg(*parser.pr.apply.inner,(boost::format("goto fail_apply_%d;") % this_many).str(), scope);
+      out << "goto succ_apply_" << this_many << ";\n";
       out << "fail_apply_" << this_many << ":\n";
       out << "str_current = orig_str; \n" 
           << fail << "\n";
@@ -842,25 +854,63 @@ class CPrimitiveParser{
       //TODO: Do caching here
     case NAME: // Fallthrough intentional, and kludgy
     case REF:
-      //TODO: Deal with parameters here
-      out << "if(parser_fail(peg_" << mk_str(parser.pr.ref.name)<< "(trace,str_current))) {";
-      out << fail << "}\n";
+      {
+        //TODO: Deal with parameters here
+        std::stringstream parameters;
+        if(parser.pr.ref.parameters){
+          FOREACH(param, *parser.pr.ref.parameters){
+            switch(param->N_type){
+            case PDEPENDENCY:
+              parameters << "," << scope.dependency_ptr(mk_str(param->pdependency));
+              break;
+            case PSTREAM:
+              parameters << "," << scope.stream_ptr(mk_str(param->pstream));
+              break;
+            }
+          }
+        }
+        out << "if(parser_fail(peg_" << mk_str(parser.pr.ref.name)<< "(tmp_arena,trace,str_current"<<parameters.str()<<"))) {";
+        out << fail << "}\n";
+      }
       break;
     }
   }
 public:
-  CPrimitiveParser(std::ostream *os) : out(*os), nr_choice(1),nr_many(0),nr_const(0),nr_dep(0),num_iters(1), dependency_action(os,"tmp_arena"){}
+  CPrimitiveParser(std::ostream *os) : final(*os), nr_choice(1),nr_many(0),nr_const(0),nr_dep(0),num_iters(1), dependency_action(&out,"tmp_arena"){}
   void peg(const definition &def) {
     if(def.N_type == PARSER){
       Scope scope;
       std::string name = mk_str(def.parser.name);
+      std::stringstream params;
       //TODO: Parameters
-      out <<"static pos peg_" << name <<"(n_trace *trace, NailStream *str_current){\n";
+      if(def.parser.parameters){
+        FOREACH(param, *def.parser.parameters){
+          switch(param->N_type){
+          case DSTREAM:
+            params << ",NailStream *str_" << mk_str(param->dstream);
+            scope.add_stream_parameter(mk_str(param->dstream));
+            break;
+          case DDEPENDENCY:{
+            std::string post;
+            std::string type = typedef_type(*param->ddependency.type,"",&post);
+            std::string name = mk_str(param->ddependency.name);
+            assert(post == "");
+            params << type << "* dep_" << name << post;
+            scope.add_dependency_parameter(name,type);
+          }
+            break;
+          }
+        }
+      }
+      scope.add_stream_parameter("current");
+      out <<"static pos peg_" << name <<"(NailArena *tmp_arena,n_trace *trace, NailStream *str_current"<<params.str()<<"){\n";
       out << "pos i;\n"; //Used in name and ref as temp variables
       peg(def.parser.definition, "goto fail;",scope);
       out << "return 0;\n"
           << "fail:\n return -1;\n";
       out << "}\n";
+      header << "static pos peg_" << mk_str(def.parser.name) <<"(NailArena *tmp_arena,n_trace *trace,NailStream *str_current"<<params.str()<<");\n";
+
     }
     else if(def.N_type == CONSTANTDEF){
       std::string name = mk_str(def.constantdef.name);
@@ -869,24 +919,16 @@ public:
       out << "return 0;\n"
           << "fail: return -1;\n"
           << "}";
+        header << "static pos peg_" << mk_str(def.constantdef.name) <<"(NailStream *str_current);\n";
     }
   }
   void emit_parser(const grammar &gram){
     FOREACH(def, gram){
-      //Declaration
-      switch(def->N_type){
-      case PARSER:
-        out << "static pos peg_" << mk_str(def->parser.name) <<"(n_trace *trace,NailStream *str_current);\n";
-        break;
-      case CONSTANTDEF:
-        out << "static pos peg_" << mk_str(def->constantdef.name) <<"(NailStream *str_current);\n";
-        break;
-      }
-    }
-    FOREACH(def, gram){
       peg(*def);
     }
     out << std::endl;
+    final << header.str() << out.str() << std::endl;
+
   }
 };
 void emit_parser(std::ostream *out, grammar *grammar){
