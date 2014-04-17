@@ -24,6 +24,7 @@ int main(){
     XYZZY *object; 
     object = CAT(parse_,XYZZY)(&arena,input,inputsize);
     if(object){
+            printf("\n Successfully parsed! Trying to generate\n");
             const char *buf;
             size_t siz;
             HBitWriter *bw;
