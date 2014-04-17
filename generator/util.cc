@@ -74,3 +74,52 @@ std::string typedef_type(const parser &p, std::string name, std::string *post){
       return 0;
     }
   }
+//Negative of a constraint. 
+void constraint(std::ostream &out,std::string val, constraintelem &e){
+  switch(e.N_type){
+  case VALUE:
+    out << val << "!="<< intconstant_value(e.value);
+    break;
+  case RANGE:
+    out << "(";
+    if(e.range.max){
+      out << val << ">" << intconstant_value(*e.range.max);
+    }
+    else {
+      out << "0";
+    }
+    out << "||";
+    if(e.range.min){
+      out << val << "<" << intconstant_value(*e.range.min);
+    }
+    else {
+      out << "0";
+    }
+    out << ")";
+    break;
+  default:
+    assert("!foo");
+  }
+}
+void constraint(std::ostream &out,std::string val,  intconstraint &c){
+  switch(c.N_type){
+  case SINGLE:
+    constraint(val,c.single);
+    break;
+  case SET:
+    {
+      int first = 0;
+      FOREACH(allowed,c.set){
+        if(first++ != 0)
+          out << " && ";
+        constraint(val,*allowed);
+      }
+    }
+    break;
+  case NEGATE:
+    out << "!(";
+    constraint(val,*c.negate);
+    out << ")";
+    break;
+  }
+}

@@ -109,4 +109,5 @@ public:
 
 std::string int_type(const intp &intp );
 std::string typedef_type(const parser &p, std::string name, std::string *post);
+void constraint(std::ostream &out,std::string val,  intconstraint &c);
 #endif

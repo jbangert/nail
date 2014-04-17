@@ -1,12 +1,10 @@
 #line 1 "test_harness.c"
 #include <stdio.h>
 #include <stdint.h>
-#include <hammer/internal.h>
-extern HAllocator system_allocator;
 #define TOKENPASTE(x,y) x ## y
 #define CAT(x,y) TOKENPASTE(x,y)
 #define XYZZY foo
-#
+
 int main(){
         //     FILE * dump = popen("od -t d4","w");
     uint8_t input[102400];
@@ -27,10 +25,10 @@ int main(){
             printf("\n Successfully parsed! Trying to generate\n");
             const char *buf;
             size_t siz;
-            HBitWriter *bw;
-            bw= h_bit_writer_new(&system_allocator);
-            CAT(gen_,XYZZY)(bw,object);
-            buf = h_bit_writer_get_buffer(bw,&siz);
+            NailStream stream;
+            NailOutStream_new(&stream,4096);
+            CAT(gen_,XYZZY)(&stream,object);
+            buf = NailOutStream_buffer(&stream,&siz);
             printf("Output:\n");
             fwrite(buf,1,siz,stdout);
             printf("\nEnd of output;\n");

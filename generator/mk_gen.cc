@@ -20,7 +20,7 @@ class GenGenerator{
   std::ostream &out;
   int num_iters;
   void constint(int width, std::string value){
-    out << "h_bit_writer_put(out," << value << "," << width << ");\n";
+    out << "if(!stream_output(str_current," << value << "," << width << ")) return 0;";
   }
   void generator(constarray &c){ 
     switch(c.value.N_type){
@@ -65,13 +65,21 @@ class GenGenerator{
   void generator(parserinner &p,Expr &val, const Scope &scope){
     switch(p.N_type){
     case INTEGER:{
+      std::stringstream valstr; 
+      valstr << val;
       int width = boost::lexical_cast<int>(mk_str(p.integer.parser.unsign));
-      out << "h_bit_writer_put(out,"<<val<<","<< width << ");";
+      if(p.integer.constraint){
+        out << "if(";
+        constraint(out,valstr.str(),*p.integer.constraint);
+        out << "){return 0;}";
+      }
+      out << "if(!stream_output(str_current,"<<val<<","<< width << ")) return 0;";
       break;
     }
     case STRUCTURE:{
       std::stringstream fixup;
-      fixup << "{/*Context-rewind*/\n HBitWriter end_of_struct= *out;\n";
+      Scope newscope(scope);
+      fixup << "{/*Context-rewind*/\n NailStreamPos  end_of_struct= stream_getpos(str_current);\n";
       FOREACH(field, p.structure){
         switch(field->N_type){
         case CONSTANT:
@@ -79,11 +87,11 @@ class GenGenerator{
           break;
         case FIELD:{
           ValExpr fieldname(mk_str(field->field.name),&val);
-          generator(field->field.parser->pr,fieldname,scope);
+          generator(field->field.parser->pr,fieldname,newscope);
           break;
         }
         case DEPENDENCY:{
-          //Reserve space, which is not yet possible? 
+          //TODO: Handle other fixed-size dependencies, such as structures
           std::string post;
           parser &p = *field->dependency.parser;
           std::string name = mk_str(field->dependency.name);
@@ -93,28 +101,39 @@ class GenGenerator{
           int width =  boost::lexical_cast<int>(mk_str(p.pr.integer.parser.unsign));
           out << typedef_type(p,"",&post) << " dep_"<< name << ";";
           assert(post == "");
-          out << "HBitWriter rewind_"<< name << "=*out;";
-          out << "h_bit_writer_put(out,0,"<<width<<");";
-          fixup << "out->index = rewind_ " << name << ".index;";
-          fixup << "out->bit_offset = rewind_" << name <<".bit_offset;";
-          fixup << "h_bit_writer_put(out,dep_"<<name<<","<<width<<");";
+          out << "NailStreamPos rewind_"<< name << "=stream_getpos(str_current);";
+          out << "stream_output(str_current,0,"<<width<<");";
+          fixup << "stream_reposition(str_current, rewind_"<<name<<");";
+          fixup << "stream_output(str_current,dep_"<<name<<","<<width<<");";
           break;
         }
         case TRANSFORM:{ 
           std::string cfunction = mk_str(field->transform.cfunction);
           FOREACH(stream, field->transform.left){
               out << "NailStream str_" << mk_str(*stream) <<";\n";
-              // str_current cannot appear on the left
+              out << "if(NailOutStream_init(&str,4096)) {return NULL;}\n";
+              fixup << "NailOutStream_release(&str);"
+              scope.add_stream_definition(mk_str(*stream));
           }
-          out  << "//XXX: No transform in generator yet\n";
-          //TODO: build an implementation
+
+          // Transforms need to be invoked in reverse order
+          
         }
+          break;
+        case APPLY:{ 
+
+          out << "{/*APPLY*/";
+          out << "NailStream  * orig_str = str_current;\n";
+          out << "str_current =" << scope.stream_ptr(mk_str(parser.pr.apply.stream)) << ";";
+          
+        }
+          break;
         }
       }
-      fixup <<  "out->index = end_of_struct.index;\n";
-      fixup << "out->bit_offset = end_of_struct.bit_offset;\n}";
+      fixup <<  "stream_reposition(str_current, end_of_struct);";
       //TODO: Do a proper way of updating these!
       out << fixup.str();
+      out << "}";
     }
       break;
     case WRAP:
@@ -217,11 +236,11 @@ class GenGenerator{
       break;
     case REF:
       //TODO: Each of these needs to deal with parameters
-      out << "gen_" << mk_str(p.ref.name) << "(out,"<< val << ");";
+      out << "if(!gen_" << mk_str(p.ref.name) << "(str_current,"<< val << ")){return 0;}";
       
       break;
     case NAME:
-      out << "gen_"<< mk_str(p.name.name) << "(out,&"<< val << ");";
+      out << "if(!gen_"<< mk_str(p.name.name) << "(str_current,&"<< val << ")){return 0;}";
       break;
     }
   }
@@ -237,26 +256,30 @@ public:
 
       if(definition->N_type == CONSTANTDEF){
         std::string name = mk_str(definition->constantdef.name);
-        out<<"void gen_"<<name<<"(HBitWriter* out);";
+        out<<"int gen_"<<name<<"(NailStream* out);";
       }
       else if(definition->N_type==PARSER){
         std::string name = mk_str(definition->parser.name);
-        out << "void gen_" << (name)<<"(HBitWriter *out,"<< name << " * val);";
+        out << "int gen_" << (name)<<"(NailStream *out,"<< name << " * val);";
       }          
     }
     FOREACH(definition,*grammar){
 
       if(definition->N_type == CONSTANTDEF){
         std::string name = mk_str(definition->constantdef.name);
-        out<<"void gen_"<<name<<"(HBitWriter* out){\n";
-        //        generator(definition->constantdef.definition);
+        out<<"int gen_"<<name<<"(NailStream* out){\n";
+        generator(definition->constantdef.definition);
+        out << "return 1;"
         out << "}";
       }
       else if(definition->N_type==PARSER){
+        Scope scope;
         std::string name = mk_str(definition->parser.name);
-        out << "void gen_" << (name)<<"(HBitWriter *out,"<< name << " * val){";
+        out << "int gen_" << (name)<<"(NailStream *str_current,"<< name << " * val){";
+        scope.add_stream_parameter("current");
         ValExpr outval("val",NULL,1);
-        //        generator(definition->parser.definition.pr,outval);
+        generator(definition->parser.definition.pr,outval,scope);
+        out << "return 1;"
         out << "}";
       }          
     }

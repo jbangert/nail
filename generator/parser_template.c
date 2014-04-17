@@ -70,7 +70,53 @@ static NailStreamPos   stream_getpos(NailStream *stream){
         return stream->pos << 3 + stream->bit_offset; //TODO: Overflow potential!
 }
 
-#define BITSLICE(x, off, len) read_unsigned_bits(x,off,len)
+int NailOutStream_new(NailStream *out,size_t siz){
+        out->data = (const uint8_t *)malloc(siz);
+        if(!out->data)
+                return 0;
+        out->pos = 0;
+        out->bit_offset = 0;
+        out->size = siz;
+        return 1;
+}
+void NailOutStream_release(NailStream *out){
+        free(out->data);
+        out->data = NULL;
+}
+const uint8_t * NailOutStream_buffer(NailStream *str,size_t *siz){
+        if(str->bit_offset)
+                return NULL;
+        *siz =  str->pos;
+        return str->data;
+}
+//TODO: Perhaps use a separate structure for output streams?
+static int stream_output(NailStream *stream,uint64_t data, size_t count){
+        if(stream->pos + count>>3 + 1 >= stream->size){
+                //TODO: parametrize stream growth
+                stream->data = realloc((void *)stream->data,stream->size+4096);
+                stream->size+= 4096;
+                if(!stream->data)
+                        return 0;
+        }
+        uint8_t *streamdata = (uint8_t *)stream->data;
+        while(count>0){
+                if(stream->bit_offset == 0 && (count & 7) == 0){
+                        streamdata[stream->pos] = (data >> count );
+                        count -= 8;
+                        stream->pos++;
+                }
+                else{
+                        streamdata[stream->pos] |= ((data >> count) & 1) << (7-stream->bit_offset);
+                        count--;
+                        stream->bit_offset++;
+                        if(stream->bit_offset>7){
+                                stream->pos++;
+                                stream->bit_offset= 0;
+                        }
+                }
+        }
+}
+//#define BITSLICE(x, off, len) read_unsigned_bits(x,off,len)
 /* trace is a minimalistic representation of the AST. Many parsers add a count, choice parsers add
  * two pos parameters (which choice was taken and where in the trace it begins)
  * const parsers emit a new input position  

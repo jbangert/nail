@@ -12,7 +12,9 @@ struct NailStream {
     size_t pos;
     signed char bit_offset;
 };
+
 typedef struct NailStream NailStream;
 typedef size_t NailStreamPos;
-zip*parse_zip(NailArena *arena, const uint8_t *data, size_t size);
-foo*parse_foo(NailArena *arena, const uint8_t *data, size_t size);
+int NailOutStream_new(NailStream *str,size_t siz);
+void NailOutStream_release(NailStream *str);
+const uint8_t * NailOutStream_buffer(NailStream *str,size_t *siz);

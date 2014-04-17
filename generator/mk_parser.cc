@@ -466,55 +466,7 @@ class CPrimitiveParser{
   void check_int(unsigned int width, const std::string &fail){
     out << "if(!stream_check(str_current,"<<width<<")) {"<<fail<<"}\n";
   }
-  //Negative of a constraint. 
-  void constraint(std::string val, constraintelem &e){
-    switch(e.N_type){
-    case VALUE:
-      out << val << "!="<< intconstant_value(e.value);
-      break;
-    case RANGE:
-      out << "(";
-      if(e.range.max){
-        out << val << ">" << intconstant_value(*e.range.max);
-      }
-      else {
-        out << "0";
-      }
-      out << "||";
-      if(e.range.min){
-        out << val << "<" << intconstant_value(*e.range.min);
-      }
-      else {
-        out << "0";
-      }
-      out << ")";
-      break;
-    default:
-      assert("!foo");
-    }
-  }
-  void constraint(std::string val,  intconstraint &c){
-    switch(c.N_type){
-    case SINGLE:
-      constraint(val,c.single);
-      break;
-    case SET:
-      {
-        int first = 0;
-        FOREACH(allowed,c.set){
-          if(first++ != 0)
-            out << " && ";
-          constraint(val,*allowed);
-        }
-      }
-      break;
-    case NEGATE:
-      out << "!(";
-      constraint(val,*c.negate);
-      out << ")";
-      break;
-    }
-  }
+  
   
   void peg(const constrainedint &c, const std::string &fail){
     int width = boost::lexical_cast<int>(mk_str(c.parser.unsign));
@@ -522,7 +474,7 @@ class CPrimitiveParser{
     if(c.constraint != NULL){
       out << "{\n uint64_t val = "<< int_expr("str_current",width) << ";\n";
       out << "if(";
-      constraint(std::string("val"),*c.constraint);
+      constraint(out,std::string("val"),*c.constraint);
       out << "){"
           << "stream_backup(str_current,"<<width<<");"
           <<fail<<"}\n";
