@@ -89,6 +89,13 @@ static void n_trace_release(n_trace *out){
         out->iter = 0;
         out->grow = 0;
 }
+static pos n_trace_getpos(n_trace *tr){
+        return tr->iter;
+}
+static void n_tr_setpos(n_trace *tr,pos offset){
+        assert(offset<tr->capacity);
+        tr->iter = offset;
+}
 static int n_trace_grow(n_trace *out, int space){
         if(out->capacity - space>= out->iter){
                 return 0;

@@ -5,6 +5,7 @@
 #include <string>
 struct Expr{
 public:
+  virtual ~Expr(){}
   virtual int is_ptr() const = 0;
   //  virtual void make_ptr() = 0;
   virtual void print_val(std::ostream &str) const = 0;
