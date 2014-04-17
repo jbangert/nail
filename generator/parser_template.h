@@ -10,6 +10,7 @@ struct NailStream {
     const uint8_t *data;
     size_t size;
     size_t pos;
+    signed char bit_offset;
 };
 typedef struct NailStream NailStream;
 typedef size_t NailStreamPos;

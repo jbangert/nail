@@ -426,7 +426,7 @@ public:
         out<< "return 0;}";
         if(!def->parser.parameters || def->parser.parameters->count==0){
           out << name << "*parse_" << name << "(NailArena *arena, const uint8_t *data, size_t size){\n"
-              << "NailStream stream = {.data = data, .pos= 0, .size = size*8};\n"
+              << "NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};\n"
               << "NailArena tmp_arena;"
               << "NailArena_init(&tmp_arena, 4096);"
               <<"n_trace trace;\n"

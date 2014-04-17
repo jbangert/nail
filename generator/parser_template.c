@@ -12,46 +12,62 @@ static uint64_t read_unsigned_bits(NailStream *stream, unsigned count){
         uint64_t retval = 0;
         unsigned int out_idx=count;
         size_t pos = stream->pos;
+        char bit_offset = stream->bit_offset;
         const uint8_t *data = stream->data;
         //TODO: Implement little endian too
         //Count LSB to MSB
         while(count>0) {
-                if((pos & 7) == 0 && (count &7) ==0) {
+                if(bit_offset == 0 && (count &7) ==0) {
                         out_idx-=8;
-                        retval|= data[pos >> 3] << out_idx;
-                        pos += 8;
+                        retval|= data[pos] << out_idx;
+                        pos ++;
                         count-=8;
                 }
                 else{
                         //This can use a lot of performance love
 //TODO: implement other endianesses
                         out_idx--;
-                        retval |= ((data[pos>>3] >> (7-(pos&7))) & 1) << out_idx;
+                        retval |= ((data[pos] >> (7-bit_offset)) & 1) << out_idx;
                         count--;
-                        pos++;
+                        bit_offset++;
+                        if(bit_offset > 7){
+                                bit_offset -= 8;
+                                pos++;
+                        }
                 }
         }
         stream->pos = pos;
+        stream->bit_offset = bit_offset;
     return retval;
 }
 static int stream_check(const NailStream *stream, unsigned count){
-        return stream->size - count >= stream->pos;
+        return stream->size - (count>>3) - ((stream->bit_offset + count & 7)>>3) >= stream->pos;
 }
 static void stream_advance(NailStream *stream, unsigned count){
-        stream->pos += count;
-
+        
+        stream->pos += count >> 3;
+        stream->bit_offset += count &7;
+        if(stream->bit_offset > 7){
+                stream->pos++;
+                stream->bit_offset-=8;
+        }
 }
 static void stream_backup(NailStream *stream, unsigned count){
-        stream->pos -= count;
+        stream->pos -= count >> 3;
+        stream->bit_offset -= count & 7;
+        if(stream->bit_offset < 0){
+                stream->pos--;
+                stream->bit_offset += 8;
+         }
 }
 static int stream_reposition(NailStream *stream, NailStreamPos p)
 {
-        assert(p <= stream->size);
-        stream->pos = p;
+        stream->pos = p >> 3;
+        stream->bit_offset = p & 7;
         return 0;
 }
 static NailStreamPos   stream_getpos(NailStream *stream){
-        return stream->pos;
+        return stream->pos << 3 + stream->bit_offset; //TODO: Overflow potential!
 }
 
 #define BITSLICE(x, off, len) read_unsigned_bits(x,off,len)
