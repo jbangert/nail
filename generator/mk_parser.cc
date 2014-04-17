@@ -211,8 +211,7 @@ static std::string int_expr(const char * stream,unsigned int width){
   if(width>=64){
     throw std::runtime_error("More than 64 bits in integer");
   }
-  //TODO: x
-  // TODO: Make big endian. Flip n bytes
+  //TODO: Support little endian?
   return boost::str(boost::format("read_unsigned_bits(%s,%d)")%stream % width);
 }
 class CAction{
@@ -232,7 +231,6 @@ public:
     case INTEGER:{
       int width = boost::lexical_cast<int>(mk_str(p.integer.parser.unsign));
       out << lval << "=" << int_expr("stream",width) << ";\n";
-      out<< "stream_advance(stream," << width<<");\n";
     }
       break;
     case STRUCTURE:
@@ -465,9 +463,6 @@ class CPrimitiveParser{
   CAction dependency_action;
   /*Parse pass emits a light-weight trace of data structure*/
   //TODO: Keep track of bit alignment
-  void stream_advance(unsigned int width){
-    out << "stream_advance(str_current,"<<width<<");\n";
-  }
   void check_int(unsigned int width, const std::string &fail){
     out << "if(!stream_check(str_current,"<<width<<")) {"<<fail<<"}\n";
   }
@@ -528,15 +523,18 @@ class CPrimitiveParser{
       out << "{\n uint64_t val = "<< int_expr("str_current",width) << ";\n";
       out << "if(";
       constraint(std::string("val"),*c.constraint);
-      out << "){"<<fail<<"}\n";
+      out << "){"
+          << "stream_backup(str_current,"<<width<<");"
+          <<fail<<"}\n";
       out << "}\n";
     }
-    stream_advance(width);
+    else{
+      out << "stream_advance(str_current,"<<width<<");\n";
+    }
   }
   void peg_constint(int width, const std::string value,const std::string &fail){
     check_int(width,fail);
     out << "if( "<< int_expr("str_current",width) << "!= "<<value<<"){"<<fail<<"}";
-    stream_advance(width);
   }
   void peg_const(const constarray &c, const std::string &fail){
     switch(c.value.N_type){
@@ -736,7 +734,6 @@ class CPrimitiveParser{
           
         case TRANSFORM:
           {
-            //            assert(!"Implement");
             header << "extern int " << mk_str(field->transform.cfunction) << "_parse(NailArena *tmp";
             FOREACH(stream, field->transform.left){
               out << "NailStream str_" << mk_str(*stream) <<";\n";

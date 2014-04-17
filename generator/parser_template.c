@@ -8,7 +8,7 @@ typedef struct{
         pos *trace;
         pos capacity,iter,grow;
 } n_trace; 
-static uint64_t read_unsigned_bits(const NailStream *stream, unsigned count){ 
+static uint64_t read_unsigned_bits(NailStream *stream, unsigned count){ 
         uint64_t retval = 0;
         unsigned int out_idx=count;
         size_t pos = stream->pos;
@@ -31,14 +31,18 @@ static uint64_t read_unsigned_bits(const NailStream *stream, unsigned count){
                         pos++;
                 }
         }
+        stream->pos = pos;
     return retval;
 }
 static int stream_check(const NailStream *stream, unsigned count){
         return stream->size - count >= stream->pos;
 }
-static int stream_advance(NailStream *stream, unsigned count){
+static void stream_advance(NailStream *stream, unsigned count){
         stream->pos += count;
-        return 0;
+
+}
+static void stream_backup(NailStream *stream, unsigned count){
+        stream->pos -= count;
 }
 static int stream_reposition(NailStream *stream, NailStreamPos p)
 {
