@@ -1,6 +1,7 @@
 #line 1 "test_harness.c"
 #include <stdio.h>
 #include <stdint.h>
+#include <hammer/internal.h>
 extern HAllocator system_allocator;
 #define TOKENPASTE(x,y) x ## y
 #define CAT(x,y) TOKENPASTE(x,y)

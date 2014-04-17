@@ -314,7 +314,10 @@ public:
         out << "{/*Apply*/ "
             <<"NailStream *original_stream = stream;\n;";
         out << "stream = (NailStream *)tr;";
-        out << "tr+= sizeof(NailStream *) / sizeof(*tr);";
+#ifdef DEBUG_OUT
+        out << "fprintf(stderr,\"%d = stream \\n\",tr-trace_begin, stream);\n";
+#endif
+        out << "tr+= sizeof(NailStream) / sizeof(*tr);";
         action(p.apply.inner->pr, lval);
         out << "stream = original_stream;";
         out <<"}\n";
@@ -739,6 +742,7 @@ class CPrimitiveParser{
               out << "NailStream str_" << mk_str(*stream) <<";\n";
               // str_current cannot appear on the left
             }
+            out << "if(";
             out << mk_str(field->transform.cfunction) << "_parse(tmp_arena"; //TODO: use temp arena
 
             FOREACH(stream, field->transform.left){           
@@ -761,7 +765,7 @@ class CPrimitiveParser{
                 break;
               }
             }
-            out << ");\n";
+            out << ")) {" << fail << "}";
             header << ");\n";
             FOREACH(stream, field->transform.left){
               newscope.add_stream_definition(mk_str(*stream));
@@ -848,6 +852,7 @@ class CPrimitiveParser{
           << "str_current = orig_str;\n";
       out << "}";        
     }
+      break;
     case OPTIONAL:
       peg_optional(*parser.pr.optional,fail,scope);
       break;
