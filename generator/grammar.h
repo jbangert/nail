@@ -1,5 +1,11 @@
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "new_grammar.nail.h"
+#ifdef __cplusplus
+}
+#endif
 
 /* #include <nail/macros.h>
 #define N_SEPBY1 N_SEPBY
