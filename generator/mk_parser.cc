@@ -944,14 +944,7 @@ void emit_parser(std::ostream *out, grammar *grammar){
 void emit_header(std::ostream *out, grammar *grammar){
   CDataModel data(out);
   data.emit_parser(grammar);
-  *out  <<  "struct NailArenaPool;"
-    "typedef struct NailArena_{"
-    "     struct NailArenaPool *current;"
-    "    size_t blocksize;"
-    " } NailArena ;\n"
-        << "int NailArena_init(NailArena *arena,size_t blocksize);\n"
-        << "int NailArena_release(NailArena *arena);\n";
-  *out << "struct NailStream{ const uint8_t *data; size_t size; size_t pos;}; typedef struct NailStream NailStream; typedef size_t NailStreamPos;\n";
+  *out  <<   std::string(header_template_start,header_template_end - header_template_start);
   FOREACH(def, *grammar){
     if(def->N_type == PARSER){
       std::string name= mk_str(def->parser.name);
