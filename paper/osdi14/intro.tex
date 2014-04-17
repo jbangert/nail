@@ -1,0 +1,101 @@
+\section{Introduction}
+
+Code that handles untrusted inputs, such as processing network
+data or parsing a file, is error-prone and is often exploited by
+attackers.  This is in part because attackers have precise control
+over the inputs to that code, and can craft inputs that trigger
+subtle corner cases in input processing.  For example, the libpng
+library has had 24 remotely exploitable vulnerabilities from 2007 to
+2013,\footnote{\url{http://www.cvedetails.com/vulnerability-list/vendor_id-7294/Libpng.html}}
+and Adobe's PDF and Flash viewers have been notoriously
+plagued by input processing vulnerabilities.  Even relatively
+simple formats, such as those used by the zlib compression
+library, have had input processing vulnerabilities in the
+past.\footnote{\url{http://www.cvedetails.com/vulnerability-list/vendor_id-72/product_id-1820/GNU-Zlib.html}}
+
+A promising approach to avoid such vulnerabilities is to specify
+a precise grammar for the input data format, and to use a parser
+generator, such as {\tt lex} and {\tt yacc}, to synthesize the input
+processing code.  Developers that use a parser generator do not need
+to write error-prone input processing code on their own, and as long
+as the parser generator is bug-free, the application will be safe from
+input processing vulnerabilities.  Unfortunately, applying this approach
+in practice, using state-of-the-art parser generators, still requires
+too much manual programmer effort, making it error-prone, as we describe
+next.
+
+First, parser generators typically parse inputs into an abstract syntax
+tree (AST) that corresponds to the grammar.  In order to produce a data
+structure that the rest of the application code can easily process,
+application developers must write explicit {\em semantic actions} that
+update the application's internal representation of the data based on
+each AST node.  Writing these semantic actions by hand is error-prone,
+much like other input processing code, and mistakes can result in memory
+corruption bugs or misinterpreted inputs.  Writing these semantic actions
+also requires the programmer to describe the structure of the input three
+times---once to describe the grammar, once to describe the internal data
+structure, and once again in the semantic actions that translate the
+grammar into the data structure---leading to another potential source
+of bugs and inconsistencies.
+
+Second,  applications often need to produce output in the same
+format as their input---for example, applications might both
+read and write files, or both receive and send network packets.
+Most parser generators just focus on parsing an input, rather
+than producing an output, thus requiring the programmer to manually
+construct outputs, which is error-prone.  Some parser generators, such as
+Boost.Spirit~\cite{boost-spirit},
+allow reusing the grammar for generating output from the internal
+representation.  However, those generators require yet another set of
+semantic actions to be written, transforming the internal representation
+into an AST\@.
+
+
+Third, data formats, especially binary formats such as PNG or PDF, can have \emph{structural dependencies}, such as offset, length, and checksum fields
+that are hard to express in state-of-the-art grammar languages. Often the programmer is required to
+manually write control code, such as re-positioning the parser's input stream, looping over the
+invocation of a sub-parser, or computing a
+checksum over raw input bytes.  Besides leaving much room for errors with offset arithmetic, such
+code is usually not reusable when generating output.
+
+
+This paper presents the initial design and implementation of Nail, a parser
+generator that greatly reduces the programmer effort required to use a
+grammar-based parser. Nail addresses the above three challenges with several key
+ideas.
+
+First, Nail reduces the expressiveness of its grammar language by removing
+semantic actions. Existing parser generators allow arbitrary computation to
+transform between the AST and the parser output. Instead, Nail derives the
+structure of its output automatically from the grammar, forcing the programmer
+to clearly separate syntactic validation and semantic processing.
+
+Second, this well-defined internal representation allows Nail to invert the
+parser and generate output. However, Nail allows \emph{constants} in the
+external format to have multiple representations if they should not affect the
+semantics of the data. For example, in a text protocol, the amount of
+white-space separating tokens should not affect the meaning of the data and
+consequently Nail does not expose it to the application. As long as
+constants are only used for their intended purpose of representing syntax-only
+features, the generated output will have the same semantics as the parsed input.
+
+Third, Nail provides support for structural dependencies, transparently handling
+offset and length fields. By hiding the offset and length values from the
+programmer, Nail ensures they remain consistent even if the data is changed by
+the application. 
+
+
+
+We have implemented an initial prototype of Nail for C\@.  Our experience
+so far suggests that it is a promising approach: we were able to construct
+a succinct grammar for DNS packets, and write a small DNS server that
+uses Nail for all packet input and output, and operates purely on
+Nail-generated data structures, with no need for any semantic actions.
+
+The rest of this paper is organized as follows.  \S\ref{s:relwk}
+puts Nail in the context of related work.  \S\ref{s:design} describes
+Nail's design.  \S\ref{s:impl} discusses our initial implementation
+of Nail.  \S\ref{s:eval} provides some initial evaluation results.
+\S\ref{s:future} suggests several directions for future work, and
+\S\ref{s:concl} concludes.
+

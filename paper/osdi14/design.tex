@@ -1,0 +1,292 @@
+\section{Design}
+\label{s:design}
+
+\subsection{Overview}
+
+To integrate the data format and the internal representation, Nail
+provides a rich set of combinators that not
+only describe the grammar of the external protocol, but also induce an internal
+model.
+
+A central design decision of Nail is that there is a \emph{semantic bijection} between
+the model exposed to the programmer and the byte-level input and output, up to
+syntactic equivalence for unambiguous grammars. More precisely, the parser is
+the generator's inverse, so parsing the generator's output will yield the
+generator's input, but generating the parsers output does not necessarily yield
+the parsers input. To understand why this makes sense, consider a grammar for a
+text language that tolerates white space, or a binary protocol that tolerates
+arbitrarily long padding.\footnote{Say, the physical layer of most communication
+  protocols is a possibly infinite sequence of symbols that are syntactically
+  nil followed by a pre-determined synchronization sequence and the actual
+  contents of the transmission.} In that case, the program semantics should be
+independent of the number of padding elements in the input, and Nail therefore
+does not expose that information to the programmer. We call such discarded
+fields \emph{constants}. Currently, Nail always makes a default choice when
+there are multiple options to express a constant, however Nail could be extended
+to allow a grammar-specific plug-in to make these choices, say for faster
+alignment, streaming applications when data is not ready, or visual appearance in
+human-readable protocols. Similarly, Nail does not preserve the layout of
+objects referred to by their offsets. If the grammar contains no constants and
+offset fields, there is a proper isomorphism between model and protocol.
+
+
+Nail evaluates the combinators and produces:
+
+\begin{itemize}
+\item type declarations for the internal model,
+\item the \textit{parser}, a function to parse a sequence of bytes into an
+instance of the model, and
+\item the \textit{generator}, a function to create a
+sequence of bytes from an instance of the model.
+\end{itemize}
+
+\noindent
+In the rest of this section, we present Nail's combinators.
+
+\begin{figure}[tb]
+\begin{tabular}{ll}
+\toprule
+\bf Syntax & \bf Semantics \\
+\midrule
+\texttt{int32} & 32-bit signed integer \\
+\multirow{2}{*}{\texttt{uint4}}
+  & 4-bit unsigned integer, \\
+  & returned as an 8-bit value \\
+\multirow{2}{*}{\texttt{uint8 | 1..3}}
+  & 8-bit unsigned integer, \\
+  & $1\leq x \leq 3$ \\
+\multirow{2}{*}{\texttt{uint16 | ..512}}
+  & unsigned 16-bit integer, \\
+  & $x \leq 512$ \\
+\multirow{2}{*}{\texttt{int32 | [1,255,512]}}
+  & signed 32 bit integer, \\
+  & $x \in \{ 1, 255, 512 \}$ \\
+\bottomrule
+\end{tabular}
+\caption{Example Nail grammars for integer values.}
+\label{fig:range}
+\end{figure}
+
+\paragraph{Fundamental parsers.}
+The elementary parsers of Nail are the same as those of Hammer, signed
+and unsigned integers with arbitrary lengths up to 64 bits.  Note that is
+possible to define parsers for sub-byte lengths, e.g. to parse the 4-bit
+data offset within the TCP header; in Nail's syntax.  Integer parsers
+return their value in the smallest appropriately sized machine integer
+type; e.g., a 24-bit integer is stored in a 32-bit wide variable.
+
+Integer parsers can be constrained to fall either within an (inclusive)
+range of values or be an element of a set of allowed values.
+Figure~\ref{fig:range} shows several examples.
+Invalid values or prematurely reaching the end of input will raise an
+error when parsing input or generating output, and abort the procedure.
+
+
+\paragraph{Sequence.}
+
+Nail's fundamental concept is the structure combinator. It contains a list of
+named parsers and unnamed constant parsers. The parser invokes each field 
+in sequence and returns a structure containing the result of each parser.
+For example, Figure~\ref{fig:dns-struct} shows the structure combinator
+from a part of the grammar for DNS packets, along with the data model
+corresponding to it.
+
+\begin{figure}[tb]
+
+\begin{minipage}{0.45\columnwidth}
+\begin{verbatim}
+header = {
+  id uint16
+  qr uint1
+  opcode uint4
+  aa uint1 
+  tc uint1
+  rd uint1
+  ra uint1
+  uint3 = 0
+  rcode uint4
+}
+\end{verbatim} 
+\end{minipage}
+~
+\begin{minipage}{0.45\columnwidth}
+\begin{verbatim}
+struct header {
+  uint16_t id;
+  uint8_t qr;
+  uint8_t opcode;
+  uint8_t aa;
+  uint8_t tc;
+  uint8_t rd;
+  uint8_t ra;
+  uint8_t rcode;
+};
+\end{verbatim} 
+\end{minipage}
+
+\caption{Nail grammar (left) and data model (right) for a part of the
+grammar for DNS packets.  The \texttt{uint3 = 0} grammar represents
+3 bits of padding (filled with zeroes).}
+\label{fig:dns-struct}
+\end{figure}
+
+
+\paragraph{Repetition.}
+
+The \emph{many} combinator takes a parser and applies it repeatedly
+until it fails, returning an array of the inner parsers results. The
+\emph{sepBy} combinator
+additionally takes a constant parser, which it applies in between parsing
+two values, but not before parsing the first value or after parsing the
+last.
+For example, \texttt{many uint8} represents an array of 8-bit unsigned
+integers, and \texttt{sepBy uint8=',' (many uint8 | '0'..'9')} recognizes
+comma-separated lists of decimal numbers.
+
+
+\paragraph{Semantic choice.}
+
+We extend a parsing expression grammar's ordered choice combinator with
+a tag for each choice. The parser
+attempts to parse each option in the order they are specified in the field and
+stores the result in a tagged union. If an option fails, the parser backtracks
+to the beginning of the choice combinator's input. Care must be taken that the
+choices do not overlap, because Nail always picks the first successfully
+parsed choice. If two options overlap, generated output for the latter option is
+not necessarily understood identically by the parser. However, actual data
+formats are usually not ambiguous in this sense.
+Figure~\ref{fig:choice} demonstrates a simple choice combinator.
+
+\begin{figure}[tb]
+\begin{verbatim}
+choose {
+  A = uint8 | 1..8
+  B = uint16 | ..256
+}
+\end{verbatim}
+\caption{A simple choice combinator that parses either an 8-bit unsigned
+integer with a value between 1 and 8 (option A), or a 16-bit unsigned
+integer with a value of at most 256 (option B).}
+\label{fig:choice}
+\end{figure}
+
+\subsection{Constant parsers}
+
+Nail also features \emph{constant parsers}, which do not affect the internal
+representation. Constant parsers can appear instead of structure fields and as
+separators in the sepBy combinator.
+
+The simplest constant parser is an integer or array of integers with fixed
+value; for example, \texttt{uint8=0}, or \texttt{many uint8=[1,2]}. A convenience notation
+for strings is also supported: \texttt{many uint8 = "foo"}.
+
+\paragraph{Wrap combinator.} When implementing real protocols with Nail, we often found that
+structures that consist of many constant parsers and only one named field. This pattern is
+common in binary protocols which use fixed headers to denote the type of data
+structure to be parsed.  In order to keep the internal representation cleaner,
+we introduced the wrap combinator, which takes a sequence of parsers containing
+exactly one non-constant parser. The parser and generator act as though the wrap
+combinator was a sequence of parsers, but the data model does not wrap the
+single value in another structure, making the application-visible representation
+(and thus application code) more concise.
+
+For example, \texttt{<uint8='"'; many int8 | 'a'..'z'; uint8='"'>} parses a quoted
+lowercase word into an array, excluding the quotation marks.
+
+\paragraph{Constant combinators.}
+In some protocols, there might be many ways to represent the same constant field
+and there is no semantic difference between the different syntactic representations.
+To support this pattern, Nail allows developers to use choice and repetition
+combinators together with constant fields, such as
+\texttt{many (uint8=' ')} (representing any number of space characters), or
+\texttt{|| uint8 = 0x90 || uint16 = 0x1F0F} (parsing two of the many representations of NOP on the
+x86 architecture). Note that constant may have varying lengths.
+This is particularly useful for handling padding or whitespace.
+
+As discussed above, choosing to use these combinators on constant parsers
+removes the bijection between byte-strings and our data model, as there are
+multiple byte-strings that correspond to the same internal data structure and
+the generator has to choose one of these representations. As such, constant
+combinators are the generator dual of ambiguous choice combinators in the
+parser, because they lead to ambiguities in the generator.
+
+
+\subsection{Dependent fields}
+Another problem for parser generators is that binary protocols often contain
+length and offset fields. Conventional parsing algorithms can, in principle,
+deal with
+bounded offset fields: a finite automaton can count a bounded integer, and we
+can feed the (finite) input multiple times to the finite automaton. However,
+this implementation is both time-inefficient (it feeds many bytes into the
+automaton that will just be skipped) and very cumbersome to express with
+current parser generators. Therefore, if languages with offset fields need
+to be parsed
+with parser generators, the only currently practical way is to add ad-hoc hacks
+such as changing the input pointer of the generated parser on the fly, as part
+of the code in the semantic action for the offset field.
+
+Nail will properly support both offset and length fields and much of the
+following discussion applies to both, although the current prototype only
+implements lengths, which we will focus on.
+
+We call length or offset fields \textit{dependent fields}, because during
+parsing, another parser depends on them, and while generating output, their
+value depends on some other structure in the data model. Dependency fields
+appear in a structure combinator as would any other integer field, but
+their name begins with an \texttt{@} sign.  A dependency field has to
+appear in the grammar before it can be used.
+
+Dependency fields are not exposed in the data model, but instead are
+transparently computed.  This frees the developer from checking that
+these fields are correct (for input) or having to keep their values in
+sync with the rest of the data structure (for output).
+
+\paragraph{Length fields.}
+
+The length combinator, \texttt{n_of}, takes a dependency field $n$
+and a parser, evaluates the parser exactly $n$ times (i.e., setting
+the number of iterations to be the $n$ field's value), and returns
+an array of the parser's values. When generating output, it emits
+the array and writes its length to the dependency field.
+
+\paragraph{Offsets.}
+
+The \texttt{offset} combinator takes a dependency field and a parser. It
+moves the parser to the position specified in the offset field and
+invokes the inner parser, and then moves the input back to its original
+position.  While generating output, all structures referred to by offset
+are generated after the main structure and the dependent offset fields
+are patched up.
+
+\paragraph{Checksums.}
+
+In many data formats, some values depend on external representation,
+such as checksums and cryptographic signatures.  While it would be
+possible to extend our constraint language to be powerful enough to
+support such constructs, we would essentially be building a separate,
+Turing-complete language that has all the same pitfalls existing programs
+have.  Therefore, we intend to allow the programmer to carefully escape
+Nail's programming model and write a function that takes a pointer to
+the dependent value and a range of bytes, using the \texttt{raw_depend}
+combinator.
+
+For example, we imagine the following grammar could be used to represent
+a sequence of bytes \texttt{data} followed by its CRC32 checksum:
+
+\begin{verbatim}
+data many uint8; @checksum uint32
+raw_depend @checksum data crc32
+\end{verbatim}
+
+\noindent
+where \texttt{crc32} is a function supplied by the application, with
+the following signature:
+
+\begin{verbatim}
+bool crc32(uint32_t *out, uint8_t *in);
+\end{verbatim}
+
+Because this feature compromises Nail's security guarantees, it should
+only be used in limited circumstances and with carefully prepared checksum
+functions.  This feature is not implemented in the current prototype.
+

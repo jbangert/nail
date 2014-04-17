@@ -1,0 +1,376 @@
+\makeatletter
+\newif\if@sigmin@ninept   \@sigmin@nineptfalse
+\newif\if@sigmin@tenpt    \@sigmin@tenptfalse
+\newif\if@sigmin@elevenpt \@sigmin@elevenptfalse
+\newif\ifcopyrightspace   \copyrightspacetrue
+\newif\if@sigmin@oneinmar \@sigmin@oneinmarfalse
+\DeclareOption{11pt}{\@sigmin@elevenpttrue}
+\DeclareOption{10pt}{\@sigmin@tenpttrue}
+\DeclareOption{9pt}{\@sigmin@ninepttrue}
+\DeclareOption{nocopyright}{\copyrightspacefalse}
+\DeclareOption{inchmargins}{\@sigmin@oneinmartrue}
+\ProcessOptions
+
+{\def\SizeError{\PackageError{sigmin}{Specify exactly one of `9pt', `10pt', and `11pt'}\@ehc}%
+\if@sigmin@ninept \if@sigmin@tenpt \SizeError    \fi\fi
+\if@sigmin@ninept \if@sigmin@elevenpt \SizeError \fi\fi
+\if@sigmin@tenpt  \if@sigmin@elevenpt \SizeError \fi\fi
+\if@sigmin@ninept\else\if@sigmin@tenpt\else\if@sigmin@elevenpt\else
+\SizeError \fi\fi\fi
+}%
+
+\if@sigmin@oneinmar
+\oddsidemargin 1in
+\evensidemargin 1in
+\topmargin 1in
+\textheight 9in
+\textwidth 6.5in
+\columnsep 0.25in
+
+%\oddsidemargin .9in
+%\evensidemargin .9in
+%\topmargin .9in
+%\textheight 9.2in
+%\textwidth 6.7in
+%\columnsep 0.2in
+
+\else
+\oddsidemargin 0.75in
+\evensidemargin 0.75in
+\topmargin 0.75in               % Nominal distance from top of page to top of
+                                % box containing running head.
+\textheight 9.25in              % 9 1/4 column height (1 in margin on bottom)
+\textwidth 7in                  % Width of text line.
+                                % For two-column mode:
+\columnsep 2pc                  %    Space between columns (1/3 in)
+\fi
+
+\advance\oddsidemargin by -1in  % Correct for LaTeX gratuitousness
+\advance\evensidemargin by -1in % Correct for LaTeX gratuitousness
+\advance\topmargin by -1in      % Correct for LaTeX gratuitousness
+
+\marginparwidth 0pt             % Margin pars are not allowed.
+\marginparsep 11pt              % Horizontal space between outer margin and
+                                % marginal note
+
+\headheight 0pt                 % Height of box containing running head.
+\headsep 0pt                    % Space between running head and text.
+                                % Bottom of page:
+\footskip 30pt                  % Distance from baseline of box containing foot
+                                % to baseline of last line of text.
+\@ifundefined{footheight}{\newdimen\footheight}{}% this is for LaTeX2e
+\footheight 12pt                % Height of box containing running foot.
+
+%% Must redefine the top margin so there's room for headers and
+%% page numbers if you are using the preprint option. Footers
+%% are OK as is. Olin.
+\advance\topmargin by -37pt     % Leave 37pt above text for headers
+\headheight 12pt                % Height of box containing running head.
+\headsep 25pt                   % Space between running head and text.
+
+\columnseprule 0pt      %    Width of rule between columns.
+\hfuzz 1pt              % Allow some variation in column width, otherwise it's
+                        % too hard to typeset in narrow columns.
+
+\footnotesep 5.6pt      % Height of strut placed at the beginning of every
+                        % footnote =3D height of normal \footnotesize strut,
+                        % so no extra space between footnotes.
+
+\skip\footins 8.1pt plus 4pt minus 2pt  % Space between last line of text and
+                                        % top of first footnote.
+\floatsep 11pt plus 2pt minus 2pt       % Space between adjacent floats moved
+                                        % to top or bottom of text page.
+\textfloatsep 18pt plus 2pt minus 4pt   % Space between main text and floats
+                                        % at top or bottom of page.
+\intextsep 11pt plus 2pt minus 2pt      % Space between in-text figures and
+                                        % text.
+\@ifundefined{@maxsep}{\newdimen\@maxsep}{}% this is for LaTeX2e
+\@maxsep 18pt                           % The maximum of \floatsep,
+                                        % \textfloatsep and \intextsep (minus
+                                        % the stretch and shrink).
+\dblfloatsep 11pt plus 2pt minus 2pt    % Same as \floatsep for double-column
+                                        % figures in two-column mode.
+\dbltextfloatsep 18pt plus 2pt minus 4pt% \textfloatsep for double-column
+                                        % floats.
+\@ifundefined{@dblmaxsep}{\newdimen\@dblmaxsep}{}% this is for LaTeX2e
+\@dblmaxsep 18pt                        % The maximum of \dblfloatsep and
+                                        % \dbltexfloatsep.
+\@fptop 0pt plus 1fil    % Stretch at top of float page/column. (Must be
+                         % 0pt plus ...)
+\@fpsep 8pt plus 2fil    % Space between floats on float page/column.
+\@fpbot 0pt plus 1fil    % Stretch at bottom of float page/column. (Must be
+                         % 0pt plus ... )
+\@dblfptop 0pt plus 1fil % Stretch at top of float page. (Must be 0pt plus ...)
+\@dblfpsep 8pt plus 2fil % Space between floats on float page.
+\@dblfpbot 0pt plus 1fil % Stretch at bottom of float page. (Must be
+                         % 0pt plus ... )
+\marginparpush 5pt       % Minimum vertical separation between two marginal
+                         % notes.
+
+\parskip 0pt plus 1pt            % Extra vertical space between paragraphs.
+%\parindent 9pt  % GM July 2000 / was 0pt - width of paragraph indentation.
+\partopsep 2pt plus 1pt minus 1pt% Extra vertical space, in addition to
+                                 % \parskip and \topsep, added when user
+                                 % leaves blank line before environment.
+
+
+% 9pt
+
+\if@sigmin@ninept
+\renewcommand\normalsize{%
+   \@setfontsize\normalsize\@ixpt{10.5}
+   \abovedisplayskip 6\p@ \@plus2\p@ \@minus5\p@
+   \abovedisplayshortskip 6\z@ \@minus3\p@
+   \belowdisplayshortskip 6\p@ \@plus3\p@ \@minus3\p@
+   \belowdisplayskip \abovedisplayskip
+   \let\@listi\@listI}
+\normalsize
+\renewcommand\small{%
+   \@setfontsize\small\@ixpt{10}%
+   \abovedisplayskip 7.6\p@ \@plus3\p@ \@minus4\p@
+   \abovedisplayshortskip \z@ \@plus2\p@
+   \belowdisplayshortskip 3.6\p@ \@plus2\p@ \@minus2\p@
+   \def\@listi{\leftmargin\leftmargini
+               \topsep 4\p@ \@plus2\p@ \@minus2\p@
+               \parsep 2\p@ \@plus\p@ \@minus\p@
+               \itemsep \parsep}%
+   \belowdisplayskip \abovedisplayskip
+}
+\renewcommand\footnotesize{%
+   \@setfontsize\footnotesize{8.5pt}{9.2}%
+   \abovedisplayskip 6.4\p@ \@plus2\p@ \@minus4\p@
+   \abovedisplayshortskip \z@ \@plus\p@
+   \belowdisplayshortskip 2.7\p@ \@plus\p@ \@minus2\p@
+   \def\@listi{\leftmargin\leftmargini
+               \topsep 3\p@ \@plus\p@ \@minus\p@
+               \parsep 2\p@ \@plus\p@ \@minus\p@
+               \itemsep \parsep}%
+   \belowdisplayskip \abovedisplayskip
+}
+\renewcommand\scriptsize{\@setfontsize\scriptsize\@viipt\@viiipt}
+\renewcommand\tiny{\@setfontsize\tiny\@vpt\@vipt}
+\renewcommand\large{\@setfontsize\large\@xiipt{14}}
+\renewcommand\Large{\@setfontsize\Large\@xivpt{18}}
+\renewcommand\LARGE{\@setfontsize\LARGE\@xviipt{20}}
+\renewcommand\huge{\@setfontsize\huge\@xxpt{25}}
+\renewcommand\Huge{\@setfontsize\Huge\@xxvpt{30}}
+\fi
+
+%%
+%% End of file `size10.clo'.
+
+
+
+
+\def\maketitle{\par
+ \begingroup
+   \def\thefootnote{\fnsymbol{footnote}}
+   \def\@makefnmark{$^{\@thefnmark}$}
+   \twocolumn[\@maketitle]
+   \@thanks
+ \endgroup
+ \setcounter{footnote}{0}
+ \let\maketitle\relax
+ \let\@maketitle\relax
+ \gdef\@thanks{}\gdef\@author{}\gdef\@title{}\gdef\@subtitle{}\let\thanks\relax
+ \ifcopyrightspace\@copyrightspace\fi}
+
+
+
+
+\def\abstract{
+\setcounter{footnote}{0}
+\section*{Abstract}\normalsize%\ninept
+}
+
+\def\endabstract{\if@twocolumn\else\endquotation\fi}
+
+\def\keywords{\if@twocolumn
+\paragraph*{Keywords:}
+\else \small
+\quotation
+\fi}
+
+\def\terms{\if@twocolumn
+\paragraph*{General Terms:}
+\else \small
+\quotation
+\fi}
+
+% -- Classification needs to be a bit smart due to optionals - Gerry/Georgia November 2nd. 1999
+\newcount\catcount
+\global\catcount=1
+
+\def\category#1#2#3{%
+\ifnum\catcount=1
+\paragraph*{Categories and Subject Descriptors:}
+\advance\catcount by 1\else{\unskip; }\fi
+    \@ifnextchar [{\@category{#1}{#2}{#3}}{\@category{#1}{#2}{#3}[]}%
+}
+
+\def\@category#1#2#3[#4]{%
+    \begingroup
+        \let\and\relax
+            #1 [\textbf{#2}]%
+            \if!#4!%
+                \if!#3!\else : #3\fi
+            \else
+                :\space
+                \if!#3!\else #3\kern\z@---\hskip\z@\fi
+                \textit{#4}%
+            \fi
+    \endgroup
+}
+%
+
+%%% This section (written by KBT) handles the 1" box in the lower left
+%%% corner of the left column of the first page by creating a picture,
+%%% and inserting the predefined string at the bottom (with a negative
+%%% displacement to offset the space allocated for a non-existent
+%%% caption).
+%%%
+\def\crnotice{\normalfont\fontsize{8pt}{9pt}\selectfont}
+\def\confname{\normalfont\itshape\fontsize{8pt}{9pt}\selectfont}
+
+\newtoks\copyrightnotice
+\def\ftype@copyrightbox{8}
+\def\@copyrightspace{
+\@float{copyrightbox}[b]
+% EK: This formulation leaves far too much space
+%\begin{center}
+%\setlength{\unitlength}{1pc}
+%\begin{picture}(20,6) %Space for copyright notice
+%\put(0,-0.95){\crnotice{\@toappear}}
+%\end{picture}
+%\end{center}
+% Leave only 8pt space above the rule, by backing up \textfloatsep then
+% forward 8pt.
+%\vskip-\textfloatsep\vskip8pt%
+%\rule[5pt]{\hsize}{.4pt}\par%
+\vskip10pt
+\noindent\crnotice{\@toappear}%
+\end@float}
+
+\def\@toappear{} % Default setting blank - commands below change this.
+\long\def\toappear#1{\def\@toappear{\parbox[b]{\hsize}{#1}}}
+%\long\def\toappear#1{\def\@toappear{\parbox[b]{20pc}{\baselineskip 9pt#1}}}
+\def\toappearbox#1{\def\@toappear{\raisebox{5pt}{\framebox[20pc]{\parbox[b]{19pc}{#1}}}}}
+
+\newtoks\conf
+\newtoks\confinfo
+\def\conferenceinfo#1#2{\global\conf={#1}\global\confinfo{#2}}
+
+
+% Need Copyright Year and Copyright Data to be user definable (in .tex file).
+% Gerry Nov. 30th. 1999
+\newtoks\copyrtyr
+\newtoks\acmcopyr
+\newtoks\boilerplate
+\global\acmcopyr={X-XXXXX-XX-X/XX/XX}  % Default - 5/11/2001 *** Gerry
+\global\copyrtyr={20XX}                % Default - 3/3/2003 *** Gerry
+\def\CopyrightYear#1{\global\copyrtyr{#1}}
+\def\crdata#1{\global\acmcopyr{#1}}
+\def\permission#1{\global\boilerplate{#1}}
+%
+\global\boilerplate={
+Permission to make digital or hard copies of part or all of this work 
+for personal or classroom use is granted without fee provided that
+copies are not made or distributed for profit or commercial advantage
+and that copies bear this notice and the full citation on the first 
+page. Copyrights for components of this work owned by others than ACM
+must be honored. Abstracting with credit is permitted. To copy otherwise,
+to republish, to post on servers or to redistribute to lists, requires
+prior specific permission and/or a fee.}
+\newtoks\copyrightetc 
+\global\copyrightetc{Copyright \the\copyrtyr\ ACM \the\acmcopyr\ \dots\$10.00}
+
+\toappear{\the\boilerplate\par
+{\confname{\the\conf}} \the\confinfo\par \the\copyrightetc.}
+
+
+\global\def\section{\@startsection {section}{1}{\z@}%
+                                   {-1.5ex \@plus -1.5ex \@minus -.1ex}%
+                                   {1ex \@plus.2ex}%
+                                   {\normalfont\bfseries\scshape\fontsize{12}{14}\selectfont}}
+\global\def\subsection{\@startsection{subsection}{2}{\z@}%
+                                     {-1.2ex\@plus -1.2ex \@minus -.1ex}%
+                                     {0.6ex \@plus .2ex}%
+                                     {\normalfont\bfseries\fontsize{11}{12}\selectfont}}
+\global\def\subsubsection{\@startsection{subsubsection}{3}{\z@}%
+                                     {-1.5ex\@plus -1.5ex \@minus -.1ex}%
+                                     {1ex \@plus .2ex}%
+                                     {\normalfont\itshape\fontsize{11}{12}\selectfont}}
+\global\def\paragraph{\@startsection{paragraph}{4}{\z@}%
+                                     {1.5ex\@plus 1.5ex \@minus .1ex}%
+                                     {-\parindent}%
+                                     {\normalfont\bfseries\selectfont}}
+
+\global\def\@maketitle{%
+  \newpage
+  \null
+  \vskip -0.28in%
+  \null
+  \begin{center}%
+  \let \footnote \thanks
+    {\fontsize{18pt}{19pt}\selectfont \@title \par}%
+    \vskip 0.9em%
+    {\fontsize{11.8pt}{12pt}\selectfont
+      \lineskip .5em%
+      \begin{tabular}[t]{@{}c@{}}%
+        \@author
+      \end{tabular}\par}%
+    \vskip 1em%
+    {\large \@date}%
+  \end{center}%
+  \par
+  \vskip 1.9em}
+
+% captions
+\makeatletter
+\ifx\abovecaptionskip\@undefined
+  \newskip\abovecaptionskip
+  \newskip\belowcaptionskip
+\fi
+\abovecaptionskip=0.5\baselineskip
+\belowcaptionskip=-0.5\baselineskip
+\long\def\@makecaption#1#2{%
+  \vskip\abovecaptionskip
+  \sbox\@tempboxa{{\footnotesize{\bfseries #1}: #2}}%
+  \ifdim \wd\@tempboxa >\hsize
+    {\begin{footnotesize}{\bfseries #1}: #2\par\end{footnotesize}}
+  \else
+    \global \@minipagefalse
+    \hb@xt@\hsize{\hfil\box\@tempboxa\hfil}%
+  \fi
+  \vskip\belowcaptionskip}
+
+% Compact itemize and enumerate.  Note that they use the same counters and
+% symbols as the usual itemize and enumerate environments.
+\def\compactify{\itemsep=3pt plus3pt \topsep=3pt plus3pt \partopsep=0pt
+\parsep=0pt \leftmargin=1.3em}
+\let\latexusecounter=\usecounter
+\def\CompactItemize{%
+  \ifnum \@itemdepth >\thr@@\@toodeep\else
+    \advance\@itemdepth\@ne
+    \edef\@itemitem{labelitem\romannumeral\the\@itemdepth}%
+    \expandafter
+    \list
+      \csname\@itemitem\endcsname
+      {\compactify\def\makelabel##1{\hss\llap{##1}}}%
+  \fi}
+\let\endCompactItemize\endlist
+\newenvironment{CompactEnumerate}
+  {\def\usecounter{\compactify\latexusecounter}
+   \begin{enumerate}}
+  {\end{enumerate}\let\usecounter=\latexusecounter}
+
+
+\newenvironment{Itemize}%
+{\begin{itemize}%
+\setlength{\itemsep}{0pt}%
+\setlength{\topsep}{0pt}%
+\setlength{\partopsep}{0pt}%
+\setlength{\parskip}{0pt}}%
+{\end{itemize}}
+
+\makeatother
