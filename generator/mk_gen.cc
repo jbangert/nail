@@ -69,7 +69,11 @@ class GenGenerator{
       out << "h_bit_writer_put(out,"<<val<<","<< width << ");";
       break;
     }
-    case STRUCTURE:
+    case STRUCTURE:{
+      std::stringstream fixup;
+      fixup << "{/*Context-rewind*/\n HBitWriter end_of_struct= *out;\n";
+     
+      poststruct << 
       FOREACH(field, p.structure){
         switch(field->N_type){
         case CONSTANT:
@@ -81,7 +85,21 @@ class GenGenerator{
           break;
         }
         case DEPENDENCY:{
-          out << "//XXX: No dependencies in generator yet\n";
+          //Reserve space, which is not yet possible? 
+          std::string post;
+          parserinner &pr = field->dependency.parser->PR;
+          std::string name = mk_str(field->dependency.name);
+          if(pr.N_type != INTEGER){
+            assert(!"Cannot generate non-integer dependency fields yet;");
+          }
+          int width =  boost::lexical_cast<int>(mk_str(pr.integer.parser.unsign));
+          out << typedef_type(pr,"",&post) << " dep_"<< name << ";";
+          assert(post == "");
+          out << "HBitWriter rewind_"<< name << "=*out;";
+          out << "h_bit_writer_put(out,0,"<<width<<");";
+          fixup << "out->index = rewind_ " << name << ".index;";
+          fixup << "out->bit_offset = rewind_" << name <<".bit_offset;";
+          fixup << "h_bit_writer_put(out,dep_"<<name<<","<<width<<");"
           break;
         }
         case TRANSFORM:{ 
@@ -90,15 +108,11 @@ class GenGenerator{
         }
         }
       }
+      fixup <<  "out->index = end_of_struct.index;\n";
+      fixup << "out->bit_offset = end_of_struct.bit_offset;\n}";
       //TODO: Do a proper way of updating these!
-      out << "{/*Context-rewind*/\n HBitWriter end_of_struct= *out;\n";
-      FOREACH(field,p.structure){
-        if(field->N_type != DEPENDENCY)
-          continue;
-        out<< "//NO dependencies in generator yet!\n";
-      }
-      out << "out->index = end_of_struct.index;\n";
-      out << "out->bit_offset = end_of_struct.bit_offset;\n}";
+      out << fixup.str();
+    }
       break;
     case WRAP:
       if(p.wrap.constbefore){
@@ -146,7 +160,7 @@ class GenGenerator{
         out << "for(int "<< iter<<"=0;"<<iter << "<" << count << ";" << iter << "++){";
         generator(p.length.parser->pr,elem);
         out<< "}";
-        out << mk_str(p.length.length) << "=" << count << ";";
+        out << "dep_" << mk_str(p.length.length) << "=" << count << ";";
       }
       break;
     case APPLY: 
@@ -232,15 +246,14 @@ public:
       if(definition->N_type == CONSTANTDEF){
         std::string name = mk_str(definition->constantdef.name);
         out<<"void gen_"<<name<<"(HBitWriter* out){\n";
-        //        generator(definition->constantdef.definition);
+        generator(definition->constantdef.definition);
         out << "}";
       }
       else if(definition->N_type==PARSER){
         std::string name = mk_str(definition->parser.name);
         out << "void gen_" << (name)<<"(HBitWriter *out,"<< name << " * val){";
         ValExpr outval("val",NULL,1);
-        
-        //        generator(definition->parser.definition.pr,outval);
+        generator(definition->parser.definition.pr,outval);
         out << "}";
       }          
     }
