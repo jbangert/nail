@@ -1,5 +1,6 @@
 #ifndef EXPR_H
 #define EXPR_H
+#include <stdarg.h>
 #include <iostream>
 #include <cassert>
 #include <string>
