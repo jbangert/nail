@@ -464,7 +464,7 @@ class CPrimitiveParser{
   /*Parse pass emits a light-weight trace of data structure*/
   //TODO: Keep track of bit alignment
   void check_int(unsigned int width, const std::string &fail){
-    out << "if(!stream_check(str_current,"<<width<<")) {"<<fail<<"}\n";
+    out << "if(parser_fail(stream_check(str_current,"<<width<<"))) {"<<fail<<"}\n";
   }
   
   
@@ -809,21 +809,8 @@ class CPrimitiveParser{
     case NAME: // Fallthrough intentional, and kludgy
     case REF:
       {
-        //TODO: Deal with parameters here
-        std::stringstream parameters;
-        if(parser.pr.ref.parameters){
-          FOREACH(param, *parser.pr.ref.parameters){
-            switch(param->N_type){
-            case PDEPENDENCY:
-              parameters << "," << scope.dependency_ptr(mk_str(param->pdependency));
-              break;
-            case PSTREAM:
-              parameters << "," << scope.stream_ptr(mk_str(param->pstream));
-              break;
-            }
-          }
-        }
-        out << "if(parser_fail(peg_" << mk_str(parser.pr.ref.name)<< "(tmp_arena,trace,str_current"<<parameters.str()<<"))) {";
+        std::string parameters =   parameter_invocation(parser.pr.ref.parameters,scope);
+        out << "if(parser_fail(peg_" << mk_str(parser.pr.ref.name)<< "(tmp_arena,trace,str_current"<<parameters<<"))) {";
         out << fail << "}\n";
       }
       break;
@@ -835,35 +822,16 @@ public:
     if(def.N_type == PARSER){
       Scope scope;
       std::string name = mk_str(def.parser.name);
-      std::stringstream params;
-      //TODO: Parameters
-      if(def.parser.parameters){
-        FOREACH(param, *def.parser.parameters){
-          switch(param->N_type){
-          case DSTREAM:
-            params << ",NailStream *str_" << mk_str(param->dstream);
-            scope.add_stream_parameter(mk_str(param->dstream));
-            break;
-          case DDEPENDENCY:{
-            std::string post;
-            std::string type = typedef_type(*param->ddependency.type,"",&post);
-            std::string name = mk_str(param->ddependency.name);
-            assert(post == "");
-            params << type << "* dep_" << name << post;
-            scope.add_dependency_parameter(name,type);
-          }
-            break;
-          }
-        }
-      }
       scope.add_stream_parameter("current");
-      out <<"static pos peg_" << name <<"(NailArena *tmp_arena,n_trace *trace, NailStream *str_current"<<params.str()<<"){\n";
+      std::string params = parameter_definition(def,scope);
+      out <<"static pos peg_" << name <<"(NailArena *tmp_arena,n_trace *trace, NailStream *str_current"<<
+        params <<"){\n";
       out << "pos i;\n"; //Used in name and ref as temp variables
       peg(def.parser.definition, "goto fail;",scope);
       out << "return 0;\n"
           << "fail:\n return -1;\n";
       out << "}\n";
-      header << "static pos peg_" << mk_str(def.parser.name) <<"(NailArena *tmp_arena,n_trace *trace,NailStream *str_current"<<params.str()<<");\n";
+      header << "static pos peg_" << mk_str(def.parser.name) <<"(NailArena *tmp_arena,n_trace *trace,NailStream *str_current"<<params<<");\n";
 
     }
     else if(def.N_type == CONSTANTDEF){

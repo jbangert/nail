@@ -8,6 +8,8 @@ typedef struct{
         pos *trace;
         pos capacity,iter,grow;
 } n_trace; 
+#define parser_fail(i) __builtin_expect(i<0,0)
+
 static uint64_t read_unsigned_bits(NailStream *stream, unsigned count){ 
         uint64_t retval = 0;
         unsigned int out_idx=count;
@@ -41,7 +43,9 @@ static uint64_t read_unsigned_bits(NailStream *stream, unsigned count){
     return retval;
 }
 static int stream_check(const NailStream *stream, unsigned count){
-        return stream->size - (count>>3) - ((stream->bit_offset + count & 7)>>3) >= stream->pos;
+        if(stream->size - (count>>3) - ((stream->bit_offset + count & 7)>>3) < stream->pos)
+                return -1;
+        return 0;
 }
 static void stream_advance(NailStream *stream, unsigned count){
         
@@ -70,14 +74,14 @@ static NailStreamPos   stream_getpos(NailStream *stream){
         return stream->pos << 3 + stream->bit_offset; //TODO: Overflow potential!
 }
 
-int NailOutStream_new(NailStream *out,size_t siz){
+int NailOutStream_init(NailStream *out,size_t siz){
         out->data = (const uint8_t *)malloc(siz);
         if(!out->data)
-                return 0;
+                return -1;
         out->pos = 0;
         out->bit_offset = 0;
         out->size = siz;
-        return 1;
+        return 0;
 }
 void NailOutStream_release(NailStream *out){
         free(out->data);
@@ -90,24 +94,32 @@ const uint8_t * NailOutStream_buffer(NailStream *str,size_t *siz){
         return str->data;
 }
 //TODO: Perhaps use a separate structure for output streams?
-static int stream_output(NailStream *stream,uint64_t data, size_t count){
+static int NailOutStream_grow(NailStream *stream, size_t count){
         if(stream->pos + count>>3 + 1 >= stream->size){
                 //TODO: parametrize stream growth
-                stream->data = realloc((void *)stream->data,stream->size+4096);
-                stream->size+= 4096;
+                int alloc_size = stream->pos + count>>3 + 1;
+                if(4096+stream->size>alloc_size) alloc_size = 4096+stream->size;
+                stream->data = realloc((void *)stream->data,alloc_size);
+                stream->size = alloc_size;
                 if(!stream->data)
-                        return 0;
+                        return -1;
+        }
+        return 0;
+}
+static int stream_output(NailStream *stream,uint64_t data, size_t count){
+        if(parser_fail(NailOutStream_grow(stream, count))){
+                return -1;
         }
         uint8_t *streamdata = (uint8_t *)stream->data;
         while(count>0){
                 if(stream->bit_offset == 0 && (count & 7) == 0){
-                        streamdata[stream->pos] = (data >> count );
                         count -= 8;
+                        streamdata[stream->pos] = (data >> count );
                         stream->pos++;
                 }
                 else{
-                        streamdata[stream->pos] |= ((data >> count) & 1) << (7-stream->bit_offset);
                         count--;
+                        streamdata[stream->pos] |= ((data >> count) & 1) << (7-stream->bit_offset);
                         stream->bit_offset++;
                         if(stream->bit_offset>7){
                                 stream->pos++;
@@ -115,6 +127,7 @@ static int stream_output(NailStream *stream,uint64_t data, size_t count){
                         }
                 }
         }
+        return 0;
 }
 //#define BITSLICE(x, off, len) read_unsigned_bits(x,off,len)
 /* trace is a minimalistic representation of the AST. Many parsers add a count, choice parsers add
@@ -134,11 +147,11 @@ typedef struct{
 
 static int  n_trace_init(n_trace *out,pos size,pos grow){
         if(size <= 1){
-                return 0;
+                return -1;
         }
         out->trace = (pos *)malloc(size * sizeof(pos));
         if(!out){
-                return 0;
+                return -1;
         }
         out->capacity = size -1 ;
         out->iter = 0;
@@ -146,7 +159,7 @@ static int  n_trace_init(n_trace *out,pos size,pos grow){
                 grow = 16; 
         }
         out->grow = grow;
-        return 1;
+        return 0;
 }
 static void n_trace_release(n_trace *out){
         free(out->trace);
@@ -169,7 +182,7 @@ static int n_trace_grow(n_trace *out, int space){
 
         pos * new_ptr= (pos *)realloc(out->trace, (out->capacity + out->grow) * sizeof(pos));
         if(!new_ptr){
-                return 1;
+                return -1;
         }
         out->trace = new_ptr;
         out->capacity += out->grow;
@@ -188,7 +201,7 @@ static void n_tr_optional_fail(n_trace * trace, pos where){
         trace->trace[where] = trace->iter;
 }
 static pos n_tr_memo_many(n_trace *trace){
-        if(n_trace_grow(trace,2))
+        if(parser_fail(n_trace_grow(trace,2)))
                 return -1;
         trace->trace[trace->iter] = 0xFFFFFFFE;
         trace->trace[trace->iter+1] = 0xEEEEEEEF;
@@ -203,7 +216,7 @@ static void n_tr_write_many(n_trace *trace, pos where, pos count){
 }
 
 static pos n_tr_begin_choice(n_trace *trace){
-        if(n_trace_grow(trace,2))
+        if(parser_fail(n_trace_grow(trace,2)))
                 return -1;
       
         //Debugging values
@@ -214,7 +227,7 @@ static pos n_tr_begin_choice(n_trace *trace){
 }
 static int n_tr_stream(n_trace *trace, const NailStream *stream){
         assert(sizeof(stream) % sizeof(pos) == 0);
-        if(n_trace_grow(trace,sizeof(*stream)/sizeof(pos)))
+        if(parser_fail(n_trace_grow(trace,sizeof(*stream)/sizeof(pos))))
                 return -1;
         *(NailStream *)(trace->trace + trace->iter) = *stream;
         fprintf(stderr,"%d = stream\n",trace->iter,stream);
@@ -230,7 +243,7 @@ static void n_tr_pick_choice(n_trace *trace, pos where, pos which_choice, pos  c
         fprintf(stderr,"%d = pick %d %d\n",where, which_choice,choice_begin);
 }
 static int n_tr_const(n_trace *trace,NailStream *stream){
-        if(n_trace_grow(trace,1))
+        if(parser_fail(n_trace_grow(trace,1)))
                 return -1;
         NailStreamPos newoff = stream_getpos(stream);
         fprintf(stderr,"%d = const %d \n",trace->iter, newoff);        
@@ -285,7 +298,6 @@ int NailArena_release(NailArena *arena){
 }
 //Returns the pointer where the taken choice is supposed to go.
 
-#define parser_fail(i) __builtin_expect(i<0,0)
 
 
 

@@ -104,7 +104,7 @@ void constraint(std::ostream &out,std::string val, constraintelem &e){
 void constraint(std::ostream &out,std::string val,  intconstraint &c){
   switch(c.N_type){
   case SINGLE:
-    constraint(val,c.single);
+    constraint(out,val,c.single);
     break;
   case SET:
     {
@@ -112,14 +112,53 @@ void constraint(std::ostream &out,std::string val,  intconstraint &c){
       FOREACH(allowed,c.set){
         if(first++ != 0)
           out << " && ";
-        constraint(val,*allowed);
+        constraint(out,val,*allowed);
       }
     }
     break;
   case NEGATE:
     out << "!(";
-    constraint(val,*c.negate);
+    constraint(out,val,*c.negate);
     out << ")";
     break;
   }
+}
+std::string parameter_definition(const definition &def, Scope &scope){
+  std::stringstream params;
+  if(def.parser.parameters){
+        FOREACH(param, *def.parser.parameters){
+          switch(param->N_type){
+          case DSTREAM:
+            params << ",NailStream *str_" << mk_str(param->dstream);
+            scope.add_stream_parameter(mk_str(param->dstream));
+            break;
+          case DDEPENDENCY:{
+            std::string post;
+            std::string type = typedef_type(*param->ddependency.type,"",&post);
+            std::string name = mk_str(param->ddependency.name);
+            assert(post == "");
+            params << ","<<  type << "* dep_" << name << post;
+            scope.add_dependency_parameter(name,type);
+          }
+            break;
+          }
+        }
+      }
+  return params.str();
+}
+std::string parameter_invocation(const parameterlist *parameters, const Scope &scope){
+  std::stringstream out;
+  if(parameters){
+    FOREACH(param, *parameters){
+      switch(param->N_type){
+      case PDEPENDENCY:
+        out << "," << scope.dependency_ptr(mk_str(param->pdependency));
+        break;
+      case PSTREAM:
+        out << "," << scope.stream_ptr(mk_str(param->pstream));
+        break;
+      }
+    }
+  }
+  return out.str();
 }

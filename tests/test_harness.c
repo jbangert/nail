@@ -26,8 +26,12 @@ int main(){
             const char *buf;
             size_t siz;
             NailStream stream;
-            NailOutStream_new(&stream,4096);
-            CAT(gen_,XYZZY)(&stream,object);
+            NailOutStream_init(&stream,4096);
+           if(CAT(gen_,XYZZY)(&arena,&stream,object)<0)
+           {
+                              fprintf(stderr,"Could not generate\n");
+                              exit(-1);
+                              }
             buf = NailOutStream_buffer(&stream,&siz);
             printf("Output:\n");
             fwrite(buf,1,siz,stdout);
