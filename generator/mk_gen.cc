@@ -53,7 +53,7 @@ class GenGenerator{
     }
       break;
     case CREF:
-      out << "gen_"<< mk_str(p.cref)<<"(out);";break;
+      out << "gen_"<< mk_str(p.cref)<<"(str_current);";break;
     case CSTRUCT:
       FOREACH(field,p.cstruct){
         generator(*field);
@@ -283,8 +283,8 @@ public:
 
       if(definition->N_type == CONSTANTDEF){
         std::string name = mk_str(definition->constantdef.name);
-        header<<"int gen_"<<name<<"(NailStream* out);";
-        out<<"int gen_"<<name<<"(NailStream* out){\n";
+        header<<"int gen_"<<name<<"(NailStream* str_current);";
+        out<<"int gen_"<<name<<"(NailStream* str_current){\n";
         generator(definition->constantdef.definition);
         out << "return 0;";
         out << "}";
