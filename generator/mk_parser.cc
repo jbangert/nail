@@ -688,7 +688,9 @@ class CPrimitiveParser{
           {
             header << "extern int " << mk_str(field->transform.cfunction) << "_parse(NailArena *tmp";
             FOREACH(stream, field->transform.left){
-              out << "NailStream str_" << mk_str(*stream) <<";\n";
+              out << ";\nNailStream str_" << mk_str(*stream) <<";\n"; // If declaration occurs right
+                                                                      // after a label, we need an
+                                                                      // empty statement
               // str_current cannot appear on the left
             }
             out << "if(";

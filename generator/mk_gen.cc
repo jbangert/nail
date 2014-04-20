@@ -122,7 +122,7 @@ class GenGenerator{
           //Transforms need to be processed in reverse order
           std::stringstream invocation;
           invocation << "if(parser_fail("<< cfunction << "_generate(tmp_arena";
-          header << "extern  int" << cfunction << "_generate(NailArena *tmp_arena";
+          header << "extern  int " << cfunction << "_generate(NailArena *tmp_arena";
           FOREACH(stream, field->transform.left){           
             header  << ",NailStream *str_" << mk_str(*stream);
             invocation << ", &str_"  << mk_str(*stream);
