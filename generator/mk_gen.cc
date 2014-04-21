@@ -18,7 +18,7 @@ static unsigned long strntoud(unsigned siz,const char *num){
   return ret;
 }
 class GenGenerator{
-  std::ostream &os;
+  std::ostream &os, &hdr;
   std::stringstream out, header;
   int num_iters;
   void constint(int width, std::string value){
@@ -275,7 +275,7 @@ class GenGenerator{
   }
 
 public:
-  GenGenerator(std::ostream &_out ) : os(_out), num_iters(0){ 
+  GenGenerator(std::ostream &_out, std::ostream &_hdr ) : os(_out), hdr(_hdr), num_iters(0){ 
   }  
   void generator( grammar *grammar)
   {
@@ -302,11 +302,12 @@ public:
         out << "}";
       }          
     }
+    hdr<< header.str() << std::endl;
     os << header.str() << out.str() << std::endl;
   }
 };
-void emit_generator(std::ostream *out, grammar *grammar){
-  GenGenerator g(*out);
+void emit_generator(std::ostream *out, std::ostream *header, grammar *grammar){
+  GenGenerator g(*out,*header);
   g.generator(grammar);
   *out << std::endl;
 }

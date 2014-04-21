@@ -47,7 +47,7 @@ int main(int argc, char**argv)
        emit_header(&header,result);
        impl << "#include \""<< headerfilename << "\""<<std::endl;
        emit_parser(&impl,result);
-       emit_generator(&impl,result);
+       emit_generator(&impl,&header,result);
        impl << std::endl;
        header << std::endl;       
        return 0;
