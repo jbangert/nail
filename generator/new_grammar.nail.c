@@ -1600,6 +1600,19 @@ fail_repeat_16:
     if(parser_fail(peg_varidentifier(tmp_arena,trace,str_current))) {
         goto fail;
     }
+    if(parser_fail(peg_WHITE(str_current))) {
+        goto fail;
+    }
+    if(parser_fail(stream_check(str_current,8))) {
+        goto fail;
+    }
+    if( read_unsigned_bits(str_current,8)!= '(') {
+        stream_backup(str_current,8);
+        goto fail;
+    }
+    if(parser_fail(n_tr_const(trace,str_current))) {
+        goto fail;
+    }
     {
         pos many = n_tr_memo_many(trace);
         pos count = 0;
@@ -1611,6 +1624,19 @@ succ_repeat_17:
         goto succ_repeat_17;
 fail_repeat_17:
         n_tr_write_many(trace,many,count);
+    }
+    if(parser_fail(peg_WHITE(str_current))) {
+        goto fail;
+    }
+    if(parser_fail(stream_check(str_current,8))) {
+        goto fail;
+    }
+    if( read_unsigned_bits(str_current,8)!= ')') {
+        stream_backup(str_current,8);
+        goto fail;
+    }
+    if(parser_fail(n_tr_const(trace,str_current))) {
+        goto fail;
     }
     return 0;
 fail:
@@ -3781,6 +3807,9 @@ static int bind_transform(NailArena *arena,transform*out,NailStream *stream, pos
     if(parser_fail(bind_varidentifier(arena,&out->cfunction, stream,&tr,trace_begin))) {
         return -1;
     }
+    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
+    stream_reposition(stream,*tr);
+    tr++;
     fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
     {   /*ARRAY*/
         pos save = 0;
@@ -3796,7 +3825,11 @@ static int bind_transform(NailArena *arena,transform*out,NailStream *stream, pos
             }
         }
         tr = trace_begin + save;
-    }*trace = tr;
+    }
+    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
+    stream_reposition(stream,*tr);
+    tr++;
+    *trace = tr;
     return 0;
 }
 transform*parse_transform(NailArena *arena, const uint8_t *data, size_t size) {
@@ -5109,11 +5142,16 @@ int gen_transform(NailArena *tmp_arena,NailStream *str_current,transform * val) 
     if(parser_fail(gen_varidentifier(tmp_arena,str_current,&val->cfunction))) {
         return -1;
     }
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,'(',8))) return -1;
     for(int i14=0; i14<val->right.count; i14++) {
         if(parser_fail(gen_parameter(tmp_arena,str_current,&val->right.elem[i14]))) {
             return -1;
         }
-    }{/*Context-rewind*/
+    }
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,')',8))) return -1;
+    {/*Context-rewind*/
         NailStreamPos  end_of_struct= stream_getpos(str_current);
         stream_reposition(str_current, end_of_struct);
     }

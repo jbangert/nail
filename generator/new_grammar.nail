@@ -57,7 +57,7 @@ constrainedint = {
                 parser intp
                 constraint optional <t("|")  intconstraint  >  
 }
-transform = {left sepBy t(",") streamidentifier; t("transform"); cfunction varidentifier; right many parameter}
+transform = {left sepBy t(",") streamidentifier; t("transform"); cfunction varidentifier; t("(") ;right many parameter; t(")")}
 structparser = <t("{"); sepBy SEPERATOR choose{
               CONSTANT = constparser                      
               DEPENDENCY = {name dependencyidentifier; parser *parser}    
