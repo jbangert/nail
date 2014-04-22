@@ -1,16 +1,20 @@
 
 CFLAGS+= -I../../include -lhammer -ggdb  -std=gnu99
-all: server resolver
+all: server #  resolver
 
-server:  resolver.o dns.nail.o dns.o
+server:  server.o dns.nail.o dns.o
 resolver: resolver.o dns.nail.o dns.o
 
+server.o: dns.nail.h
+resolver.o: dns.nail.h
 
 
 dns.nail.h dns.nail.c: dns.nail
 	../../generator/nail $< 
-	astyle $@
-
+	astyle dns.nail.h
+	astyle dns.nail.c
+dns.nail: 
+	true
 
 
 # server: server.c grammar.h
