@@ -1,5 +1,5 @@
 #define t(x) {WHITE;many uint8 = x}
-#define lower  (uint8 |  'a'..'z')
+#define lower  (uint8 |  ['a'..'z','0'..'9', '_'])
 #define upper (uint8 |  'A'..'Z') 
 #define digit  (uint8 | '0' .. '9')
 number = many1 digit

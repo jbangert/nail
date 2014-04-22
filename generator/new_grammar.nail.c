@@ -9,49 +9,131 @@ typedef struct {
     pos *trace;
     pos capacity,iter,grow;
 } n_trace;
-static uint64_t read_unsigned_bits(const NailStream *stream, unsigned count) {
+#define parser_fail(i) __builtin_expect(i<0,0)
+
+static uint64_t read_unsigned_bits(NailStream *stream, unsigned count) {
     uint64_t retval = 0;
     unsigned int out_idx=count;
     size_t pos = stream->pos;
+    char bit_offset = stream->bit_offset;
     const uint8_t *data = stream->data;
     //TODO: Implement little endian too
     //Count LSB to MSB
     while(count>0) {
-        if((pos & 7) == 0 && (count &7) ==0) {
+        if(bit_offset == 0 && (count &7) ==0) {
             out_idx-=8;
-            retval|= data[pos >> 3] << out_idx;
-            pos += 8;
+            retval|= data[pos] << out_idx;
+            pos ++;
             count-=8;
         }
         else {
             //This can use a lot of performance love
 //TODO: implement other endianesses
             out_idx--;
-            retval |= ((data[pos>>3] >> (7-(pos&7))) & 1) << out_idx;
+            retval |= ((data[pos] >> (7-bit_offset)) & 1) << out_idx;
             count--;
-            pos++;
+            bit_offset++;
+            if(bit_offset > 7) {
+                bit_offset -= 8;
+                pos++;
+            }
         }
     }
+    stream->pos = pos;
+    stream->bit_offset = bit_offset;
     return retval;
 }
 static int stream_check(const NailStream *stream, unsigned count) {
-    return stream->size - count >= stream->pos;
-}
-static int stream_advance(NailStream *stream, unsigned count) {
-    stream->pos += count;
+    if(stream->size - (count>>3) - ((stream->bit_offset + count & 7)>>3) < stream->pos)
+        return -1;
     return 0;
+}
+static void stream_advance(NailStream *stream, unsigned count) {
+
+    stream->pos += count >> 3;
+    stream->bit_offset += count &7;
+    if(stream->bit_offset > 7) {
+        stream->pos++;
+        stream->bit_offset-=8;
+    }
+}
+static void stream_backup(NailStream *stream, unsigned count) {
+    stream->pos -= count >> 3;
+    stream->bit_offset -= count & 7;
+    if(stream->bit_offset < 0) {
+        stream->pos--;
+        stream->bit_offset += 8;
+    }
 }
 static int stream_reposition(NailStream *stream, NailStreamPos p)
 {
-    assert(p <= stream->size);
-    stream->pos = p;
+    stream->pos = p >> 3;
+    stream->bit_offset = p & 7;
     return 0;
 }
 static NailStreamPos   stream_getpos(NailStream *stream) {
-    return stream->pos;
+    return stream->pos << 3 + stream->bit_offset; //TODO: Overflow potential!
 }
 
-#define BITSLICE(x, off, len) read_unsigned_bits(x,off,len)
+int NailOutStream_init(NailStream *out,size_t siz) {
+    out->data = (const uint8_t *)malloc(siz);
+    if(!out->data)
+        return -1;
+    out->pos = 0;
+    out->bit_offset = 0;
+    out->size = siz;
+    return 0;
+}
+void NailOutStream_release(NailStream *out) {
+    free(out->data);
+    out->data = NULL;
+}
+const uint8_t * NailOutStream_buffer(NailStream *str,size_t *siz) {
+    if(str->bit_offset)
+        return NULL;
+    *siz =  str->pos;
+    return str->data;
+}
+//TODO: Perhaps use a separate structure for output streams?
+int NailOutStream_grow(NailStream *stream, size_t count) {
+    if(stream->pos + count>>3 + 1 >= stream->size) {
+        //TODO: parametrize stream growth
+        int alloc_size = stream->pos + count>>3 + 1;
+        if(4096+stream->size>alloc_size) alloc_size = 4096+stream->size;
+        stream->data = realloc((void *)stream->data,alloc_size);
+        stream->size = alloc_size;
+        if(!stream->data)
+            return -1;
+    }
+    return 0;
+}
+static int stream_output(NailStream *stream,uint64_t data, size_t count) {
+    if(parser_fail(NailOutStream_grow(stream, count))) {
+        return -1;
+    }
+    uint8_t *streamdata = (uint8_t *)stream->data;
+    while(count>0) {
+        if(stream->bit_offset == 0 && (count & 7) == 0) {
+            count -= 8;
+            streamdata[stream->pos] = (data >> count );
+            stream->pos++;
+        }
+        else {
+            count--;
+            if((data>>count)&1)
+                streamdata[stream->pos] |= 1 << (7-stream->bit_offset);
+            else
+                streamdata[stream->pos] &= ~(1<< (7-stream->bit_offset));
+            stream->bit_offset++;
+            if(stream->bit_offset>7) {
+                stream->pos++;
+                stream->bit_offset= 0;
+            }
+        }
+    }
+    return 0;
+}
+//#define BITSLICE(x, off, len) read_unsigned_bits(x,off,len)
 /* trace is a minimalistic representation of the AST. Many parsers add a count, choice parsers add
  * two pos parameters (which choice was taken and where in the trace it begins)
  * const parsers emit a new input position
@@ -69,11 +151,11 @@ typedef struct {
 
 static int  n_trace_init(n_trace *out,pos size,pos grow) {
     if(size <= 1) {
-        return 0;
+        return -1;
     }
     out->trace = (pos *)malloc(size * sizeof(pos));
     if(!out) {
-        return 0;
+        return -1;
     }
     out->capacity = size -1 ;
     out->iter = 0;
@@ -81,7 +163,7 @@ static int  n_trace_init(n_trace *out,pos size,pos grow) {
         grow = 16;
     }
     out->grow = grow;
-    return 1;
+    return 0;
 }
 static void n_trace_release(n_trace *out) {
     free(out->trace);
@@ -104,7 +186,7 @@ static int n_trace_grow(n_trace *out, int space) {
 
     pos * new_ptr= (pos *)realloc(out->trace, (out->capacity + out->grow) * sizeof(pos));
     if(!new_ptr) {
-        return 1;
+        return -1;
     }
     out->trace = new_ptr;
     out->capacity += out->grow;
@@ -123,7 +205,7 @@ static void n_tr_optional_fail(n_trace * trace, pos where) {
     trace->trace[where] = trace->iter;
 }
 static pos n_tr_memo_many(n_trace *trace) {
-    if(n_trace_grow(trace,2))
+    if(parser_fail(n_trace_grow(trace,2)))
         return -1;
     trace->trace[trace->iter] = 0xFFFFFFFE;
     trace->trace[trace->iter+1] = 0xEEEEEEEF;
@@ -138,7 +220,7 @@ static void n_tr_write_many(n_trace *trace, pos where, pos count) {
 }
 
 static pos n_tr_begin_choice(n_trace *trace) {
-    if(n_trace_grow(trace,2))
+    if(parser_fail(n_trace_grow(trace,2)))
         return -1;
 
     //Debugging values
@@ -149,10 +231,11 @@ static pos n_tr_begin_choice(n_trace *trace) {
 }
 static int n_tr_stream(n_trace *trace, const NailStream *stream) {
     assert(sizeof(stream) % sizeof(pos) == 0);
-    if(n_trace_grow(trace,sizeof(stream)/sizeof(pos)))
+    if(parser_fail(n_trace_grow(trace,sizeof(*stream)/sizeof(pos))))
         return -1;
-    *(const NailStream **)(trace->trace + trace->iter) = stream;
-    trace->iter += sizeof(stream)/sizeof(pos);
+    *(NailStream *)(trace->trace + trace->iter) = *stream;
+    fprintf(stderr,"%d = stream\n",trace->iter,stream);
+    trace->iter += sizeof(*stream)/sizeof(pos);
     return 0;
 }
 static pos n_tr_memo_choice(n_trace *trace) {
@@ -164,7 +247,7 @@ static void n_tr_pick_choice(n_trace *trace, pos where, pos which_choice, pos  c
     fprintf(stderr,"%d = pick %d %d\n",where, which_choice,choice_begin);
 }
 static int n_tr_const(n_trace *trace,NailStream *stream) {
-    if(n_trace_grow(trace,1))
+    if(parser_fail(n_trace_grow(trace,1)))
         return -1;
     NailStreamPos newoff = stream_getpos(stream);
     fprintf(stderr,"%d = const %d \n",trace->iter, newoff);
@@ -220,7 +303,6 @@ int NailArena_release(NailArena *arena) {
 }
 //Returns the pointer where the taken choice is supposed to go.
 
-#define parser_fail(i) __builtin_expect(i<0,0)
 
 
 
@@ -261,16 +343,16 @@ static pos peg_number(NailArena *tmp_arena,n_trace *trace, NailStream *str_curre
         pos many = n_tr_memo_many(trace);
         pos count = 0;
 succ_repeat_0:
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto fail_repeat_0;
         }
         {
             uint64_t val = read_unsigned_bits(str_current,8);
             if((val>'9'||val<'0')) {
+                stream_backup(str_current,8);
                 goto fail_repeat_0;
             }
         }
-        stream_advance(str_current,8);
         count++;
         goto succ_repeat_0;
 fail_repeat_0:
@@ -295,16 +377,16 @@ static pos peg_varidentifier(NailArena *tmp_arena,n_trace *trace, NailStream *st
         pos many = n_tr_memo_many(trace);
         pos count = 0;
 succ_repeat_1:
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto fail_repeat_1;
         }
         {
             uint64_t val = read_unsigned_bits(str_current,8);
-            if((val>'z'||val<'a')) {
+            if((val>'z'||val<'a') && (val>'9'||val<'0') && val!='_') {
+                stream_backup(str_current,8);
                 goto fail_repeat_1;
             }
         }
-        stream_advance(str_current,8);
         count++;
         goto succ_repeat_1;
 fail_repeat_1:
@@ -329,16 +411,16 @@ static pos peg_constidentifier(NailArena *tmp_arena,n_trace *trace, NailStream *
         pos many = n_tr_memo_many(trace);
         pos count = 0;
 succ_repeat_2:
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto fail_repeat_2;
         }
         {
             uint64_t val = read_unsigned_bits(str_current,8);
             if((val>'Z'||val<'A')) {
+                stream_backup(str_current,8);
                 goto fail_repeat_2;
             }
         }
-        stream_advance(str_current,8);
         count++;
         goto succ_repeat_2;
 fail_repeat_2:
@@ -359,13 +441,13 @@ static pos peg_streamidentifier(NailArena *tmp_arena,n_trace *trace, NailStream 
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= '$') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
@@ -373,16 +455,16 @@ static pos peg_streamidentifier(NailArena *tmp_arena,n_trace *trace, NailStream 
         pos many = n_tr_memo_many(trace);
         pos count = 0;
 succ_repeat_3:
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto fail_repeat_3;
         }
         {
             uint64_t val = read_unsigned_bits(str_current,8);
-            if((val>'z'||val<'a')) {
+            if((val>'z'||val<'a') && (val>'9'||val<'0') && val!='_') {
+                stream_backup(str_current,8);
                 goto fail_repeat_3;
             }
         }
-        stream_advance(str_current,8);
         count++;
         goto succ_repeat_3;
 fail_repeat_3:
@@ -403,13 +485,13 @@ static pos peg_dependencyidentifier(NailArena *tmp_arena,n_trace *trace, NailStr
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= '@') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
@@ -417,16 +499,16 @@ static pos peg_dependencyidentifier(NailArena *tmp_arena,n_trace *trace, NailStr
         pos many = n_tr_memo_many(trace);
         pos count = 0;
 succ_repeat_4:
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto fail_repeat_4;
         }
         {
             uint64_t val = read_unsigned_bits(str_current,8);
-            if((val>'z'||val<'a')) {
+            if((val>'z'||val<'a') && (val>'9'||val<'0') && val!='_') {
+                stream_backup(str_current,8);
                 goto fail_repeat_4;
             }
         }
-        stream_advance(str_current,8);
         count++;
         goto succ_repeat_4;
 fail_repeat_4:
@@ -443,23 +525,23 @@ static pos peg_WHITE(NailStream *str_current) {
 constmany_0_repeat:
     {
         NailStreamPos back = stream_getpos(str_current);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto cunion_1_1;
         }
         if( read_unsigned_bits(str_current,8)!= ' ') {
+            stream_backup(str_current,8);
             goto cunion_1_1;
         }
-        stream_advance(str_current,8);
         goto cunion_1_succ;
 cunion_1_1:
         stream_reposition(str_current,back);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto cunion_1_2;
         }
         if( read_unsigned_bits(str_current,8)!= '\n') {
+            stream_backup(str_current,8);
             goto cunion_1_2;
         }
-        stream_advance(str_current,8);
         goto cunion_1_succ;
 cunion_1_2:
         stream_reposition(str_current,back);
@@ -475,35 +557,35 @@ fail:
 }
 static pos peg_SEPERATOR(NailStream *str_current) {
 constmany_2_repeat:
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto constmany_3_end;
     }
     if( read_unsigned_bits(str_current,8)!= ' ') {
+        stream_backup(str_current,8);
         goto constmany_3_end;
     }
-    stream_advance(str_current,8);
     goto constmany_2_repeat;
 constmany_3_end:
 constmany_4_repeat:
     {
         NailStreamPos back = stream_getpos(str_current);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto cunion_2_1;
         }
         if( read_unsigned_bits(str_current,8)!= '\n') {
+            stream_backup(str_current,8);
             goto cunion_2_1;
         }
-        stream_advance(str_current,8);
         goto cunion_2_succ;
 cunion_2_1:
         stream_reposition(str_current,back);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto cunion_2_2;
         }
         if( read_unsigned_bits(str_current,8)!= ';') {
+            stream_backup(str_current,8);
             goto cunion_2_2;
         }
-        stream_advance(str_current,8);
         goto cunion_2_succ;
 cunion_2_2:
         stream_reposition(str_current,back);
@@ -532,13 +614,13 @@ static pos peg_intconstant(NailArena *tmp_arena,n_trace *trace, NailStream *str_
             goto fail;
         }
         choice = n_tr_memo_choice(trace);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_3_ASCII_out;
         }
         if( read_unsigned_bits(str_current,8)!= '\'') {
+            stream_backup(str_current,8);
             goto choice_3_ASCII_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_3_ASCII_out;
         }
@@ -549,17 +631,17 @@ static pos peg_intconstant(NailArena *tmp_arena,n_trace *trace, NailStream *str_
                 goto choice_3_ASCII_out;
             }
             choice = n_tr_memo_choice(trace);
-            if(!stream_check(str_current,8)) {
+            if(parser_fail(stream_check(str_current,8))) {
                 goto choice_4_ESCAPE_out;
             }
             if( read_unsigned_bits(str_current,8)!= '\\') {
+                stream_backup(str_current,8);
                 goto choice_4_ESCAPE_out;
             }
-            stream_advance(str_current,8);
             if(parser_fail(n_tr_const(trace,str_current))) {
                 goto choice_4_ESCAPE_out;
             }
-            if(!stream_check(str_current,8)) {
+            if(parser_fail(stream_check(str_current,8))) {
                 goto choice_4_ESCAPE_out;
             }
             stream_advance(str_current,8);
@@ -568,7 +650,7 @@ static pos peg_intconstant(NailArena *tmp_arena,n_trace *trace, NailStream *str_
 choice_4_ESCAPE_out:
             stream_reposition(str_current, back);
             choice = n_tr_memo_choice(trace);
-            if(!stream_check(str_current,8)) {
+            if(parser_fail(stream_check(str_current,8))) {
                 goto choice_4_DIRECT_out;
             }
             stream_advance(str_current,8);
@@ -580,13 +662,13 @@ choice_4_DIRECT_out:
 choice_4_succ:
             ;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_3_ASCII_out;
         }
         if( read_unsigned_bits(str_current,8)!= '\'') {
+            stream_backup(str_current,8);
             goto choice_3_ASCII_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_3_ASCII_out;
         }
@@ -595,23 +677,23 @@ choice_4_succ:
 choice_3_ASCII_out:
         stream_reposition(str_current, back);
         choice = n_tr_memo_choice(trace);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_3_HEX_out;
         }
         if( read_unsigned_bits(str_current,8)!= '0') {
+            stream_backup(str_current,8);
             goto choice_3_HEX_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_3_HEX_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_3_HEX_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'x') {
+            stream_backup(str_current,8);
             goto choice_3_HEX_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_3_HEX_out;
         }
@@ -626,31 +708,31 @@ succ_repeat_5:
                     goto fail_repeat_5;
                 }
                 choice = n_tr_memo_choice(trace);
-                if(!stream_check(str_current,8)) {
+                if(parser_fail(stream_check(str_current,8))) {
                     goto choice_5_1_out;
                 }
                 {
                     uint64_t val = read_unsigned_bits(str_current,8);
                     if((val>'9'||val<'0')) {
+                        stream_backup(str_current,8);
                         goto choice_5_1_out;
                     }
                 }
-                stream_advance(str_current,8);
                 n_tr_pick_choice(trace,choice_begin,1,choice);
                 goto choice_5_succ;
 choice_5_1_out:
                 stream_reposition(str_current, back);
                 choice = n_tr_memo_choice(trace);
-                if(!stream_check(str_current,8)) {
+                if(parser_fail(stream_check(str_current,8))) {
                     goto choice_5_2_out;
                 }
                 {
                     uint64_t val = read_unsigned_bits(str_current,8);
                     if((val>'F'||val<'A')) {
+                        stream_backup(str_current,8);
                         goto choice_5_2_out;
                     }
                 }
-                stream_advance(str_current,8);
                 n_tr_pick_choice(trace,choice_begin,2,choice);
                 goto choice_5_succ;
 choice_5_2_out:
@@ -696,34 +778,34 @@ static pos peg_intp(NailArena *tmp_arena,n_trace *trace, NailStream *str_current
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_6_UNSIGN_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_6_UNSIGN_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'u') {
+            stream_backup(str_current,8);
             goto choice_6_UNSIGN_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_6_UNSIGN_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'i') {
+            stream_backup(str_current,8);
             goto choice_6_UNSIGN_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_6_UNSIGN_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'n') {
+            stream_backup(str_current,8);
             goto choice_6_UNSIGN_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_6_UNSIGN_out;
         }
         if( read_unsigned_bits(str_current,8)!= 't') {
+            stream_backup(str_current,8);
             goto choice_6_UNSIGN_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_6_UNSIGN_out;
         }
@@ -731,16 +813,16 @@ static pos peg_intp(NailArena *tmp_arena,n_trace *trace, NailStream *str_current
             pos many = n_tr_memo_many(trace);
             pos count = 0;
 succ_repeat_6:
-            if(!stream_check(str_current,8)) {
+            if(parser_fail(stream_check(str_current,8))) {
                 goto fail_repeat_6;
             }
             {
                 uint64_t val = read_unsigned_bits(str_current,8);
                 if((val>'9'||val<'0')) {
+                    stream_backup(str_current,8);
                     goto fail_repeat_6;
                 }
             }
-            stream_advance(str_current,8);
             count++;
             goto succ_repeat_6;
 fail_repeat_6:
@@ -757,27 +839,27 @@ choice_6_UNSIGN_out:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_6_SIGN_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_6_SIGN_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'i') {
+            stream_backup(str_current,8);
             goto choice_6_SIGN_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_6_SIGN_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'n') {
+            stream_backup(str_current,8);
             goto choice_6_SIGN_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_6_SIGN_out;
         }
         if( read_unsigned_bits(str_current,8)!= 't') {
+            stream_backup(str_current,8);
             goto choice_6_SIGN_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_6_SIGN_out;
         }
@@ -785,16 +867,16 @@ choice_6_UNSIGN_out:
             pos many = n_tr_memo_many(trace);
             pos count = 0;
 succ_repeat_7:
-            if(!stream_check(str_current,8)) {
+            if(parser_fail(stream_check(str_current,8))) {
                 goto fail_repeat_7;
             }
             {
                 uint64_t val = read_unsigned_bits(str_current,8);
                 if((val>'9'||val<'0')) {
+                    stream_backup(str_current,8);
                     goto fail_repeat_7;
                 }
             }
-            stream_advance(str_current,8);
             count++;
             goto succ_repeat_7;
 fail_repeat_7:
@@ -823,13 +905,13 @@ static pos peg_constint(NailArena *tmp_arena,n_trace *trace, NailStream *str_cur
     if(parser_fail(peg_WHITE(str_current))) {
         goto fail;
     }
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= '=') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
@@ -855,13 +937,13 @@ static pos peg_arrayvalue(NailArena *tmp_arena,n_trace *trace, NailStream *str_c
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_7_STRING_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_7_STRING_out;
         }
         if( read_unsigned_bits(str_current,8)!= '"') {
+            stream_backup(str_current,8);
             goto choice_7_STRING_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_7_STRING_out;
         }
@@ -869,28 +951,28 @@ static pos peg_arrayvalue(NailArena *tmp_arena,n_trace *trace, NailStream *str_c
             pos many = n_tr_memo_many(trace);
             pos count = 0;
 succ_repeat_8:
-            if(!stream_check(str_current,8)) {
+            if(parser_fail(stream_check(str_current,8))) {
                 goto fail_repeat_8;
             }
             {
                 uint64_t val = read_unsigned_bits(str_current,8);
                 if(!(val!='"')) {
+                    stream_backup(str_current,8);
                     goto fail_repeat_8;
                 }
             }
-            stream_advance(str_current,8);
             count++;
             goto succ_repeat_8;
 fail_repeat_8:
             n_tr_write_many(trace,many,count);
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_7_STRING_out;
         }
         if( read_unsigned_bits(str_current,8)!= '"') {
+            stream_backup(str_current,8);
             goto choice_7_STRING_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_7_STRING_out;
         }
@@ -902,13 +984,13 @@ choice_7_STRING_out:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_7_VALUES_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_7_VALUES_out;
         }
         if( read_unsigned_bits(str_current,8)!= '[') {
+            stream_backup(str_current,8);
             goto choice_7_VALUES_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_7_VALUES_out;
         }
@@ -927,13 +1009,13 @@ fail_repeat_9:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_7_VALUES_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_7_VALUES_out;
         }
         if( read_unsigned_bits(str_current,8)!= ']') {
+            stream_backup(str_current,8);
             goto choice_7_VALUES_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_7_VALUES_out;
         }
@@ -954,41 +1036,41 @@ static pos peg_constarray(NailArena *tmp_arena,n_trace *trace, NailStream *str_c
     if(parser_fail(peg_WHITE(str_current))) {
         goto fail;
     }
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= 'm') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= 'a') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= 'n') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= 'y') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= ' ') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
@@ -998,13 +1080,13 @@ static pos peg_constarray(NailArena *tmp_arena,n_trace *trace, NailStream *str_c
     if(parser_fail(peg_WHITE(str_current))) {
         goto fail;
     }
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= '=') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
@@ -1064,41 +1146,41 @@ choice_8_CARRAY_out:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_8_CREPEAT_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_8_CREPEAT_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'm') {
+            stream_backup(str_current,8);
             goto choice_8_CREPEAT_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_8_CREPEAT_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'a') {
+            stream_backup(str_current,8);
             goto choice_8_CREPEAT_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_8_CREPEAT_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'n') {
+            stream_backup(str_current,8);
             goto choice_8_CREPEAT_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_8_CREPEAT_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'y') {
+            stream_backup(str_current,8);
             goto choice_8_CREPEAT_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_8_CREPEAT_out;
         }
         if( read_unsigned_bits(str_current,8)!= ' ') {
+            stream_backup(str_current,8);
             goto choice_8_CREPEAT_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_8_CREPEAT_out;
         }
@@ -1129,13 +1211,13 @@ choice_8_CREF_out:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_8_CSTRUCT_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_8_CSTRUCT_out;
         }
         if( read_unsigned_bits(str_current,8)!= '{') {
+            stream_backup(str_current,8);
             goto choice_8_CSTRUCT_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_8_CSTRUCT_out;
         }
@@ -1145,13 +1227,13 @@ choice_8_CREF_out:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_8_CSTRUCT_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_8_CSTRUCT_out;
         }
         if( read_unsigned_bits(str_current,8)!= '}') {
+            stream_backup(str_current,8);
             goto choice_8_CSTRUCT_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_8_CSTRUCT_out;
         }
@@ -1167,20 +1249,20 @@ succ_repeat_11:
             if(parser_fail(peg_WHITE(str_current))) {
                 goto fail_repeat_11;
             }
-            if(!stream_check(str_current,8)) {
+            if(parser_fail(stream_check(str_current,8))) {
                 goto fail_repeat_11;
             }
             if( read_unsigned_bits(str_current,8)!= '|') {
+                stream_backup(str_current,8);
                 goto fail_repeat_11;
             }
-            stream_advance(str_current,8);
-            if(!stream_check(str_current,8)) {
+            if(parser_fail(stream_check(str_current,8))) {
                 goto fail_repeat_11;
             }
             if( read_unsigned_bits(str_current,8)!= '|') {
+                stream_backup(str_current,8);
                 goto fail_repeat_11;
             }
-            stream_advance(str_current,8);
             if(parser_fail(n_tr_const(trace,str_current))) {
                 goto fail_repeat_11;
             }
@@ -1231,20 +1313,20 @@ succ_optional_12:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_9_RANGE_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_9_RANGE_out;
         }
         if( read_unsigned_bits(str_current,8)!= '.') {
+            stream_backup(str_current,8);
             goto choice_9_RANGE_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_9_RANGE_out;
         }
         if( read_unsigned_bits(str_current,8)!= '.') {
+            stream_backup(str_current,8);
             goto choice_9_RANGE_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_9_RANGE_out;
         }
@@ -1300,13 +1382,13 @@ choice_10_SINGLE_out:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_10_SET_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_10_SET_out;
         }
         if( read_unsigned_bits(str_current,8)!= '[') {
+            stream_backup(str_current,8);
             goto choice_10_SET_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_10_SET_out;
         }
@@ -1315,13 +1397,13 @@ choice_10_SINGLE_out:
             pos count = 0;
 succ_repeat_14:
             if(count>0) {
-                if(!stream_check(str_current,8)) {
+                if(parser_fail(stream_check(str_current,8))) {
                     goto fail_repeat_14;
                 }
                 if( read_unsigned_bits(str_current,8)!= ',') {
+                    stream_backup(str_current,8);
                     goto fail_repeat_14;
                 }
-                stream_advance(str_current,8);
                 if(parser_fail(n_tr_const(trace,str_current))) {
                     goto fail_repeat_14;
                 }
@@ -1340,13 +1422,13 @@ fail_repeat_14:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_10_SET_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_10_SET_out;
         }
         if( read_unsigned_bits(str_current,8)!= ']') {
+            stream_backup(str_current,8);
             goto choice_10_SET_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_10_SET_out;
         }
@@ -1358,13 +1440,13 @@ choice_10_SET_out:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_10_NEGATE_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_10_NEGATE_out;
         }
         if( read_unsigned_bits(str_current,8)!= '!') {
+            stream_backup(str_current,8);
             goto choice_10_NEGATE_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_10_NEGATE_out;
         }
@@ -1393,13 +1475,13 @@ static pos peg_constrainedint(NailArena *tmp_arena,n_trace *trace, NailStream *s
         if(parser_fail(peg_WHITE(str_current))) {
             goto fail_optional_15;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto fail_optional_15;
         }
         if( read_unsigned_bits(str_current,8)!= '|') {
+            stream_backup(str_current,8);
             goto fail_optional_15;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto fail_optional_15;
         }
@@ -1427,13 +1509,13 @@ succ_repeat_16:
             if(parser_fail(peg_WHITE(str_current))) {
                 goto fail_repeat_16;
             }
-            if(!stream_check(str_current,8)) {
+            if(parser_fail(stream_check(str_current,8))) {
                 goto fail_repeat_16;
             }
             if( read_unsigned_bits(str_current,8)!= ',') {
+                stream_backup(str_current,8);
                 goto fail_repeat_16;
             }
-            stream_advance(str_current,8);
             if(parser_fail(n_tr_const(trace,str_current))) {
                 goto fail_repeat_16;
             }
@@ -1449,69 +1531,69 @@ fail_repeat_16:
     if(parser_fail(peg_WHITE(str_current))) {
         goto fail;
     }
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= 't') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= 'r') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= 'a') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= 'n') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= 's') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= 'f') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= 'o') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= 'r') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= 'm') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
@@ -1539,13 +1621,13 @@ static pos peg_structparser(NailArena *tmp_arena,n_trace *trace, NailStream *str
     if(parser_fail(peg_WHITE(str_current))) {
         goto fail;
     }
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= '{') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
@@ -1617,13 +1699,13 @@ fail_repeat_18:
     if(parser_fail(peg_WHITE(str_current))) {
         goto fail;
     }
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= '}') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
@@ -1636,13 +1718,13 @@ static pos peg_wrapparser(NailArena *tmp_arena,n_trace *trace, NailStream *str_c
     if(parser_fail(peg_WHITE(str_current))) {
         goto fail;
     }
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= '<') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
@@ -1725,13 +1807,13 @@ succ_optional_21:
     if(parser_fail(peg_WHITE(str_current))) {
         goto fail;
     }
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= '>') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
@@ -1744,61 +1826,61 @@ static pos peg_choiceparser(NailArena *tmp_arena,n_trace *trace, NailStream *str
     if(parser_fail(peg_WHITE(str_current))) {
         goto fail;
     }
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= 'c') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= 'h') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
-    if(!stream_check(str_current,8)) {
-        goto fail;
-    }
-    if( read_unsigned_bits(str_current,8)!= 'o') {
-        goto fail;
-    }
-    stream_advance(str_current,8);
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= 'o') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
+        goto fail;
+    }
+    if( read_unsigned_bits(str_current,8)!= 'o') {
+        stream_backup(str_current,8);
+        goto fail;
+    }
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= 's') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= 'e') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
     if(parser_fail(peg_WHITE(str_current))) {
         goto fail;
     }
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= '{') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
@@ -1812,13 +1894,13 @@ succ_repeat_23:
         if(parser_fail(peg_WHITE(str_current))) {
             goto fail_repeat_23;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto fail_repeat_23;
         }
         if( read_unsigned_bits(str_current,8)!= '=') {
+            stream_backup(str_current,8);
             goto fail_repeat_23;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto fail_repeat_23;
         }
@@ -1833,13 +1915,13 @@ fail_repeat_23:
     if(parser_fail(peg_WHITE(str_current))) {
         goto fail;
     }
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= '}') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
@@ -1859,41 +1941,41 @@ static pos peg_arrayparser(NailArena *tmp_arena,n_trace *trace, NailStream *str_
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_12_MANYONE_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_MANYONE_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'm') {
+            stream_backup(str_current,8);
             goto choice_12_MANYONE_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_MANYONE_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'a') {
+            stream_backup(str_current,8);
             goto choice_12_MANYONE_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_MANYONE_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'n') {
+            stream_backup(str_current,8);
             goto choice_12_MANYONE_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_MANYONE_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'y') {
+            stream_backup(str_current,8);
             goto choice_12_MANYONE_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_MANYONE_out;
         }
         if( read_unsigned_bits(str_current,8)!= '1') {
+            stream_backup(str_current,8);
             goto choice_12_MANYONE_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_12_MANYONE_out;
         }
@@ -1908,34 +1990,34 @@ choice_12_MANYONE_out:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_12_MANY_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_MANY_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'm') {
+            stream_backup(str_current,8);
             goto choice_12_MANY_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_MANY_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'a') {
+            stream_backup(str_current,8);
             goto choice_12_MANY_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_MANY_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'n') {
+            stream_backup(str_current,8);
             goto choice_12_MANY_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_MANY_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'y') {
+            stream_backup(str_current,8);
             goto choice_12_MANY_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_12_MANY_out;
         }
@@ -1950,48 +2032,48 @@ choice_12_MANY_out:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_12_SEPBYONE_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_SEPBYONE_out;
         }
         if( read_unsigned_bits(str_current,8)!= 's') {
+            stream_backup(str_current,8);
             goto choice_12_SEPBYONE_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_SEPBYONE_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'e') {
+            stream_backup(str_current,8);
             goto choice_12_SEPBYONE_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_SEPBYONE_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'p') {
+            stream_backup(str_current,8);
             goto choice_12_SEPBYONE_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_SEPBYONE_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'B') {
+            stream_backup(str_current,8);
             goto choice_12_SEPBYONE_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_SEPBYONE_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'y') {
+            stream_backup(str_current,8);
             goto choice_12_SEPBYONE_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_SEPBYONE_out;
         }
         if( read_unsigned_bits(str_current,8)!= '1') {
+            stream_backup(str_current,8);
             goto choice_12_SEPBYONE_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_12_SEPBYONE_out;
         }
@@ -2009,41 +2091,41 @@ choice_12_SEPBYONE_out:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_12_SEPBY_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_SEPBY_out;
         }
         if( read_unsigned_bits(str_current,8)!= 's') {
+            stream_backup(str_current,8);
             goto choice_12_SEPBY_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_SEPBY_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'e') {
+            stream_backup(str_current,8);
             goto choice_12_SEPBY_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_SEPBY_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'p') {
+            stream_backup(str_current,8);
             goto choice_12_SEPBY_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_SEPBY_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'B') {
+            stream_backup(str_current,8);
             goto choice_12_SEPBY_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_12_SEPBY_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'y') {
+            stream_backup(str_current,8);
             goto choice_12_SEPBY_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_12_SEPBY_out;
         }
@@ -2102,13 +2184,13 @@ static pos peg_parameterlist(NailArena *tmp_arena,n_trace *trace, NailStream *st
     if(parser_fail(peg_WHITE(str_current))) {
         goto fail;
     }
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= '(') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
@@ -2120,13 +2202,13 @@ succ_repeat_24:
             if(parser_fail(peg_WHITE(str_current))) {
                 goto fail_repeat_24;
             }
-            if(!stream_check(str_current,8)) {
+            if(parser_fail(stream_check(str_current,8))) {
                 goto fail_repeat_24;
             }
             if( read_unsigned_bits(str_current,8)!= ',') {
+                stream_backup(str_current,8);
                 goto fail_repeat_24;
             }
-            stream_advance(str_current,8);
             if(parser_fail(n_tr_const(trace,str_current))) {
                 goto fail_repeat_24;
             }
@@ -2145,13 +2227,13 @@ fail_repeat_24:
     if(parser_fail(peg_WHITE(str_current))) {
         goto fail;
     }
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= ')') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
@@ -2199,13 +2281,13 @@ static pos peg_parameterdefinitionlist(NailArena *tmp_arena,n_trace *trace, Nail
     if(parser_fail(peg_WHITE(str_current))) {
         goto fail;
     }
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= '(') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
@@ -2217,13 +2299,13 @@ succ_repeat_25:
             if(parser_fail(peg_WHITE(str_current))) {
                 goto fail_repeat_25;
             }
-            if(!stream_check(str_current,8)) {
+            if(parser_fail(stream_check(str_current,8))) {
                 goto fail_repeat_25;
             }
             if( read_unsigned_bits(str_current,8)!= ',') {
+                stream_backup(str_current,8);
                 goto fail_repeat_25;
             }
-            stream_advance(str_current,8);
             if(parser_fail(n_tr_const(trace,str_current))) {
                 goto fail_repeat_25;
             }
@@ -2242,13 +2324,13 @@ fail_repeat_25:
     if(parser_fail(peg_WHITE(str_current))) {
         goto fail;
     }
-    if(!stream_check(str_current,8)) {
+    if(parser_fail(stream_check(str_current,8))) {
         goto fail;
     }
     if( read_unsigned_bits(str_current,8)!= ')') {
+        stream_backup(str_current,8);
         goto fail;
     }
-    stream_advance(str_current,8);
     if(parser_fail(n_tr_const(trace,str_current))) {
         goto fail;
     }
@@ -2329,13 +2411,13 @@ choice_15_ARRAY_out:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_15_FIXEDARRAY_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_FIXEDARRAY_out;
         }
         if( read_unsigned_bits(str_current,8)!= '[') {
+            stream_backup(str_current,8);
             goto choice_15_FIXEDARRAY_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_15_FIXEDARRAY_out;
         }
@@ -2345,13 +2427,13 @@ choice_15_ARRAY_out:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_15_FIXEDARRAY_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_FIXEDARRAY_out;
         }
         if( read_unsigned_bits(str_current,8)!= ']') {
+            stream_backup(str_current,8);
             goto choice_15_FIXEDARRAY_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_15_FIXEDARRAY_out;
         }
@@ -2366,34 +2448,34 @@ choice_15_FIXEDARRAY_out:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_15_LENGTH_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_LENGTH_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'n') {
+            stream_backup(str_current,8);
             goto choice_15_LENGTH_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_LENGTH_out;
         }
         if( read_unsigned_bits(str_current,8)!= '_') {
+            stream_backup(str_current,8);
             goto choice_15_LENGTH_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_LENGTH_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'o') {
+            stream_backup(str_current,8);
             goto choice_15_LENGTH_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_LENGTH_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'f') {
+            stream_backup(str_current,8);
             goto choice_15_LENGTH_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_15_LENGTH_out;
         }
@@ -2411,41 +2493,41 @@ choice_15_LENGTH_out:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_15_APPLY_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_APPLY_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'a') {
+            stream_backup(str_current,8);
             goto choice_15_APPLY_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
-            goto choice_15_APPLY_out;
-        }
-        if( read_unsigned_bits(str_current,8)!= 'p') {
-            goto choice_15_APPLY_out;
-        }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_APPLY_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'p') {
+            stream_backup(str_current,8);
             goto choice_15_APPLY_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
+            goto choice_15_APPLY_out;
+        }
+        if( read_unsigned_bits(str_current,8)!= 'p') {
+            stream_backup(str_current,8);
+            goto choice_15_APPLY_out;
+        }
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_APPLY_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'l') {
+            stream_backup(str_current,8);
             goto choice_15_APPLY_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_APPLY_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'y') {
+            stream_backup(str_current,8);
             goto choice_15_APPLY_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_15_APPLY_out;
         }
@@ -2463,69 +2545,69 @@ choice_15_APPLY_out:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_15_OPTIONAL_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_OPTIONAL_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'o') {
+            stream_backup(str_current,8);
             goto choice_15_OPTIONAL_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_OPTIONAL_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'p') {
+            stream_backup(str_current,8);
             goto choice_15_OPTIONAL_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_OPTIONAL_out;
         }
         if( read_unsigned_bits(str_current,8)!= 't') {
+            stream_backup(str_current,8);
             goto choice_15_OPTIONAL_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_OPTIONAL_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'i') {
+            stream_backup(str_current,8);
             goto choice_15_OPTIONAL_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_OPTIONAL_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'o') {
+            stream_backup(str_current,8);
             goto choice_15_OPTIONAL_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_OPTIONAL_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'n') {
+            stream_backup(str_current,8);
             goto choice_15_OPTIONAL_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_OPTIONAL_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'a') {
+            stream_backup(str_current,8);
             goto choice_15_OPTIONAL_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_OPTIONAL_out;
         }
         if( read_unsigned_bits(str_current,8)!= 'l') {
+            stream_backup(str_current,8);
             goto choice_15_OPTIONAL_out;
         }
-        stream_advance(str_current,8);
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_OPTIONAL_out;
         }
         if( read_unsigned_bits(str_current,8)!= ' ') {
+            stream_backup(str_current,8);
             goto choice_15_OPTIONAL_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_15_OPTIONAL_out;
         }
@@ -2544,20 +2626,20 @@ succ_repeat_27:
             if(parser_fail(peg_WHITE(str_current))) {
                 goto fail_repeat_27;
             }
-            if(!stream_check(str_current,8)) {
+            if(parser_fail(stream_check(str_current,8))) {
                 goto fail_repeat_27;
             }
             if( read_unsigned_bits(str_current,8)!= '|') {
+                stream_backup(str_current,8);
                 goto fail_repeat_27;
             }
-            stream_advance(str_current,8);
-            if(!stream_check(str_current,8)) {
+            if(parser_fail(stream_check(str_current,8))) {
                 goto fail_repeat_27;
             }
             if( read_unsigned_bits(str_current,8)!= '|') {
+                stream_backup(str_current,8);
                 goto fail_repeat_27;
             }
-            stream_advance(str_current,8);
             if(parser_fail(n_tr_const(trace,str_current))) {
                 goto fail_repeat_27;
             }
@@ -2580,13 +2662,13 @@ choice_15_NUNION_out:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_15_REF_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_15_REF_out;
         }
         if( read_unsigned_bits(str_current,8)!= '*') {
+            stream_backup(str_current,8);
             goto choice_15_REF_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_15_REF_out;
         }
@@ -2625,13 +2707,13 @@ static pos peg_parser(NailArena *tmp_arena,n_trace *trace, NailStream *str_curre
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_16_PAREN_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_16_PAREN_out;
         }
         if( read_unsigned_bits(str_current,8)!= '(') {
+            stream_backup(str_current,8);
             goto choice_16_PAREN_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_16_PAREN_out;
         }
@@ -2641,13 +2723,13 @@ static pos peg_parser(NailArena *tmp_arena,n_trace *trace, NailStream *str_curre
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_16_PAREN_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_16_PAREN_out;
         }
         if( read_unsigned_bits(str_current,8)!= ')') {
+            stream_backup(str_current,8);
             goto choice_16_PAREN_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_16_PAREN_out;
         }
@@ -2698,13 +2780,13 @@ succ_optional_28:
         if(parser_fail(peg_WHITE(str_current))) {
             goto choice_17_PARSER_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_17_PARSER_out;
         }
         if( read_unsigned_bits(str_current,8)!= '=') {
+            stream_backup(str_current,8);
             goto choice_17_PARSER_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_17_PARSER_out;
         }
@@ -2725,13 +2807,13 @@ choice_17_PARSER_out:
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_17_CONSTANTDEF_out;
         }
-        if(!stream_check(str_current,8)) {
+        if(parser_fail(stream_check(str_current,8))) {
             goto choice_17_CONSTANTDEF_out;
         }
         if( read_unsigned_bits(str_current,8)!= '=') {
+            stream_backup(str_current,8);
             goto choice_17_CONSTANTDEF_out;
         }
-        stream_advance(str_current,8);
         if(parser_fail(n_tr_const(trace,str_current))) {
             goto choice_17_CONSTANTDEF_out;
         }
@@ -2827,14 +2909,13 @@ static int bind_number(NailArena *arena,number*out,NailStream *stream, pos **tra
         }
         for(pos i1=0; i1<out->count; i1++) {
             out->elem[i1]=read_unsigned_bits(stream,8);
-            stream_advance(stream,8);
         }
         tr = trace_begin + save;
     }*trace = tr;
     return 0;
 }
 number*parse_number(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -2868,14 +2949,13 @@ static int bind_varidentifier(NailArena *arena,varidentifier*out,NailStream *str
         }
         for(pos i2=0; i2<out->count; i2++) {
             out->elem[i2]=read_unsigned_bits(stream,8);
-            stream_advance(stream,8);
         }
         tr = trace_begin + save;
     }*trace = tr;
     return 0;
 }
 varidentifier*parse_varidentifier(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -2909,14 +2989,13 @@ static int bind_constidentifier(NailArena *arena,constidentifier*out,NailStream 
         }
         for(pos i3=0; i3<out->count; i3++) {
             out->elem[i3]=read_unsigned_bits(stream,8);
-            stream_advance(stream,8);
         }
         tr = trace_begin + save;
     }*trace = tr;
     return 0;
 }
 constidentifier*parse_constidentifier(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -2953,14 +3032,13 @@ static int bind_streamidentifier(NailArena *arena,streamidentifier*out,NailStrea
         }
         for(pos i4=0; i4<out->count; i4++) {
             out->elem[i4]=read_unsigned_bits(stream,8);
-            stream_advance(stream,8);
         }
         tr = trace_begin + save;
     }*trace = tr;
     return 0;
 }
 streamidentifier*parse_streamidentifier(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -2997,14 +3075,13 @@ static int bind_dependencyidentifier(NailArena *arena,dependencyidentifier*out,N
         }
         for(pos i5=0; i5<out->count; i5++) {
             out->elem[i5]=read_unsigned_bits(stream,8);
-            stream_advance(stream,8);
         }
         tr = trace_begin + save;
     }*trace = tr;
     return 0;
 }
 dependencyidentifier*parse_dependencyidentifier(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -3046,13 +3123,11 @@ static int bind_intconstant(NailArena *arena,intconstant*out,NailStream *stream,
             stream_reposition(stream,*tr);
             tr++;
             out->ascii.escape=read_unsigned_bits(stream,8);
-            stream_advance(stream,8);
             break;
         case DIRECT:
             tr = trace_begin + *tr;
             out->ascii.N_type= DIRECT;
             out->ascii.direct=read_unsigned_bits(stream,8);
-            stream_advance(stream,8);
             break;
         default:
             assert("BUG");
@@ -3085,12 +3160,10 @@ static int bind_intconstant(NailArena *arena,intconstant*out,NailStream *stream,
                 case 1:
                     tr = trace_begin + *tr;
                     out->hex.elem[i6]=read_unsigned_bits(stream,8);
-                    stream_advance(stream,8);
                     break;
                 case 2:
                     tr = trace_begin + *tr;
                     out->hex.elem[i6]=read_unsigned_bits(stream,8);
-                    stream_advance(stream,8);
                     break;
                 default:
                     assert(!"Error");
@@ -3113,7 +3186,7 @@ static int bind_intconstant(NailArena *arena,intconstant*out,NailStream *stream,
     return 0;
 }
 intconstant*parse_intconstant(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -3152,7 +3225,6 @@ static int bind_intp(NailArena *arena,intp*out,NailStream *stream, pos **trace ,
             }
             for(pos i7=0; i7<out->unsign.count; i7++) {
                 out->unsign.elem[i7]=read_unsigned_bits(stream,8);
-                stream_advance(stream,8);
             }
             tr = trace_begin + save;
         }
@@ -3174,7 +3246,6 @@ static int bind_intp(NailArena *arena,intp*out,NailStream *stream, pos **trace ,
             }
             for(pos i8=0; i8<out->sign.count; i8++) {
                 out->sign.elem[i8]=read_unsigned_bits(stream,8);
-                stream_advance(stream,8);
             }
             tr = trace_begin + save;
         }
@@ -3185,7 +3256,7 @@ static int bind_intp(NailArena *arena,intp*out,NailStream *stream, pos **trace ,
     return 0;
 }
 intp*parse_intp(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -3217,7 +3288,7 @@ static int bind_constint(NailArena *arena,constint*out,NailStream *stream, pos *
     return 0;
 }
 constint*parse_constint(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -3259,7 +3330,6 @@ static int bind_arrayvalue(NailArena *arena,arrayvalue*out,NailStream *stream, p
             }
             for(pos i9=0; i9<out->string.count; i9++) {
                 out->string.elem[i9]=read_unsigned_bits(stream,8);
-                stream_advance(stream,8);
             }
             tr = trace_begin + save;
         }
@@ -3299,7 +3369,7 @@ static int bind_arrayvalue(NailArena *arena,arrayvalue*out,NailStream *stream, p
     return 0;
 }
 arrayvalue*parse_arrayvalue(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -3334,7 +3404,7 @@ static int bind_constarray(NailArena *arena,constarray*out,NailStream *stream, p
     return 0;
 }
 constarray*parse_constarray(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -3378,7 +3448,7 @@ static int bind_constfields(NailArena *arena,constfields*out,NailStream *stream,
     return 0;
 }
 constfields*parse_constfields(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -3477,7 +3547,7 @@ static int bind_constparser(NailArena *arena,constparser*out,NailStream *stream,
     return 0;
 }
 constparser*parse_constparser(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -3543,7 +3613,7 @@ static int bind_constraintelem(NailArena *arena,constraintelem*out,NailStream *s
     return 0;
 }
 constraintelem*parse_constraintelem(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -3623,7 +3693,7 @@ static int bind_intconstraint(NailArena *arena,intconstraint*out,NailStream *str
     return 0;
 }
 intconstraint*parse_intconstraint(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -3664,7 +3734,7 @@ static int bind_constrainedint(NailArena *arena,constrainedint*out,NailStream *s
     return 0;
 }
 constrainedint*parse_constrainedint(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -3730,7 +3800,7 @@ static int bind_transform(NailArena *arena,transform*out,NailStream *stream, pos
     return 0;
 }
 transform*parse_transform(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -3825,7 +3895,7 @@ static int bind_structparser(NailArena *arena,structparser*out,NailStream *strea
     return 0;
 }
 structparser*parse_structparser(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -3928,7 +3998,7 @@ static int bind_wrapparser(NailArena *arena,wrapparser*out,NailStream *stream, p
     return 0;
 }
 wrapparser*parse_wrapparser(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -3987,7 +4057,7 @@ static int bind_choiceparser(NailArena *arena,choiceparser*out,NailStream *strea
     return 0;
 }
 choiceparser*parse_choiceparser(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -4077,7 +4147,7 @@ static int bind_arrayparser(NailArena *arena,arrayparser*out,NailStream *stream,
     return 0;
 }
 arrayparser*parse_arrayparser(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -4119,7 +4189,7 @@ static int bind_parameter(NailArena *arena,parameter*out,NailStream *stream, pos
     return 0;
 }
 parameter*parse_parameter(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -4170,7 +4240,7 @@ static int bind_parameterlist(NailArena *arena,parameterlist*out,NailStream *str
     return 0;
 }
 parameterlist*parse_parameterlist(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -4219,7 +4289,7 @@ static int bind_parameterdefinition(NailArena *arena,parameterdefinition*out,Nai
     return 0;
 }
 parameterdefinition*parse_parameterdefinition(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -4270,7 +4340,7 @@ static int bind_parameterdefinitionlist(NailArena *arena,parameterdefinitionlist
     return 0;
 }
 parameterdefinitionlist*parse_parameterdefinitionlist(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -4308,7 +4378,7 @@ static int bind_parserinvocation(NailArena *arena,parserinvocation*out,NailStrea
     return 0;
 }
 parserinvocation*parse_parserinvocation(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -4483,7 +4553,7 @@ static int bind_parserinner(NailArena *arena,parserinner*out,NailStream *stream,
     return 0;
 }
 parserinner*parse_parserinner(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -4531,7 +4601,7 @@ static int bind_parser(NailArena *arena,parser*out,NailStream *stream, pos **tra
     return 0;
 }
 parser*parse_parser(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -4603,7 +4673,7 @@ static int bind_definition(NailArena *arena,definition*out,NailStream *stream, p
     return 0;
 }
 definition*parse_definition(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -4646,7 +4716,7 @@ static int bind_grammar(NailArena *arena,grammar*out,NailStream *stream, pos **t
     return 0;
 }
 grammar*parse_grammar(NailArena *arena, const uint8_t *data, size_t size) {
-    NailStream stream = {.data = data, .pos= 0, .size = size*8};
+    NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};
     NailArena tmp_arena;
     NailArena_init(&tmp_arena, 4096);
     n_trace trace;
@@ -4664,40 +4734,822 @@ grammar*parse_grammar(NailArena *arena, const uint8_t *data, size_t size) {
     n_trace_release(&trace);
     return retval;
 }
-#include <hammer/hammer.h>
-#include <hammer/internal.h>
-void gen_number(HBitWriter *out,number * val);
-void gen_varidentifier(HBitWriter *out,varidentifier * val);
-void gen_constidentifier(HBitWriter *out,constidentifier * val);
-void gen_streamidentifier(HBitWriter *out,streamidentifier * val);
-void gen_dependencyidentifier(HBitWriter *out,dependencyidentifier * val);
-void gen_WHITE(HBitWriter* out);
-void gen_SEPERATOR(HBitWriter* out);
-void gen_intconstant(HBitWriter *out,intconstant * val);
-void gen_intp(HBitWriter *out,intp * val);
-void gen_constint(HBitWriter *out,constint * val);
-void gen_arrayvalue(HBitWriter *out,arrayvalue * val);
-void gen_constarray(HBitWriter *out,constarray * val);
-void gen_constfields(HBitWriter *out,constfields * val);
-void gen_constparser(HBitWriter *out,constparser * val);
-void gen_constraintelem(HBitWriter *out,constraintelem * val);
-void gen_intconstraint(HBitWriter *out,intconstraint * val);
-void gen_constrainedint(HBitWriter *out,constrainedint * val);
-void gen_transform(HBitWriter *out,transform * val);
-void gen_structparser(HBitWriter *out,structparser * val);
-void gen_wrapparser(HBitWriter *out,wrapparser * val);
-void gen_choiceparser(HBitWriter *out,choiceparser * val);
-void gen_arrayparser(HBitWriter *out,arrayparser * val);
-void gen_parameter(HBitWriter *out,parameter * val);
-void gen_parameterlist(HBitWriter *out,parameterlist * val);
-void gen_parameterdefinition(HBitWriter *out,parameterdefinition * val);
-void gen_parameterdefinitionlist(HBitWriter *out,parameterdefinitionlist * val);
-void gen_parserinvocation(HBitWriter *out,parserinvocation * val);
-void gen_parserinner(HBitWriter *out,parserinner * val);
-void gen_parser(HBitWriter *out,parser * val);
-void gen_definition(HBitWriter *out,definition * val);
-void gen_grammar(HBitWriter *out,grammar * val);
-void gen_number(HBitWriter *out,number * val) {} void gen_varidentifier(HBitWriter *out,varidentifier * val) {} void gen_constidentifier(HBitWriter *out,constidentifier * val) {} void gen_streamidentifier(HBitWriter *out,streamidentifier * val) {} void gen_dependencyidentifier(HBitWriter *out,dependencyidentifier * val) {} void gen_WHITE(HBitWriter* out) {
-} void gen_SEPERATOR(HBitWriter* out) {
-} void gen_intconstant(HBitWriter *out,intconstant * val) {} void gen_intp(HBitWriter *out,intp * val) {} void gen_constint(HBitWriter *out,constint * val) {} void gen_arrayvalue(HBitWriter *out,arrayvalue * val) {} void gen_constarray(HBitWriter *out,constarray * val) {} void gen_constfields(HBitWriter *out,constfields * val) {} void gen_constparser(HBitWriter *out,constparser * val) {} void gen_constraintelem(HBitWriter *out,constraintelem * val) {} void gen_intconstraint(HBitWriter *out,intconstraint * val) {} void gen_constrainedint(HBitWriter *out,constrainedint * val) {} void gen_transform(HBitWriter *out,transform * val) {} void gen_structparser(HBitWriter *out,structparser * val) {} void gen_wrapparser(HBitWriter *out,wrapparser * val) {} void gen_choiceparser(HBitWriter *out,choiceparser * val) {} void gen_arrayparser(HBitWriter *out,arrayparser * val) {} void gen_parameter(HBitWriter *out,parameter * val) {} void gen_parameterlist(HBitWriter *out,parameterlist * val) {} void gen_parameterdefinition(HBitWriter *out,parameterdefinition * val) {} void gen_parameterdefinitionlist(HBitWriter *out,parameterdefinitionlist * val) {} void gen_parserinvocation(HBitWriter *out,parserinvocation * val) {} void gen_parserinner(HBitWriter *out,parserinner * val) {} void gen_parser(HBitWriter *out,parser * val) {} void gen_definition(HBitWriter *out,definition * val) {} void gen_grammar(HBitWriter *out,grammar * val) {}
+int gen_number(NailArena *tmp_arena,NailStream *out,number * val);
+int gen_varidentifier(NailArena *tmp_arena,NailStream *out,varidentifier * val);
+int gen_constidentifier(NailArena *tmp_arena,NailStream *out,constidentifier * val);
+int gen_streamidentifier(NailArena *tmp_arena,NailStream *out,streamidentifier * val);
+int gen_dependencyidentifier(NailArena *tmp_arena,NailStream *out,dependencyidentifier * val);
+int gen_WHITE(NailStream* str_current);
+int gen_SEPERATOR(NailStream* str_current);
+int gen_intconstant(NailArena *tmp_arena,NailStream *out,intconstant * val);
+int gen_intp(NailArena *tmp_arena,NailStream *out,intp * val);
+int gen_constint(NailArena *tmp_arena,NailStream *out,constint * val);
+int gen_arrayvalue(NailArena *tmp_arena,NailStream *out,arrayvalue * val);
+int gen_constarray(NailArena *tmp_arena,NailStream *out,constarray * val);
+int gen_constfields(NailArena *tmp_arena,NailStream *out,constfields * val);
+int gen_constparser(NailArena *tmp_arena,NailStream *out,constparser * val);
+int gen_constraintelem(NailArena *tmp_arena,NailStream *out,constraintelem * val);
+int gen_intconstraint(NailArena *tmp_arena,NailStream *out,intconstraint * val);
+int gen_constrainedint(NailArena *tmp_arena,NailStream *out,constrainedint * val);
+int gen_transform(NailArena *tmp_arena,NailStream *out,transform * val);
+int gen_structparser(NailArena *tmp_arena,NailStream *out,structparser * val);
+int gen_wrapparser(NailArena *tmp_arena,NailStream *out,wrapparser * val);
+int gen_choiceparser(NailArena *tmp_arena,NailStream *out,choiceparser * val);
+int gen_arrayparser(NailArena *tmp_arena,NailStream *out,arrayparser * val);
+int gen_parameter(NailArena *tmp_arena,NailStream *out,parameter * val);
+int gen_parameterlist(NailArena *tmp_arena,NailStream *out,parameterlist * val);
+int gen_parameterdefinition(NailArena *tmp_arena,NailStream *out,parameterdefinition * val);
+int gen_parameterdefinitionlist(NailArena *tmp_arena,NailStream *out,parameterdefinitionlist * val);
+int gen_parserinvocation(NailArena *tmp_arena,NailStream *out,parserinvocation * val);
+int gen_parserinner(NailArena *tmp_arena,NailStream *out,parserinner * val);
+int gen_parser(NailArena *tmp_arena,NailStream *out,parser * val);
+int gen_definition(NailArena *tmp_arena,NailStream *out,definition * val);
+int gen_grammar(NailArena *tmp_arena,NailStream *out,grammar * val);
+int gen_number(NailArena *tmp_arena,NailStream *str_current,number * val) {
+    for(int i0=0; i0<val->count; i0++) {
+        if((val->elem[i0]>'9'||val->elem[i0]<'0')) {
+            return -1;
+        }
+        if(parser_fail(stream_output(str_current,val->elem[i0],8))) return -1;
+    }
+    return 0;
+}
+int gen_varidentifier(NailArena *tmp_arena,NailStream *str_current,varidentifier * val) {
+    gen_WHITE(str_current);
+    for(int i1=0; i1<val->count; i1++) {
+        if((val->elem[i1]>'z'||val->elem[i1]<'a') && (val->elem[i1]>'9'||val->elem[i1]<'0') && val->elem[i1]!='_') {
+            return -1;
+        }
+        if(parser_fail(stream_output(str_current,val->elem[i1],8))) return -1;
+    }
+    return 0;
+}
+int gen_constidentifier(NailArena *tmp_arena,NailStream *str_current,constidentifier * val) {
+    gen_WHITE(str_current);
+    for(int i2=0; i2<val->count; i2++) {
+        if((val->elem[i2]>'Z'||val->elem[i2]<'A')) {
+            return -1;
+        }
+        if(parser_fail(stream_output(str_current,val->elem[i2],8))) return -1;
+    }
+    return 0;
+}
+int gen_streamidentifier(NailArena *tmp_arena,NailStream *str_current,streamidentifier * val) {
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,'$',8))) return -1;
+    for(int i3=0; i3<val->count; i3++) {
+        if((val->elem[i3]>'z'||val->elem[i3]<'a') && (val->elem[i3]>'9'||val->elem[i3]<'0') && val->elem[i3]!='_') {
+            return -1;
+        }
+        if(parser_fail(stream_output(str_current,val->elem[i3],8))) return -1;
+    }
+    return 0;
+}
+int gen_dependencyidentifier(NailArena *tmp_arena,NailStream *str_current,dependencyidentifier * val) {
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,'@',8))) return -1;
+    for(int i4=0; i4<val->count; i4++) {
+        if((val->elem[i4]>'z'||val->elem[i4]<'a') && (val->elem[i4]>'9'||val->elem[i4]<'0') && val->elem[i4]!='_') {
+            return -1;
+        }
+        if(parser_fail(stream_output(str_current,val->elem[i4],8))) return -1;
+    }
+    return 0;
+}
+int gen_WHITE(NailStream* str_current) {
+    if(parser_fail(stream_output(str_current,' ',8))) return -1;
+    return 0;
+}
+int gen_SEPERATOR(NailStream* str_current) {
+    if(parser_fail(stream_output(str_current,' ',8))) return -1;
+    if(parser_fail(stream_output(str_current,'\n',8))) return -1;
+    return 0;
+}
+int gen_intconstant(NailArena *tmp_arena,NailStream *str_current,intconstant * val) {
+    gen_WHITE(str_current);
+    switch(val->N_type) {
+    case ASCII:
+        if(parser_fail(stream_output(str_current,'\'',8))) return -1;
+        switch(val->ascii.N_type) {
+        case ESCAPE:
+            if(parser_fail(stream_output(str_current,'\\',8))) return -1;
+            if(parser_fail(stream_output(str_current,val->ascii.escape,8))) return -1;
+            break;
+        case DIRECT:
+            if(parser_fail(stream_output(str_current,val->ascii.direct,8))) return -1;
+            break;
+        }
+        if(parser_fail(stream_output(str_current,'\'',8))) return -1;
+        break;
+    case HEX:
+        if(parser_fail(stream_output(str_current,'0',8))) return -1;
+        if(parser_fail(stream_output(str_current,'x',8))) return -1;
+        for(int i5=0; i5<val->hex.count; i5++) {
+            if((val->hex.elem[i5]>'9'||val->hex.elem[i5]<'0')) {
+                return -1;
+            }
+            if(parser_fail(stream_output(str_current,val->hex.elem[i5],8))) return -1;
+        }
+        break;
+    case NUMBER:
+        if(parser_fail(gen_number(tmp_arena,str_current,&val->number))) {
+            return -1;
+        }
+        break;
+    }
+    return 0;
+}
+int gen_intp(NailArena *tmp_arena,NailStream *str_current,intp * val) {
+    switch(val->N_type) {
+    case UNSIGN:
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'u',8))) return -1;
+        if(parser_fail(stream_output(str_current,'i',8))) return -1;
+        if(parser_fail(stream_output(str_current,'n',8))) return -1;
+        if(parser_fail(stream_output(str_current,'t',8))) return -1;
+        for(int i6=0; i6<val->unsign.count; i6++) {
+            if((val->unsign.elem[i6]>'9'||val->unsign.elem[i6]<'0')) {
+                return -1;
+            }
+            if(parser_fail(stream_output(str_current,val->unsign.elem[i6],8))) return -1;
+        }
+        break;
+    case SIGN:
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'i',8))) return -1;
+        if(parser_fail(stream_output(str_current,'n',8))) return -1;
+        if(parser_fail(stream_output(str_current,'t',8))) return -1;
+        for(int i7=0; i7<val->sign.count; i7++) {
+            if((val->sign.elem[i7]>'9'||val->sign.elem[i7]<'0')) {
+                return -1;
+            }
+            if(parser_fail(stream_output(str_current,val->sign.elem[i7],8))) return -1;
+        }
+        break;
+    }
+    return 0;
+}
+int gen_constint(NailArena *tmp_arena,NailStream *str_current,constint * val) {
+    if(parser_fail(gen_intp(tmp_arena,str_current,&val->parser))) {
+        return -1;
+    }
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,'=',8))) return -1;
+    if(parser_fail(gen_intconstant(tmp_arena,str_current,&val->value))) {
+        return -1;
+    }{/*Context-rewind*/
+        NailStreamPos  end_of_struct= stream_getpos(str_current);
+        stream_reposition(str_current, end_of_struct);
+    }
+    return 0;
+}
+int gen_arrayvalue(NailArena *tmp_arena,NailStream *str_current,arrayvalue * val) {
+    switch(val->N_type) {
+    case STRING:
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'"',8))) return -1;
+        for(int i8=0; i8<val->string.count; i8++) {
+            if(!(val->string.elem[i8]!='"')) {
+                return -1;
+            }
+            if(parser_fail(stream_output(str_current,val->string.elem[i8],8))) return -1;
+        }
+        if(parser_fail(stream_output(str_current,'"',8))) return -1;
+        break;
+    case VALUES:
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'[',8))) return -1;
+        for(int i9=0; i9<val->values.count; i9++) {
+            if(parser_fail(gen_intconstant(tmp_arena,str_current,&val->values.elem[i9]))) {
+                return -1;
+            }
+        }
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,']',8))) return -1;
+        break;
+    }
+    return 0;
+}
+int gen_constarray(NailArena *tmp_arena,NailStream *str_current,constarray * val) {
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,'m',8))) return -1;
+    if(parser_fail(stream_output(str_current,'a',8))) return -1;
+    if(parser_fail(stream_output(str_current,'n',8))) return -1;
+    if(parser_fail(stream_output(str_current,'y',8))) return -1;
+    if(parser_fail(stream_output(str_current,' ',8))) return -1;
+    if(parser_fail(gen_intp(tmp_arena,str_current,&val->parser))) {
+        return -1;
+    }
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,'=',8))) return -1;
+    if(parser_fail(gen_arrayvalue(tmp_arena,str_current,&val->value))) {
+        return -1;
+    }{/*Context-rewind*/
+        NailStreamPos  end_of_struct= stream_getpos(str_current);
+        stream_reposition(str_current, end_of_struct);
+    }
+    return 0;
+}
+int gen_constfields(NailArena *tmp_arena,NailStream *str_current,constfields * val) {
+    for(int i10=0; i10<val->count; i10++) {
+        if(i10!= 0) {
+            gen_SEPERATOR(str_current);
+        }
+        if(parser_fail(gen_constparser(tmp_arena,str_current,&val->elem[i10]))) {
+            return -1;
+        }
+    }
+    return 0;
+}
+int gen_constparser(NailArena *tmp_arena,NailStream *str_current,constparser * val) {
+    switch(val->N_type) {
+    case CARRAY:
+        if(parser_fail(gen_constarray(tmp_arena,str_current,&val->carray))) {
+            return -1;
+        }
+        break;
+    case CREPEAT:
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'m',8))) return -1;
+        if(parser_fail(stream_output(str_current,'a',8))) return -1;
+        if(parser_fail(stream_output(str_current,'n',8))) return -1;
+        if(parser_fail(stream_output(str_current,'y',8))) return -1;
+        if(parser_fail(stream_output(str_current,' ',8))) return -1;
+        if(parser_fail(gen_constparser(tmp_arena,str_current,&val->crepeat))) {
+            return -1;
+        }
+        break;
+    case CINT:
+        if(parser_fail(gen_constint(tmp_arena,str_current,&val->cint))) {
+            return -1;
+        }
+        break;
+    case CREF:
+        if(parser_fail(gen_constidentifier(tmp_arena,str_current,&val->cref))) {
+            return -1;
+        }
+        break;
+    case CSTRUCT:
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'{',8))) return -1;
+        if(parser_fail(gen_constfields(tmp_arena,str_current,&val->cstruct))) {
+            return -1;
+        }
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'}',8))) return -1;
+        break;
+    case CUNION:
+        for(int i11=0; i11<val->cunion.count; i11++) {
+            gen_WHITE(str_current);
+            if(parser_fail(stream_output(str_current,'|',8))) return -1;
+            if(parser_fail(stream_output(str_current,'|',8))) return -1;
+            if(parser_fail(gen_constparser(tmp_arena,str_current,&val->cunion.elem[i11]))) {
+                return -1;
+            }
+        }
+        break;
+    }
+    return 0;
+}
+int gen_constraintelem(NailArena *tmp_arena,NailStream *str_current,constraintelem * val) {
+    switch(val->N_type) {
+    case RANGE:
+        if(NULL!=val->range.min) {
+            if(parser_fail(gen_intconstant(tmp_arena,str_current,&val->range.min[0]))) {
+                return -1;
+            }
+        }
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'.',8))) return -1;
+        if(parser_fail(stream_output(str_current,'.',8))) return -1;
+        if(NULL!=val->range.max) {
+            if(parser_fail(gen_intconstant(tmp_arena,str_current,&val->range.max[0]))) {
+                return -1;
+            }
+        }{/*Context-rewind*/
+            NailStreamPos  end_of_struct= stream_getpos(str_current);
+            stream_reposition(str_current, end_of_struct);
+        }
+        break;
+    case VALUE:
+        if(parser_fail(gen_intconstant(tmp_arena,str_current,&val->value))) {
+            return -1;
+        }
+        break;
+    }
+    return 0;
+}
+int gen_intconstraint(NailArena *tmp_arena,NailStream *str_current,intconstraint * val) {
+    switch(val->N_type) {
+    case SINGLE:
+        if(parser_fail(gen_constraintelem(tmp_arena,str_current,&val->single))) {
+            return -1;
+        }
+        break;
+    case SET:
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'[',8))) return -1;
+        for(int i12=0; i12<val->set.count; i12++) {
+            if(i12!= 0) {
+                if(parser_fail(stream_output(str_current,',',8))) return -1;
+            }
+            if(parser_fail(gen_constraintelem(tmp_arena,str_current,&val->set.elem[i12]))) {
+                return -1;
+            }
+        }
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,']',8))) return -1;
+        break;
+    case NEGATE:
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'!',8))) return -1;
+        if(parser_fail(gen_intconstraint(tmp_arena,str_current,&val->negate))) {
+            return -1;
+        }
+        break;
+    }
+    return 0;
+}
+int gen_constrainedint(NailArena *tmp_arena,NailStream *str_current,constrainedint * val) {
+    if(parser_fail(gen_intp(tmp_arena,str_current,&val->parser))) {
+        return -1;
+    }
+    if(NULL!=val->constraint) {
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'|',8))) return -1;
+        if(parser_fail(gen_intconstraint(tmp_arena,str_current,&val->constraint[0]))) {
+            return -1;
+        }
+    }{/*Context-rewind*/
+        NailStreamPos  end_of_struct= stream_getpos(str_current);
+        stream_reposition(str_current, end_of_struct);
+    }
+    return 0;
+}
+int gen_transform(NailArena *tmp_arena,NailStream *str_current,transform * val) {
+    for(int i13=0; i13<val->left.count; i13++) {
+        if(i13!= 0) {
+            gen_WHITE(str_current);
+            if(parser_fail(stream_output(str_current,',',8))) return -1;
+        }
+        if(parser_fail(gen_streamidentifier(tmp_arena,str_current,&val->left.elem[i13]))) {
+            return -1;
+        }
+    }
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,'t',8))) return -1;
+    if(parser_fail(stream_output(str_current,'r',8))) return -1;
+    if(parser_fail(stream_output(str_current,'a',8))) return -1;
+    if(parser_fail(stream_output(str_current,'n',8))) return -1;
+    if(parser_fail(stream_output(str_current,'s',8))) return -1;
+    if(parser_fail(stream_output(str_current,'f',8))) return -1;
+    if(parser_fail(stream_output(str_current,'o',8))) return -1;
+    if(parser_fail(stream_output(str_current,'r',8))) return -1;
+    if(parser_fail(stream_output(str_current,'m',8))) return -1;
+    if(parser_fail(gen_varidentifier(tmp_arena,str_current,&val->cfunction))) {
+        return -1;
+    }
+    for(int i14=0; i14<val->right.count; i14++) {
+        if(parser_fail(gen_parameter(tmp_arena,str_current,&val->right.elem[i14]))) {
+            return -1;
+        }
+    }{/*Context-rewind*/
+        NailStreamPos  end_of_struct= stream_getpos(str_current);
+        stream_reposition(str_current, end_of_struct);
+    }
+    return 0;
+}
+int gen_structparser(NailArena *tmp_arena,NailStream *str_current,structparser * val) {
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,'{',8))) return -1;
+    for(int i15=0; i15<val->count; i15++) {
+        if(i15!= 0) {
+            gen_SEPERATOR(str_current);
+        }
+        switch(val->elem[i15].N_type) {
+        case CONSTANT:
+            if(parser_fail(gen_constparser(tmp_arena,str_current,&val->elem[i15].constant))) {
+                return -1;
+            }
+            break;
+        case DEPENDENCY:
+            if(parser_fail(gen_dependencyidentifier(tmp_arena,str_current,&val->elem[i15].dependency.name))) {
+                return -1;
+            }
+            if(parser_fail(gen_parser(tmp_arena,str_current,&val->elem[i15].dependency.parser))) {
+                return -1;
+            }{/*Context-rewind*/
+                NailStreamPos  end_of_struct= stream_getpos(str_current);
+                stream_reposition(str_current, end_of_struct);
+            }
+            break;
+        case FIELD:
+            if(parser_fail(gen_varidentifier(tmp_arena,str_current,&val->elem[i15].field.name))) {
+                return -1;
+            }
+            if(parser_fail(gen_parser(tmp_arena,str_current,&val->elem[i15].field.parser))) {
+                return -1;
+            }{/*Context-rewind*/
+                NailStreamPos  end_of_struct= stream_getpos(str_current);
+                stream_reposition(str_current, end_of_struct);
+            }
+            break;
+        case TRANSFORM:
+            if(parser_fail(gen_transform(tmp_arena,str_current,&val->elem[i15].transform))) {
+                return -1;
+            }
+            break;
+        }
+    }
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,'}',8))) return -1;
+    return 0;
+}
+int gen_wrapparser(NailArena *tmp_arena,NailStream *str_current,wrapparser * val) {
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,'<',8))) return -1;
+    if(NULL!=val->constbefore) {
+        for(int i16=0; i16<val->constbefore[0].count; i16++) {
+            if(i16!= 0) {
+                gen_SEPERATOR(str_current);
+            }
+            if(parser_fail(gen_constparser(tmp_arena,str_current,&val->constbefore[0].elem[i16]))) {
+                return -1;
+            }
+        }
+        gen_SEPERATOR(str_current);
+    }
+    if(parser_fail(gen_parser(tmp_arena,str_current,&val->parser))) {
+        return -1;
+    }
+    if(NULL!=val->constafter) {
+        gen_SEPERATOR(str_current);
+        for(int i17=0; i17<val->constafter[0].count; i17++) {
+            if(i17!= 0) {
+                gen_SEPERATOR(str_current);
+            }
+            if(parser_fail(gen_constparser(tmp_arena,str_current,&val->constafter[0].elem[i17]))) {
+                return -1;
+            }
+        }
+    }
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,'>',8))) return -1;
+    {/*Context-rewind*/
+        NailStreamPos  end_of_struct= stream_getpos(str_current);
+        stream_reposition(str_current, end_of_struct);
+    }
+    return 0;
+}
+int gen_choiceparser(NailArena *tmp_arena,NailStream *str_current,choiceparser * val) {
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,'c',8))) return -1;
+    if(parser_fail(stream_output(str_current,'h',8))) return -1;
+    if(parser_fail(stream_output(str_current,'o',8))) return -1;
+    if(parser_fail(stream_output(str_current,'o',8))) return -1;
+    if(parser_fail(stream_output(str_current,'s',8))) return -1;
+    if(parser_fail(stream_output(str_current,'e',8))) return -1;
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,'{',8))) return -1;
+    for(int i18=0; i18<val->count; i18++) {
+        if(parser_fail(gen_constidentifier(tmp_arena,str_current,&val->elem[i18].tag))) {
+            return -1;
+        }
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'=',8))) return -1;
+        if(parser_fail(gen_parser(tmp_arena,str_current,&val->elem[i18].parser))) {
+            return -1;
+        }{/*Context-rewind*/
+            NailStreamPos  end_of_struct= stream_getpos(str_current);
+            stream_reposition(str_current, end_of_struct);
+        }
+    }
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,'}',8))) return -1;
+    return 0;
+}
+int gen_arrayparser(NailArena *tmp_arena,NailStream *str_current,arrayparser * val) {
+    switch(val->N_type) {
+    case MANYONE:
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'m',8))) return -1;
+        if(parser_fail(stream_output(str_current,'a',8))) return -1;
+        if(parser_fail(stream_output(str_current,'n',8))) return -1;
+        if(parser_fail(stream_output(str_current,'y',8))) return -1;
+        if(parser_fail(stream_output(str_current,'1',8))) return -1;
+        if(parser_fail(gen_parser(tmp_arena,str_current,&val->manyone))) {
+            return -1;
+        }
+        break;
+    case MANY:
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'m',8))) return -1;
+        if(parser_fail(stream_output(str_current,'a',8))) return -1;
+        if(parser_fail(stream_output(str_current,'n',8))) return -1;
+        if(parser_fail(stream_output(str_current,'y',8))) return -1;
+        if(parser_fail(gen_parser(tmp_arena,str_current,&val->many))) {
+            return -1;
+        }
+        break;
+    case SEPBYONE:
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'s',8))) return -1;
+        if(parser_fail(stream_output(str_current,'e',8))) return -1;
+        if(parser_fail(stream_output(str_current,'p',8))) return -1;
+        if(parser_fail(stream_output(str_current,'B',8))) return -1;
+        if(parser_fail(stream_output(str_current,'y',8))) return -1;
+        if(parser_fail(stream_output(str_current,'1',8))) return -1;
+        if(parser_fail(gen_constparser(tmp_arena,str_current,&val->sepbyone.separator))) {
+            return -1;
+        }
+        if(parser_fail(gen_parser(tmp_arena,str_current,&val->sepbyone.inner))) {
+            return -1;
+        }{/*Context-rewind*/
+            NailStreamPos  end_of_struct= stream_getpos(str_current);
+            stream_reposition(str_current, end_of_struct);
+        }
+        break;
+    case SEPBY:
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'s',8))) return -1;
+        if(parser_fail(stream_output(str_current,'e',8))) return -1;
+        if(parser_fail(stream_output(str_current,'p',8))) return -1;
+        if(parser_fail(stream_output(str_current,'B',8))) return -1;
+        if(parser_fail(stream_output(str_current,'y',8))) return -1;
+        if(parser_fail(gen_constparser(tmp_arena,str_current,&val->sepby.separator))) {
+            return -1;
+        }
+        if(parser_fail(gen_parser(tmp_arena,str_current,&val->sepby.inner))) {
+            return -1;
+        }{/*Context-rewind*/
+            NailStreamPos  end_of_struct= stream_getpos(str_current);
+            stream_reposition(str_current, end_of_struct);
+        }
+        break;
+    }
+    return 0;
+}
+int gen_parameter(NailArena *tmp_arena,NailStream *str_current,parameter * val) {
+    switch(val->N_type) {
+    case PDEPENDENCY:
+        if(parser_fail(gen_dependencyidentifier(tmp_arena,str_current,&val->pdependency))) {
+            return -1;
+        }
+        break;
+    case PSTREAM:
+        if(parser_fail(gen_streamidentifier(tmp_arena,str_current,&val->pstream))) {
+            return -1;
+        }
+        break;
+    }
+    return 0;
+}
+int gen_parameterlist(NailArena *tmp_arena,NailStream *str_current,parameterlist * val) {
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,'(',8))) return -1;
+    for(int i19=0; i19<val->count; i19++) {
+        if(i19!= 0) {
+            gen_WHITE(str_current);
+            if(parser_fail(stream_output(str_current,',',8))) return -1;
+        }
+        if(parser_fail(gen_parameter(tmp_arena,str_current,&val->elem[i19]))) {
+            return -1;
+        }
+    }
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,')',8))) return -1;
+    return 0;
+}
+int gen_parameterdefinition(NailArena *tmp_arena,NailStream *str_current,parameterdefinition * val) {
+    switch(val->N_type) {
+    case DSTREAM:
+        if(parser_fail(gen_streamidentifier(tmp_arena,str_current,&val->dstream))) {
+            return -1;
+        }
+        break;
+    case DDEPENDENCY:
+        if(parser_fail(gen_dependencyidentifier(tmp_arena,str_current,&val->ddependency.name))) {
+            return -1;
+        }
+        if(parser_fail(gen_parser(tmp_arena,str_current,&val->ddependency.type))) {
+            return -1;
+        }{/*Context-rewind*/
+            NailStreamPos  end_of_struct= stream_getpos(str_current);
+            stream_reposition(str_current, end_of_struct);
+        }
+        break;
+    }
+    return 0;
+}
+int gen_parameterdefinitionlist(NailArena *tmp_arena,NailStream *str_current,parameterdefinitionlist * val) {
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,'(',8))) return -1;
+    for(int i20=0; i20<val->count; i20++) {
+        if(i20!= 0) {
+            gen_WHITE(str_current);
+            if(parser_fail(stream_output(str_current,',',8))) return -1;
+        }
+        if(parser_fail(gen_parameterdefinition(tmp_arena,str_current,&val->elem[i20]))) {
+            return -1;
+        }
+    }
+    gen_WHITE(str_current);
+    if(parser_fail(stream_output(str_current,')',8))) return -1;
+    return 0;
+}
+int gen_parserinvocation(NailArena *tmp_arena,NailStream *str_current,parserinvocation * val) {
+    if(parser_fail(gen_varidentifier(tmp_arena,str_current,&val->name))) {
+        return -1;
+    }
+    if(NULL!=val->parameters) {
+        if(parser_fail(gen_parameterlist(tmp_arena,str_current,&val->parameters[0]))) {
+            return -1;
+        }
+    }{/*Context-rewind*/
+        NailStreamPos  end_of_struct= stream_getpos(str_current);
+        stream_reposition(str_current, end_of_struct);
+    }
+    return 0;
+}
+int gen_parserinner(NailArena *tmp_arena,NailStream *str_current,parserinner * val) {
+    switch(val->N_type) {
+    case INTEGER:
+        if(parser_fail(gen_constrainedint(tmp_arena,str_current,&val->integer))) {
+            return -1;
+        }
+        break;
+    case STRUCTURE:
+        if(parser_fail(gen_structparser(tmp_arena,str_current,&val->structure))) {
+            return -1;
+        }
+        break;
+    case WRAP:
+        if(parser_fail(gen_wrapparser(tmp_arena,str_current,&val->wrap))) {
+            return -1;
+        }
+        break;
+    case CHOICE:
+        if(parser_fail(gen_choiceparser(tmp_arena,str_current,&val->choice))) {
+            return -1;
+        }
+        break;
+    case ARRAY:
+        if(parser_fail(gen_arrayparser(tmp_arena,str_current,&val->array))) {
+            return -1;
+        }
+        break;
+    case FIXEDARRAY:
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'[',8))) return -1;
+        if(parser_fail(gen_intconstant(tmp_arena,str_current,&val->fixedarray.length))) {
+            return -1;
+        }
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,']',8))) return -1;
+        if(parser_fail(gen_parser(tmp_arena,str_current,&val->fixedarray.inner))) {
+            return -1;
+        }{/*Context-rewind*/
+            NailStreamPos  end_of_struct= stream_getpos(str_current);
+            stream_reposition(str_current, end_of_struct);
+        }
+        break;
+    case LENGTH:
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'n',8))) return -1;
+        if(parser_fail(stream_output(str_current,'_',8))) return -1;
+        if(parser_fail(stream_output(str_current,'o',8))) return -1;
+        if(parser_fail(stream_output(str_current,'f',8))) return -1;
+        if(parser_fail(gen_dependencyidentifier(tmp_arena,str_current,&val->length.length))) {
+            return -1;
+        }
+        if(parser_fail(gen_parser(tmp_arena,str_current,&val->length.parser))) {
+            return -1;
+        }{/*Context-rewind*/
+            NailStreamPos  end_of_struct= stream_getpos(str_current);
+            stream_reposition(str_current, end_of_struct);
+        }
+        break;
+    case APPLY:
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'a',8))) return -1;
+        if(parser_fail(stream_output(str_current,'p',8))) return -1;
+        if(parser_fail(stream_output(str_current,'p',8))) return -1;
+        if(parser_fail(stream_output(str_current,'l',8))) return -1;
+        if(parser_fail(stream_output(str_current,'y',8))) return -1;
+        if(parser_fail(gen_streamidentifier(tmp_arena,str_current,&val->apply.stream))) {
+            return -1;
+        }
+        if(parser_fail(gen_parser(tmp_arena,str_current,&val->apply.inner))) {
+            return -1;
+        }{/*Context-rewind*/
+            NailStreamPos  end_of_struct= stream_getpos(str_current);
+            stream_reposition(str_current, end_of_struct);
+        }
+        break;
+    case OPTIONAL:
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'o',8))) return -1;
+        if(parser_fail(stream_output(str_current,'p',8))) return -1;
+        if(parser_fail(stream_output(str_current,'t',8))) return -1;
+        if(parser_fail(stream_output(str_current,'i',8))) return -1;
+        if(parser_fail(stream_output(str_current,'o',8))) return -1;
+        if(parser_fail(stream_output(str_current,'n',8))) return -1;
+        if(parser_fail(stream_output(str_current,'a',8))) return -1;
+        if(parser_fail(stream_output(str_current,'l',8))) return -1;
+        if(parser_fail(stream_output(str_current,' ',8))) return -1;
+        if(parser_fail(gen_parser(tmp_arena,str_current,&val->optional))) {
+            return -1;
+        }
+        break;
+    case NUNION:
+        for(int i21=0; i21<val->nunion.count; i21++) {
+            gen_WHITE(str_current);
+            if(parser_fail(stream_output(str_current,'|',8))) return -1;
+            if(parser_fail(stream_output(str_current,'|',8))) return -1;
+            if(parser_fail(gen_parser(tmp_arena,str_current,&val->nunion.elem[i21]))) {
+                return -1;
+            }
+        }
+        break;
+    case REF:
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'*',8))) return -1;
+        if(parser_fail(gen_parserinvocation(tmp_arena,str_current,&val->ref))) {
+            return -1;
+        }
+        break;
+    case NAME:
+        if(parser_fail(gen_parserinvocation(tmp_arena,str_current,&val->name))) {
+            return -1;
+        }
+        break;
+    }
+    return 0;
+}
+int gen_parser(NailArena *tmp_arena,NailStream *str_current,parser * val) {
+    switch(val->N_type) {
+    case PAREN:
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'(',8))) return -1;
+        if(parser_fail(gen_parserinner(tmp_arena,str_current,&val->paren))) {
+            return -1;
+        }
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,')',8))) return -1;
+        break;
+    case PR:
+        if(parser_fail(gen_parserinner(tmp_arena,str_current,&val->pr))) {
+            return -1;
+        }
+        break;
+    }
+    return 0;
+}
+int gen_definition(NailArena *tmp_arena,NailStream *str_current,definition * val) {
+    switch(val->N_type) {
+    case PARSER:
+        if(parser_fail(gen_varidentifier(tmp_arena,str_current,&val->parser.name))) {
+            return -1;
+        }
+        if(NULL!=val->parser.parameters) {
+            if(parser_fail(gen_parameterdefinitionlist(tmp_arena,str_current,&val->parser.parameters[0]))) {
+                return -1;
+            }
+        }
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'=',8))) return -1;
+        if(parser_fail(gen_parser(tmp_arena,str_current,&val->parser.definition))) {
+            return -1;
+        }{/*Context-rewind*/
+            NailStreamPos  end_of_struct= stream_getpos(str_current);
+            stream_reposition(str_current, end_of_struct);
+        }
+        break;
+    case CONSTANTDEF:
+        if(parser_fail(gen_constidentifier(tmp_arena,str_current,&val->constantdef.name))) {
+            return -1;
+        }
+        gen_WHITE(str_current);
+        if(parser_fail(stream_output(str_current,'=',8))) return -1;
+        gen_WHITE(str_current);
+        if(parser_fail(gen_constparser(tmp_arena,str_current,&val->constantdef.definition))) {
+            return -1;
+        }{/*Context-rewind*/
+            NailStreamPos  end_of_struct= stream_getpos(str_current);
+            stream_reposition(str_current, end_of_struct);
+        }
+        break;
+    }
+    return 0;
+}
+int gen_grammar(NailArena *tmp_arena,NailStream *str_current,grammar * val) {
+    for(int i22=0; i22<val->count; i22++) {
+        if(parser_fail(gen_definition(tmp_arena,str_current,&val->elem[i22]))) {
+            return -1;
+        }
+    }
+    gen_WHITE(str_current);
+    return 0;
+}
+
 

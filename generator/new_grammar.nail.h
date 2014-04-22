@@ -310,20 +310,28 @@ struct grammar {
 };
 
 
+
 struct NailArenaPool;
 typedef struct NailArena_ {
     struct NailArenaPool *current;
     size_t blocksize;
 } NailArena ;
-int NailArena_init(NailArena *arena,size_t blocksize);
-int NailArena_release(NailArena *arena);
+extern int NailArena_init(NailArena *arena,size_t blocksize);
+extern int NailArena_release(NailArena *arena);
+extern void *n_malloc(NailArena *arena, size_t size);
 struct NailStream {
     const uint8_t *data;
     size_t size;
     size_t pos;
+    signed char bit_offset;
 };
+
 typedef struct NailStream NailStream;
 typedef size_t NailStreamPos;
+extern int NailOutStream_new(NailStream *str,size_t siz);
+extern void NailOutStream_release(NailStream *str);
+const uint8_t * NailOutStream_buffer(NailStream *str,size_t *siz);
+extern int NailOutStream_grow(NailStream *stream, size_t count);
 number*parse_number(NailArena *arena, const uint8_t *data, size_t size);
 varidentifier*parse_varidentifier(NailArena *arena, const uint8_t *data, size_t size);
 constidentifier*parse_constidentifier(NailArena *arena, const uint8_t *data, size_t size);
@@ -353,4 +361,36 @@ parserinner*parse_parserinner(NailArena *arena, const uint8_t *data, size_t size
 parser*parse_parser(NailArena *arena, const uint8_t *data, size_t size);
 definition*parse_definition(NailArena *arena, const uint8_t *data, size_t size);
 grammar*parse_grammar(NailArena *arena, const uint8_t *data, size_t size);
+int gen_number(NailArena *tmp_arena,NailStream *out,number * val);
+int gen_varidentifier(NailArena *tmp_arena,NailStream *out,varidentifier * val);
+int gen_constidentifier(NailArena *tmp_arena,NailStream *out,constidentifier * val);
+int gen_streamidentifier(NailArena *tmp_arena,NailStream *out,streamidentifier * val);
+int gen_dependencyidentifier(NailArena *tmp_arena,NailStream *out,dependencyidentifier * val);
+int gen_WHITE(NailStream* str_current);
+int gen_SEPERATOR(NailStream* str_current);
+int gen_intconstant(NailArena *tmp_arena,NailStream *out,intconstant * val);
+int gen_intp(NailArena *tmp_arena,NailStream *out,intp * val);
+int gen_constint(NailArena *tmp_arena,NailStream *out,constint * val);
+int gen_arrayvalue(NailArena *tmp_arena,NailStream *out,arrayvalue * val);
+int gen_constarray(NailArena *tmp_arena,NailStream *out,constarray * val);
+int gen_constfields(NailArena *tmp_arena,NailStream *out,constfields * val);
+int gen_constparser(NailArena *tmp_arena,NailStream *out,constparser * val);
+int gen_constraintelem(NailArena *tmp_arena,NailStream *out,constraintelem * val);
+int gen_intconstraint(NailArena *tmp_arena,NailStream *out,intconstraint * val);
+int gen_constrainedint(NailArena *tmp_arena,NailStream *out,constrainedint * val);
+int gen_transform(NailArena *tmp_arena,NailStream *out,transform * val);
+int gen_structparser(NailArena *tmp_arena,NailStream *out,structparser * val);
+int gen_wrapparser(NailArena *tmp_arena,NailStream *out,wrapparser * val);
+int gen_choiceparser(NailArena *tmp_arena,NailStream *out,choiceparser * val);
+int gen_arrayparser(NailArena *tmp_arena,NailStream *out,arrayparser * val);
+int gen_parameter(NailArena *tmp_arena,NailStream *out,parameter * val);
+int gen_parameterlist(NailArena *tmp_arena,NailStream *out,parameterlist * val);
+int gen_parameterdefinition(NailArena *tmp_arena,NailStream *out,parameterdefinition * val);
+int gen_parameterdefinitionlist(NailArena *tmp_arena,NailStream *out,parameterdefinitionlist * val);
+int gen_parserinvocation(NailArena *tmp_arena,NailStream *out,parserinvocation * val);
+int gen_parserinner(NailArena *tmp_arena,NailStream *out,parserinner * val);
+int gen_parser(NailArena *tmp_arena,NailStream *out,parser * val);
+int gen_definition(NailArena *tmp_arena,NailStream *out,definition * val);
+int gen_grammar(NailArena *tmp_arena,NailStream *out,grammar * val);
+
 
