@@ -3,6 +3,8 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <string.h>
+#include <errno.h>
 #include <stdio.h>
 #include "zip.nail.h"
 char *mmap_file(char *filename, size_t *size){
@@ -10,8 +12,8 @@ char *mmap_file(char *filename, size_t *size){
         int fil  = open(filename, O_RDONLY);
         if(fil < 0 ) return NULL;
         if(fstat(fil,&stat) < 0) return NULL;
-        char *retval = mmap(NULL,stat.st_size,PROT_READ, 0, fil, 0);
-        if(!retval) return NULL;
+        char *retval = mmap(NULL,stat.st_size,PROT_READ, MAP_SHARED, fil, 0);
+        if(retval == MAP_FAILED) return NULL;
         *size = stat.st_size;
         close(fil);
         return retval;                
@@ -22,11 +24,11 @@ int main(int argc,char **argv){
                 zip_file *zip;
                 size_t size;
                 char *filedata = mmap_file(argv[f],&size);
-                if(!filedata){fprintf(stderr,"Err: Cannot open %s\n",filedata); continue;}
+                if(!filedata){fprintf(stderr,"Err: Cannot open %s %s\n",argv[f], strerror(errno)); continue;}
                 NailArena_init(&arena,1024);
                 zip = parse_zip_file(&arena,filedata,size);
                 if(!zip){
-                        fprintf(stderr,"Err: Invalid ZIP file %s\n",filedata); 
+                        fprintf(stderr,"Err: Invalid ZIP file %s\n",argv[f]); 
                 } else {
                 }
                 NailArena_release(&arena);
