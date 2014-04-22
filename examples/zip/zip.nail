@@ -1,0 +1,86 @@
+// https://users.cs.jmu.edu/buchhofp/forensics/formats/pkzip.html
+file_flags = {
+             encrypted uint1 | [0]
+             compression1 uint1 | [0]
+             compression2 uint1 | [0]
+             datadesc     uint1 | [0]
+             enhanced_deflation uint1 | [0]
+             compressed_patch uint1 | [0]
+             strong_encrypted uint1 | [0]
+             uint3 = 0
+             encoding uint1 | [0]
+             uint1 = 0
+             maskheader uint1 | [0]
+             uint2 = 0 
+}
+internal_attr = {
+              ascii uint1
+              uint1 = 0
+              control uint1 | [0]
+              uint13 = 0               
+}
+fileentry(@crc32 uint32,@compression_method uint16,@compressed_size uint32, @uncompressed_size uint32) = {
+                 uint32 = 0x504b0304
+                 version uint16
+                 flags file_flags
+                 @compression_method_local uint16
+                 mtime uint16 //TODO: Extend dependencies for duplicated data
+                 mdate uint16
+                 @crc32_local uint32
+                 @compressed_size_local uint32
+                 @uncompressed_size_local uint32
+                 @filename_len uint16
+                 @extra_len uint16
+                 filename n_of @filename_len uint8
+                 $compressed_stream transform take_uint32 $current, @compressed_size
+                 $uncompressed_stream transform zip_compression $compressed_stream, @compression_method,@crc32
+                 contents apply $uncompressed_stream many uint8
+
+                 extra n_of @extra_len uint8 
+                 
+                 transform uint16_depend @compression_method_local,@compression_method
+                 transform uint32_depend @crc32_local,@crc32
+                 transform uint32_depend @compressed_size_local,@crc32
+                 transform uint32_depend @uncompressed_size_local,@crc32
+}
+dir_fileheader($filestream) = {  //TODO: we need to make the filename depend 
+               uint32 = 0x504b0102
+               os uint16
+               pkzip_version uint16
+               flags file_flags
+               @compression_method uint16      
+               mtime uint16
+               mdate uint16
+               @crc32 uint32
+               @compressed_size uint32
+               @uncompressed_size uint32
+               @file_name_len uint16
+               @extra_len uint16
+               @comment_len uint16
+               disk uint16 | [0] // TODO: We need to do multidisk 
+               internal internal_attr
+               external_attr uint32
+               @off uint32
+               filename n_of @file_name_len uint8
+               extra_field n_of @extra_len uint8
+               comment n_of @comment_len uint8
+               $contentstream transform fileheader_locate @off,@compressed_size
+               contents apply $contentstream fileentry(@crc32,@compression_method,@compressed_size, @uncompressed_size)
+}
+end_of_directory($filestream) = { 
+                 uint32 = 0x06054b50
+                 disks uint16 | [1]
+                 directory_disk uint16 | [1]
+                 @this_disk_directory_records uint16
+                 @total_directory_records uint16
+                 @directory_size uint32 // Byte size 
+                 @directory_start uint32
+                 $directory_stream transform central_directory @directory_size, @directory_start
+                 @comment_length uint16
+                 comment n_of @comment_length uint8
+                 apply $directory_stream n_of @total_directory_records dir_fileheader($filestream)
+                 transform uint16_depend @this_disk_directory_records, @total_directory_records
+}
+zip_file = { 
+         $filestream, $end_directory transform zip_end_of_directory $current
+}
