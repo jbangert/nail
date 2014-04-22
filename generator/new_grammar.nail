@@ -17,7 +17,7 @@ intconstant = <WHITE;  choose {
                      DIRECT= uint8
                     } 
                      uint8 = '\''>
-            HEX = < uint8 = '0'; uint8 = 'x';  many  || digit || (uint8 | 'A' .. 'F') > 
+            HEX = < uint8 = '0'; uint8 = 'x';  many  || digit || (uint8 | ['A' .. 'F', 'a'..'f']) > 
             NUMBER= number
             }>
 

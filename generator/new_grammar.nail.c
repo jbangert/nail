@@ -728,7 +728,7 @@ choice_5_1_out:
                 }
                 {
                     uint64_t val = read_unsigned_bits(str_current,8);
-                    if((val>'F'||val<'A')) {
+                    if((val>'F'||val<'A') && (val>'f'||val<'a')) {
                         stream_backup(str_current,8);
                         goto choice_5_2_out;
                     }
