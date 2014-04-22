@@ -19,6 +19,7 @@ internal_attr = {
               control uint1 | [0]
               uint13 = 0               
 }
+
 fileentry(@crc32 uint32,@compression_method uint16,@compressed_size uint32, @uncompressed_size uint32) = {
                  uint32 = 0x504b0304
                  version uint16
@@ -32,16 +33,16 @@ fileentry(@crc32 uint32,@compression_method uint16,@compressed_size uint32, @unc
                  @filename_len uint16
                  @extra_len uint16
                  filename n_of @filename_len uint8
-                 $compressed_stream transform take_uint32 $current, @compressed_size
-                 $uncompressed_stream transform zip_compression $compressed_stream, @compression_method,@crc32
+                 $compressed_stream transform size_u32 ($current @compressed_size)
+                 $uncompressed_stream transform zip_compression ($compressed_stream  @compression_method @crc32)
                  contents apply $uncompressed_stream many uint8
 
                  extra n_of @extra_len uint8 
                  
-                 transform uint16_depend @compression_method_local,@compression_method
-                 transform uint32_depend @crc32_local,@crc32
-                 transform uint32_depend @compressed_size_local,@crc32
-                 transform uint32_depend @uncompressed_size_local,@crc32
+                 transform uint16_depend (@compression_method_local @compression_method)
+                 transform uint32_depend (@crc32_local @crc32)
+                 transform uint32_depend (@compressed_size_local @compressed_size)
+                 transform uint32_depend (@uncompressed_size_local @uncompressed_size)
 }
 dir_fileheader($filestream) = {  //TODO: we need to make the filename depend 
                uint32 = 0x504b0102
@@ -64,8 +65,10 @@ dir_fileheader($filestream) = {  //TODO: we need to make the filename depend
                filename n_of @file_name_len uint8
                extra_field n_of @extra_len uint8
                comment n_of @comment_len uint8
-               $contentstream transform fileheader_locate @off,@compressed_size
+               $contentstr1 transform offset_u32 ($filestream @off)
+               $contentstream transform size_u32 ($contentstr1 @compressed_size)
                contents apply $contentstream fileentry(@crc32,@compression_method,@compressed_size, @uncompressed_size)
+
 }
 end_of_directory($filestream) = { 
                  uint32 = 0x06054b50
@@ -75,12 +78,14 @@ end_of_directory($filestream) = {
                  @total_directory_records uint16
                  @directory_size uint32 // Byte size 
                  @directory_start uint32
-                 $directory_stream transform central_directory @directory_size, @directory_start
+                 $dirstr1 transform offset_u32 ($filestream @directory_start) //TODO: how can we get the offset properly
+                 $directory_stream transform size_u32 ($dirstr1 @directory_size)
                  @comment_length uint16
                  comment n_of @comment_length uint8
-                 apply $directory_stream n_of @total_directory_records dir_fileheader($filestream)
-                 transform uint16_depend @this_disk_directory_records, @total_directory_records
+                 files apply $directory_stream n_of @total_directory_records dir_fileheader($filestream)
+                 transform uint16_depend (@this_disk_directory_records @total_directory_records)
 }
 zip_file = { 
-         $filestream, $end_directory transform zip_end_of_directory $current
+         $filestream, $end_directory transform zip_end_of_directory ($current)
+         contents apply $end_directory end_of_directory($filestream)
 }

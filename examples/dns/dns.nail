@@ -1,7 +1,7 @@
 labels = <many {@length  uint8 | 1..64
               label n_of @length uint8 }
           uint8 = 0 > 
-compressed ={$decompressed transform dnscompress $current;
+compressed ={$decompressed transform dnscompress($current);
              labels apply $decompressed labels}
          
 
