@@ -1,5 +1,7 @@
 *.o
 *.orig
+*TAGS
+GPATH
 *~
 *.bbl
 *.aux
@@ -9,8 +11,12 @@
 *.log
 a.out
 nail.bootstrap
+*.nail-test
+tests/*/*.nail.*
+examples/*/*.nail.*
 [#]*[#]
 .\#*
+*.ll
 /examples/test/gen_stupid/Makefile
 /examples/test/gen_stupid/foo.c
 /examples/test/gen_stupid/foo.c.orig
@@ -62,3 +68,4 @@ nail.bootstrap
 /examples/test/union/foo.c
 /examples/test/union/test
 /generator/mk_parser.cc~
+/examples/dns/resolver
