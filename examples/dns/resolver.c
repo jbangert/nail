@@ -3,6 +3,8 @@
 int make_question(NailArena *arena,char *domain,int sockfd){
         size_t len;
         dnspacket p;
+        NailStream out;
+        NailOutStream_init(&out,512);
         memset(&p,0,sizeof(p));
         FILE* rand = fopen("/dev/urandom","r");
         fread(&p.id,2,1,rand);
@@ -15,11 +17,11 @@ int make_question(NailArena *arena,char *domain,int sockfd){
                 fprintf(stderr,"%s is not a valid domain\n",domain);
                 exit(-1);
         }
-        p.questions.elem[0].labels = *labels;
-        HBitWriter *out = h_bit_writer_new(&system_allocator);
-        gen_dnspacket(out,&p);
-        char *buf = h_bit_writer_get_buffer(out,&len);
+        p.questions.elem[0].labels.labels = *labels;
+        gen_dnspacket(arena,&out,&p);
+        char *buf = NailOutStream_buffer(&out,&len);
         send(sockfd,buf,len,0);
+        NailOutStream_release(&out);
         return p.id;
 }
 void print_domain(domain *lbls){
