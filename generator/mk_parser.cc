@@ -252,6 +252,11 @@ public:
         }
           break;
         case TRANSFORM:
+          out << "*stream = *(NailStream *)tr;";
+#ifdef DEBUG_OUT
+          out << "fprintf(stderr,\"%d = stream %ul\\n\",tr-trace_begin, stream->pos);\n";
+#endif
+          out << "tr+= sizeof(NailStream) / sizeof(*tr);";
           break;
         }
       }
@@ -313,7 +318,7 @@ public:
             <<"NailStream *original_stream = stream;\n;";
         out << "stream = (NailStream *)tr;";
 #ifdef DEBUG_OUT
-        out << "fprintf(stderr,\"%d = stream \\n\",tr-trace_begin, stream);\n";
+        out << "fprintf(stderr,\"%d = stream %ul\\n\",tr-trace_begin, stream->pos);\n";
 #endif
         out << "tr+= sizeof(NailStream) / sizeof(*tr);";
         action(p.apply.inner->pr, lval);
@@ -723,6 +728,8 @@ class CPrimitiveParser{
             FOREACH(stream, field->transform.left){
               newscope.add_stream_definition(mk_str(*stream));
             }
+            out << "n_tr_stream(trace,str_current);";
+            
           }
           break;
         }

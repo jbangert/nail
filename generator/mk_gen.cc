@@ -298,7 +298,7 @@ public:
         scope.add_stream_parameter("current");
         ValExpr outval("val",NULL,1);
         generator(definition->parser.definition.pr,outval,scope);
-        out << "return 1;";
+        out << "return 0;";
         out << "}";
       }          
     }

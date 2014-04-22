@@ -94,7 +94,7 @@ const uint8_t * NailOutStream_buffer(NailStream *str,size_t *siz){
         return str->data;
 }
 //TODO: Perhaps use a separate structure for output streams?
-static int NailOutStream_grow(NailStream *stream, size_t count){
+int NailOutStream_grow(NailStream *stream, size_t count){
         if(stream->pos + count>>3 + 1 >= stream->size){
                 //TODO: parametrize stream growth
                 int alloc_size = stream->pos + count>>3 + 1;
@@ -119,7 +119,10 @@ static int stream_output(NailStream *stream,uint64_t data, size_t count){
                 }
                 else{
                         count--;
-                        streamdata[stream->pos] |= ((data >> count) & 1) << (7-stream->bit_offset);
+                        if((data>>count)&1)
+                                streamdata[stream->pos] |= 1 << (7-stream->bit_offset);
+                        else 
+                                streamdata[stream->pos] &= ~(1<< (7-stream->bit_offset));
                         stream->bit_offset++;
                         if(stream->bit_offset>7){
                                 stream->pos++;
