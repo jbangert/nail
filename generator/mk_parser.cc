@@ -486,7 +486,9 @@ class CPrimitiveParser{
   }
   void peg_constint(int width, const std::string value,const std::string &fail){
     check_int(width,fail);
-    out << "if( "<< int_expr("str_current",width) << "!= "<<value<<"){"<<fail<<"}";
+    out << "if( "<< int_expr("str_current",width) << "!= "<<value<<"){"
+          << "stream_backup(str_current,"<<width<<");"
+        <<fail<<"}";
   }
   void peg_const(const constarray &c, const std::string &fail){
     switch(c.value.N_type){
@@ -667,7 +669,7 @@ class CPrimitiveParser{
             std::string type = typedef_type(*field->dependency.parser,"", &type_suffix);
             //            int width = boost::lexical_cast<int>(mk_str(field->dependency.parser.parser.unsign));
             std::string name(mk_str(field->dependency.name));
-            out << "pos trace_" << name << " = n_trace_getpos(trace);\n";
+            out << "; \n pos trace_" << name << " = n_trace_getpos(trace);\n";
             assert(type_suffix == "");
 
             ValExpr lval(std::string ("dep_") + name);
