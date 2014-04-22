@@ -5,7 +5,7 @@ zip($contentstream) = {
      @filesize uint32
      filename many int8 | ![0]
      uint8 = 0
-     $filestream transform offsetsize $contentstream @offset @filesize
+     $filestream transform offsetsize ($contentstream @offset @filesize)
      content apply $filestream (many uint8)
 
      //Alternative $filestream transform offset $contentstream @offset
@@ -14,6 +14,6 @@ zip($contentstream) = {
     many uint8 = 0
 }
 foo = {
-                $header,  $content transform splitzip $current // $current always refers to the stream the parser/generator is currently operating on.
+                $header,  $content transform splitzip ($current) // $current always refers to the stream the parser/generator is currently operating on.
                  header apply $header zip($content) // parse the zip($content) parser in $header
               }
