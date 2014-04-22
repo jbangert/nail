@@ -1669,6 +1669,14 @@ choice_11_CONSTANT_out:
 choice_11_DEPENDENCY_out:
             stream_reposition(str_current, back);
             choice = n_tr_memo_choice(trace);
+            if(parser_fail(peg_transform(tmp_arena,trace,str_current))) {
+                goto choice_11_TRANSFORM_out;
+            }
+            n_tr_pick_choice(trace,choice_begin,TRANSFORM,choice);
+            goto choice_11_succ;
+choice_11_TRANSFORM_out:
+            stream_reposition(str_current, back);
+            choice = n_tr_memo_choice(trace);
             if(parser_fail(peg_varidentifier(tmp_arena,trace,str_current))) {
                 goto choice_11_FIELD_out;
             }
@@ -1678,14 +1686,6 @@ choice_11_DEPENDENCY_out:
             n_tr_pick_choice(trace,choice_begin,FIELD,choice);
             goto choice_11_succ;
 choice_11_FIELD_out:
-            stream_reposition(str_current, back);
-            choice = n_tr_memo_choice(trace);
-            if(parser_fail(peg_transform(tmp_arena,trace,str_current))) {
-                goto choice_11_TRANSFORM_out;
-            }
-            n_tr_pick_choice(trace,choice_begin,TRANSFORM,choice);
-            goto choice_11_succ;
-choice_11_TRANSFORM_out:
             stream_reposition(str_current, back);
             goto fail_repeat_18;
 choice_11_succ:
@@ -3861,6 +3861,13 @@ static int bind_structparser(NailArena *arena,structparser*out,NailStream *strea
                     return -1;
                 }
                 break;
+            case TRANSFORM:
+                tr = trace_begin + *tr;
+                out->elem[i16].N_type= TRANSFORM;
+                if(parser_fail(bind_transform(arena,&out->elem[i16].transform, stream,&tr,trace_begin))) {
+                    return -1;
+                }
+                break;
             case FIELD:
                 tr = trace_begin + *tr;
                 out->elem[i16].N_type= FIELD;
@@ -3872,13 +3879,6 @@ static int bind_structparser(NailArena *arena,structparser*out,NailStream *strea
                     return -1;
                 }
                 if(parser_fail(bind_parser(arena,out->elem[i16].field.parser, stream,&tr,trace_begin))) {
-                    return -1;
-                }
-                break;
-            case TRANSFORM:
-                tr = trace_begin + *tr;
-                out->elem[i16].N_type= TRANSFORM;
-                if(parser_fail(bind_transform(arena,&out->elem[i16].transform, stream,&tr,trace_begin))) {
                     return -1;
                 }
                 break;
@@ -5143,6 +5143,11 @@ int gen_structparser(NailArena *tmp_arena,NailStream *str_current,structparser *
                 stream_reposition(str_current, end_of_struct);
             }
             break;
+        case TRANSFORM:
+            if(parser_fail(gen_transform(tmp_arena,str_current,&val->elem[i15].transform))) {
+                return -1;
+            }
+            break;
         case FIELD:
             if(parser_fail(gen_varidentifier(tmp_arena,str_current,&val->elem[i15].field.name))) {
                 return -1;
@@ -5152,11 +5157,6 @@ int gen_structparser(NailArena *tmp_arena,NailStream *str_current,structparser *
             }{/*Context-rewind*/
                 NailStreamPos  end_of_struct= stream_getpos(str_current);
                 stream_reposition(str_current, end_of_struct);
-            }
-            break;
-        case TRANSFORM:
-            if(parser_fail(gen_transform(tmp_arena,str_current,&val->elem[i15].transform))) {
-                return -1;
             }
             break;
         }

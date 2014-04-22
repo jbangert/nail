@@ -61,8 +61,8 @@ transform = {left sepBy t(",") streamidentifier; t("transform"); cfunction varid
 structparser = <t("{"); sepBy SEPERATOR choose{
               CONSTANT = constparser                      
               DEPENDENCY = {name dependencyidentifier; parser *parser}    
+              TRANSFORM  = transform                    
               FIELD= { name varidentifier;  parser *parser }
-              TRANSFORM  = transform
               } 
          t("}")>
 wrapparser = {t("<"); constbefore optional <sepBy1 SEPERATOR constparser; SEPERATOR>

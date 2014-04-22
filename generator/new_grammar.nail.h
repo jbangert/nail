@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
-enum N_types {_NAIL_NULL,CONSTANTDEF,PARSER,PR,PAREN,NAME,REF,NUNION,OPTIONAL,APPLY,LENGTH,FIXEDARRAY,ARRAY,CHOICE,WRAP,STRUCTURE,INTEGER,DDEPENDENCY,DSTREAM,PSTREAM,PDEPENDENCY,SEPBY,SEPBYONE,MANY,MANYONE,TRANSFORM,FIELD,DEPENDENCY,CONSTANT,NEGATE,SET,SINGLE,VALUE,RANGE,CUNION,CSTRUCT,CREF,CINT,CREPEAT,CARRAY,VALUES,STRING,SIGN,UNSIGN,DIRECT,ESCAPE,NUMBER,HEX,ASCII};
+enum N_types {_NAIL_NULL,CONSTANTDEF,PARSER,PR,PAREN,NAME,REF,NUNION,OPTIONAL,APPLY,LENGTH,FIXEDARRAY,ARRAY,CHOICE,WRAP,STRUCTURE,INTEGER,DDEPENDENCY,DSTREAM,PSTREAM,PDEPENDENCY,SEPBY,SEPBYONE,MANY,MANYONE,FIELD,TRANSFORM,DEPENDENCY,CONSTANT,NEGATE,SET,SINGLE,VALUE,RANGE,CUNION,CSTRUCT,CREF,CINT,CREPEAT,CARRAY,VALUES,STRING,SIGN,UNSIGN,DIRECT,ESCAPE,NUMBER,HEX,ASCII};
 typedef struct number number;
 typedef struct varidentifier varidentifier;
 typedef struct constidentifier constidentifier;
@@ -171,12 +171,12 @@ struct structparser {
                 parser*  parser;
             }
             dependency;
+            transform transform;
             struct {
                 varidentifier name;
                 parser*  parser;
             }
             field;
-            transform transform;
         };
     }*elem;
     size_t count;
