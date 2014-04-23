@@ -1,3 +1,4 @@
+!LITTLE-ENDIAN
 // https://users.cs.jmu.edu/buchhofp/forensics/formats/pkzip.html
 file_flags = {
              encrypted uint1 | [0]
@@ -7,8 +8,8 @@ file_flags = {
              enhanced_deflation uint1 | [0]
              compressed_patch uint1 | [0]
              strong_encrypted uint1 | [0]
-             uint3 = 0
-             encoding uint1 | [0]
+             uint4 = 0
+             utf8 uint1 
              uint1 = 0
              maskheader uint1 | [0]
              uint2 = 0 
@@ -21,7 +22,7 @@ internal_attr = {
 }
 
 fileentry(@crc32 uint32,@compression_method uint16,@compressed_size uint32, @uncompressed_size uint32) = {
-                 uint32 = 0x504b0304
+                 uint32 = 0x04034b50
                  version uint16
                  flags file_flags
                  @compression_method_local uint16
@@ -45,7 +46,7 @@ fileentry(@crc32 uint32,@compression_method uint16,@compressed_size uint32, @unc
                  transform uint32_depend (@uncompressed_size_local @uncompressed_size)
 }
 dir_fileheader($filestream) = {  //TODO: we need to make the filename depend 
-               uint32 = 0x504b0102
+               uint32 = 0x02014b50
                os uint16
                pkzip_version uint16
                flags file_flags
@@ -65,15 +66,15 @@ dir_fileheader($filestream) = {  //TODO: we need to make the filename depend
                filename n_of @file_name_len uint8
                extra_field n_of @extra_len uint8
                comment n_of @comment_len uint8
-               $contentstr1 transform offset_u32 ($filestream @off)
-               $contentstream transform size_u32 ($contentstr1 @compressed_size)
+
+               $contentstream transform offset_u32 ($filestream @off)
                contents apply $contentstream fileentry(@crc32,@compression_method,@compressed_size, @uncompressed_size)
 
 }
 end_of_directory($filestream) = { 
                  uint32 = 0x06054b50
-                 disks uint16 | [1]
-                 directory_disk uint16 | [1]
+                 disks uint16 | [0]
+                 directory_disk uint16 | [0]
                  @this_disk_directory_records uint16
                  @total_directory_records uint16
                  @directory_size uint32 // Byte size 

@@ -13,11 +13,12 @@ depend_parse(uint16)
 depend_parse(uint32)
 
 int size_u32_parse(NailArena *foo, NailStream *fragment, NailStream *current, uint32_t *size){
-        if(current->pos + *size >= current->size)
+        if(current->pos + *size > current->size)
                 return -1;
         fragment->data = current->data + current->pos;
         fragment->bit_offset = current->bit_offset;
         fragment->size = *size;
+        fragment->pos = 0;
         return 0;
 }
 int size_u32_generate(NailArena *tmp, NailStream *fragment, NailStream *current, uint32_t *size){ 
@@ -85,6 +86,7 @@ int zip_end_of_directory_parse(NailArena *tmp, NailStream *filestream, NailStrea
                         directory->bit_offset = 0;
                         directory->size = entire_file->size - off;
                         directory->pos = 0;
+                        entire_file->pos = entire_file->size;
                         return 0;
                 }
         }

@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include "zip.nail.h"
+#define FOREACH(val,coll) for(__typeof__((coll).elem[0]) *val=(coll).elem;val<(coll).elem + (coll).count;val++)
 char *mmap_file(char *filename, size_t *size){
         struct stat stat;
         int fil  = open(filename, O_RDONLY);
@@ -30,6 +31,9 @@ int main(int argc,char **argv){
                 if(!zip){
                         fprintf(stderr,"Err: Invalid ZIP file %s\n",argv[f]); 
                 } else {
+                        FOREACH(file, zip->contents.files){
+                                printf("%.*s = %d\n", file->filename.count, file->filename.elem, file->contents.contents.count);
+                        }
                 }
                 NailArena_release(&arena);
                 munmap(filedata,size);
