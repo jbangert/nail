@@ -2856,6 +2856,224 @@ choice_17_PARSER_out:
         goto choice_17_succ;
 choice_17_CONSTANTDEF_out:
         stream_reposition(str_current, back);
+        choice = n_tr_memo_choice(trace);
+        {   NailStreamPos back = stream_getpos(str_current);
+            pos choice_begin = n_tr_begin_choice(trace);
+            pos choice;
+            if(parser_fail(choice_begin)) {
+                goto choice_17_ENDIAN_out;
+            }
+            choice = n_tr_memo_choice(trace);
+            if(parser_fail(peg_WHITE(str_current))) {
+                goto choice_18_LITTLE_out;
+            }
+            if(parser_fail(n_tr_const(trace,str_current))) {
+                goto choice_18_LITTLE_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_LITTLE_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= '!') {
+                stream_backup(str_current,8);
+                goto choice_18_LITTLE_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_LITTLE_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'L') {
+                stream_backup(str_current,8);
+                goto choice_18_LITTLE_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_LITTLE_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'I') {
+                stream_backup(str_current,8);
+                goto choice_18_LITTLE_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_LITTLE_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'T') {
+                stream_backup(str_current,8);
+                goto choice_18_LITTLE_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_LITTLE_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'T') {
+                stream_backup(str_current,8);
+                goto choice_18_LITTLE_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_LITTLE_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'L') {
+                stream_backup(str_current,8);
+                goto choice_18_LITTLE_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_LITTLE_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'E') {
+                stream_backup(str_current,8);
+                goto choice_18_LITTLE_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_LITTLE_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= '-') {
+                stream_backup(str_current,8);
+                goto choice_18_LITTLE_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_LITTLE_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'E') {
+                stream_backup(str_current,8);
+                goto choice_18_LITTLE_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_LITTLE_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'N') {
+                stream_backup(str_current,8);
+                goto choice_18_LITTLE_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_LITTLE_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'D') {
+                stream_backup(str_current,8);
+                goto choice_18_LITTLE_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_LITTLE_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'I') {
+                stream_backup(str_current,8);
+                goto choice_18_LITTLE_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_LITTLE_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'A') {
+                stream_backup(str_current,8);
+                goto choice_18_LITTLE_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_LITTLE_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'N') {
+                stream_backup(str_current,8);
+                goto choice_18_LITTLE_out;
+            }
+            if(parser_fail(n_tr_const(trace,str_current))) {
+                goto choice_18_LITTLE_out;
+            }
+            n_tr_pick_choice(trace,choice_begin,LITTLE,choice);
+            goto choice_18_succ;
+choice_18_LITTLE_out:
+            stream_reposition(str_current, back);
+            choice = n_tr_memo_choice(trace);
+            if(parser_fail(peg_WHITE(str_current))) {
+                goto choice_18_BIG_out;
+            }
+            if(parser_fail(n_tr_const(trace,str_current))) {
+                goto choice_18_BIG_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_BIG_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= '!') {
+                stream_backup(str_current,8);
+                goto choice_18_BIG_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_BIG_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'B') {
+                stream_backup(str_current,8);
+                goto choice_18_BIG_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_BIG_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'I') {
+                stream_backup(str_current,8);
+                goto choice_18_BIG_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_BIG_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'G') {
+                stream_backup(str_current,8);
+                goto choice_18_BIG_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_BIG_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= '-') {
+                stream_backup(str_current,8);
+                goto choice_18_BIG_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_BIG_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'E') {
+                stream_backup(str_current,8);
+                goto choice_18_BIG_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_BIG_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'N') {
+                stream_backup(str_current,8);
+                goto choice_18_BIG_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_BIG_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'D') {
+                stream_backup(str_current,8);
+                goto choice_18_BIG_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_BIG_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'I') {
+                stream_backup(str_current,8);
+                goto choice_18_BIG_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_BIG_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'A') {
+                stream_backup(str_current,8);
+                goto choice_18_BIG_out;
+            }
+            if(parser_fail(stream_check(str_current,8))) {
+                goto choice_18_BIG_out;
+            }
+            if( read_unsigned_bits(str_current,8)!= 'N') {
+                stream_backup(str_current,8);
+                goto choice_18_BIG_out;
+            }
+            if(parser_fail(n_tr_const(trace,str_current))) {
+                goto choice_18_BIG_out;
+            }
+            n_tr_pick_choice(trace,choice_begin,BIG,choice);
+            goto choice_18_succ;
+choice_18_BIG_out:
+            stream_reposition(str_current, back);
+            goto choice_17_ENDIAN_out;
+choice_18_succ:
+            ;
+        }
+        n_tr_pick_choice(trace,choice_begin,ENDIAN,choice);
+        goto choice_17_succ;
+choice_17_ENDIAN_out:
+        stream_reposition(str_current, back);
         goto fail;
 choice_17_succ:
         ;
@@ -4700,6 +4918,35 @@ static int bind_definition(NailArena *arena,definition*out,NailStream *stream, p
             return -1;
         }
         break;
+    case ENDIAN:
+        tr = trace_begin + *tr;
+        out->N_type= ENDIAN;
+        fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
+        switch(*(tr++)) {
+        case LITTLE:
+            tr = trace_begin + *tr;
+            out->endian.N_type= LITTLE;
+            fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
+            stream_reposition(stream,*tr);
+            tr++;
+            fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
+            stream_reposition(stream,*tr);
+            tr++;
+            break;
+        case BIG:
+            tr = trace_begin + *tr;
+            out->endian.N_type= BIG;
+            fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
+            stream_reposition(stream,*tr);
+            tr++;
+            fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
+            stream_reposition(stream,*tr);
+            tr++;
+            break;
+        default:
+            assert("BUG");
+        }
+        break;
     default:
         assert("BUG");
     }*trace = tr;
@@ -5575,6 +5822,49 @@ int gen_definition(NailArena *tmp_arena,NailStream *str_current,definition * val
         }{/*Context-rewind*/
             NailStreamPos  end_of_struct= stream_getpos(str_current);
             stream_reposition(str_current, end_of_struct);
+        }
+        break;
+    case ENDIAN:
+        switch(val->endian.N_type) {
+        case LITTLE:
+            gen_WHITE(str_current);
+            if(parser_fail(stream_output(str_current,'!',8))) return -1;
+            if(parser_fail(stream_output(str_current,'L',8))) return -1;
+            if(parser_fail(stream_output(str_current,'I',8))) return -1;
+            if(parser_fail(stream_output(str_current,'T',8))) return -1;
+            if(parser_fail(stream_output(str_current,'T',8))) return -1;
+            if(parser_fail(stream_output(str_current,'L',8))) return -1;
+            if(parser_fail(stream_output(str_current,'E',8))) return -1;
+            if(parser_fail(stream_output(str_current,'-',8))) return -1;
+            if(parser_fail(stream_output(str_current,'E',8))) return -1;
+            if(parser_fail(stream_output(str_current,'N',8))) return -1;
+            if(parser_fail(stream_output(str_current,'D',8))) return -1;
+            if(parser_fail(stream_output(str_current,'I',8))) return -1;
+            if(parser_fail(stream_output(str_current,'A',8))) return -1;
+            if(parser_fail(stream_output(str_current,'N',8))) return -1;
+            {/*Context-rewind*/
+                NailStreamPos  end_of_struct= stream_getpos(str_current);
+                stream_reposition(str_current, end_of_struct);
+            }
+            break;
+        case BIG:
+            gen_WHITE(str_current);
+            if(parser_fail(stream_output(str_current,'!',8))) return -1;
+            if(parser_fail(stream_output(str_current,'B',8))) return -1;
+            if(parser_fail(stream_output(str_current,'I',8))) return -1;
+            if(parser_fail(stream_output(str_current,'G',8))) return -1;
+            if(parser_fail(stream_output(str_current,'-',8))) return -1;
+            if(parser_fail(stream_output(str_current,'E',8))) return -1;
+            if(parser_fail(stream_output(str_current,'N',8))) return -1;
+            if(parser_fail(stream_output(str_current,'D',8))) return -1;
+            if(parser_fail(stream_output(str_current,'I',8))) return -1;
+            if(parser_fail(stream_output(str_current,'A',8))) return -1;
+            if(parser_fail(stream_output(str_current,'N',8))) return -1;
+            {/*Context-rewind*/
+                NailStreamPos  end_of_struct= stream_getpos(str_current);
+                stream_reposition(str_current, end_of_struct);
+            }
+            break;
         }
         break;
     }

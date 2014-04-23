@@ -119,5 +119,9 @@ definition = choose {
                  WHITE 
                  definition constparser
            }          
+           ENDIAN = choose {
+                 LITTLE = t("!LITTLE-ENDIAN")
+                 BIG = t("!BIG-ENDIAN")
            }
+}
 grammar = <many1 definition; WHITE>
