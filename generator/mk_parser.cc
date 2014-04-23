@@ -207,13 +207,18 @@ std::string intconstant_value(const intconstant &val){
   }
 }
 
-static std::string int_expr(const char * stream,unsigned int width){
+static std::string int_expr(const char * stream,unsigned int width,Endian endian){
   if(width>=64){
     throw std::runtime_error("More than 64 bits in integer");
   }
   //TODO: Support little endian?
-  return boost::str(boost::format("read_unsigned_bits(%s,%d)")%stream % width);
+  if(endian == Big){
+    return boost::str(boost::format("read_unsigned_bits(%s,%d)")%stream % width);
+  } else { 
+    return boost::str(boost::format("read_unsigned_bits_littleendian(%s,%d)")%stream % width);    
+  }
 }
+
 class CAction{
   std::ostream &out;
   int num_iters;
@@ -226,11 +231,12 @@ class CAction{
         << "tr++;\n";
   }
 public:
-  void action (const parserinner &p, Expr &lval){
+  bool big_endian;
+  void action (const parserinner &p, Expr &lval, Endian end){
     switch(p.N_type){
     case INTEGER:{
       int width = boost::lexical_cast<int>(mk_str(p.integer.parser.unsign));
-      out << lval << "=" << int_expr("stream",width) << ";\n";
+      out << lval << "=" << int_expr("stream",width,end) << ";\n";
     }
       break;
     case STRUCTURE:
@@ -242,7 +248,7 @@ public:
         case FIELD:{
           std::string name = mk_str(field->field.name);
           ValExpr fieldname(name,&lval);
-          action(field->field.parser->pr,fieldname);
+          action(field->field.parser->pr,fieldname,end);
           break;
         }
         case DEPENDENCY:{
@@ -267,7 +273,7 @@ public:
           action_constparser();
         }
       }
-      action(p.wrap.parser->pr,lval);
+      action(p.wrap.parser->pr,lval,end);
       if(p.wrap.constafter){
         FOREACH(c,*p.wrap.constafter){
           action_constparser();
@@ -288,7 +294,7 @@ public:
           std::string tag (mk_str(c->tag));
           boost::algorithm::to_lower(tag);
           ValExpr expr(tag,&lval);
-          action(c->parser->pr, expr );
+          action(c->parser->pr, expr,end );
           out << "break;\n";
         }
         out << "default: assert(\"BUG\");";
@@ -305,7 +311,7 @@ public:
         FOREACH(c, p.nunion){
           out << "case " << nr_option++ << ":\n";
           out << "tr = trace_begin + *tr;\n";
-          action((*c)->pr, lval);
+          action((*c)->pr, lval,end);
           out << "break;\n";
         }
         out << "default: assert(!\"Error\"); exit(-1);";
@@ -321,7 +327,7 @@ public:
         out << "fprintf(stderr,\"%d = stream %ul\\n\",tr-trace_begin, stream->pos);\n";
 #endif
         out << "tr+= sizeof(NailStream) / sizeof(*tr);";
-        action(p.apply.inner->pr, lval);
+        action(p.apply.inner->pr, lval,end);
         out << "stream = original_stream;";
         out <<"}\n";
       }
@@ -366,7 +372,7 @@ public:
         }
         ValExpr iexpr(iter);
         ArrayElemExpr elem(&data,&iexpr);
-        action(i->pr,elem);
+        action(i->pr,elem,end);
         out << "}\n";
         out << "tr = trace_begin + save;\n}";
       }
@@ -376,7 +382,7 @@ public:
       ValExpr iexpr(iter);
       ArrayElemExpr elem(&lval, &iexpr);
       out << "for(pos "<< iter<< "=0;"<<iter<<"<"<<intconstant_value(p.fixedarray.length) << ";"<<iter<<"++){";
-      action(p.fixedarray.inner->pr,elem);
+      action(p.fixedarray.inner->pr,elem,end);
       out << "}";
     }
       break;
@@ -387,7 +393,7 @@ public:
            << lval << "= " << "(typeof("<<lval<<"))n_malloc("<<arena<<",sizeof(*"<<lval<<"));\n";
         out << "if(!"<<lval<<") return -1;\n";
         DerefExpr deref(lval);
-        action(p.optional->pr,deref);
+        action(p.optional->pr,deref,end);
         out << "}\n"
             << "else{tr = trace_begin + *tr;\n "<< lval <<"= NULL;}";
       }
@@ -413,6 +419,7 @@ public:
   CAction(std::ostream *os,std::string _arena): out(*os), num_iters(1),arena(_arena){}
  
   void emit_action(const grammar &grammar){
+    Endian end;
     FOREACH(def, grammar){
       if(def->N_type == PARSER){ 
         std::string name= mk_str(def->parser.name);
@@ -420,13 +427,17 @@ public:
       }
     }
     FOREACH(def, grammar){
+      if(def->N_type == ENDIAN){
+        end = def->endian.N_type == BIG ? Big : Little;
+      }
+        
       if(def->N_type == PARSER){
         std::string name= mk_str(def->parser.name);
         out << "static int bind_"<<name<< "(NailArena *arena," << name <<"*out,NailStream *stream, pos **trace ,  pos * trace_begin){\n";
         out << " pos *tr = *trace;";
         //  out << name << "*ret = malloc(sizeof("<<name<<")); if(!ret) return -1;";
         ValExpr outexpr("out",NULL,1);
-        action(def->parser.definition.pr,outexpr);
+        action(def->parser.definition.pr,outexpr,end);
         out << "*trace = tr;";
         out<< "return 0;}";
         if(!def->parser.parameters || def->parser.parameters->count==0){
@@ -465,6 +476,7 @@ class CPrimitiveParser{
   int nr_dep;
   int num_iters;
   int bit_offset = 0; // < 0 = unknown alignment, 0 == byte aligned, 1 = byte + 1, etc 
+  Endian end;
   CAction dependency_action;
   /*Parse pass emits a light-weight trace of data structure*/
   //TODO: Keep track of bit alignment
@@ -477,7 +489,7 @@ class CPrimitiveParser{
     int width = boost::lexical_cast<int>(mk_str(c.parser.unsign));
     check_int(width,fail);
     if(c.constraint != NULL){
-      out << "{\n uint64_t val = "<< int_expr("str_current",width) << ";\n";
+      out << "{\n uint64_t val = "<< int_expr("str_current",width,end) << ";\n";
       out << "if(";
       constraint(out,std::string("val"),*c.constraint);
       out << "){"
@@ -491,7 +503,7 @@ class CPrimitiveParser{
   }
   void peg_constint(int width, const std::string value,const std::string &fail){
     check_int(width,fail);
-    out << "if( "<< int_expr("str_current",width) << "!= "<<value<<"){"
+    out << "if( "<< int_expr("str_current",width,end) << "!= "<<value<<"){"
           << "stream_backup(str_current,"<<width<<");"
         <<fail<<"}";
   }
@@ -683,7 +695,7 @@ class CPrimitiveParser{
                  << "NailStream tmpstream = *str_current;\n";
             peg(*field->dependency.parser, fail, scope);
             out  << "NailStream *stream = &tmpstream;"; //TODO: parametrize this on action
-            dependency_action.action(field->dependency.parser->pr,lval); 
+            dependency_action.action(field->dependency.parser->pr,lval,end); 
             out << "}";
             newscope.add_dependency_definition(name,type);
             out << "n_tr_setpos(trace,trace_"<<name<<");\n";
@@ -828,9 +840,11 @@ class CPrimitiveParser{
     }
   }
 public:
-  CPrimitiveParser(std::ostream *os) : final(*os), nr_choice(1),nr_many(0),nr_const(0),nr_dep(0),num_iters(1), dependency_action(&out,"tmp_arena"){}
+  CPrimitiveParser(std::ostream *os) : final(*os), nr_choice(1),nr_many(0),nr_const(0),nr_dep(0),num_iters(1), dependency_action(&out,"tmp_arena"), end(Big){}
   void peg(const definition &def) {
-    if(def.N_type == PARSER){
+    if(def.N_type == ENDIAN){  
+      end = def.endian.N_type == BIG ? Big : Little;
+    } else if(def.N_type == PARSER){
       Scope scope;
       std::string name = mk_str(def.parser.name);
       scope.add_stream_parameter("current");
