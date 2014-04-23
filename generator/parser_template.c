@@ -9,6 +9,37 @@ typedef struct{
         pos capacity,iter,grow;
 } n_trace; 
 #define parser_fail(i) __builtin_expect(i<0,0)
+static uint64_t read_unsigned_bits_littleendian(NailStream *stream, unsigned count) {
+    uint64_t retval = 0;
+    unsigned int out_idx=0;
+    size_t pos = stream->pos;
+    char bit_offset = 7-stream->bit_offset;
+    const uint8_t *data = stream->data;
+    while(count>0) {
+        if(bit_offset == 0 && (count &7) ==0) {
+            retval|= data[pos] << out_idx;
+            out_idx+=8;
+            pos ++;
+            count-=8;
+        }
+        else {
+            //This can use a lot of performance love
+//TODO: test this
+            retval |= ((data[pos] >> (bit_offset)) & 1) << out_idx;
+            out_idx++;
+            count--;
+            bit_offset--;
+            if(bit_offset <0) {
+                bit_offset += 8;
+                pos++;
+            }
+        }
+    }
+    stream->pos = pos;
+    stream->bit_offset = bit_offset;
+    return retval;
+
+}
 
 static uint64_t read_unsigned_bits(NailStream *stream, unsigned count){ 
         uint64_t retval = 0;
