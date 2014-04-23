@@ -65,7 +65,7 @@ int zip_compression_generate(NailArena *tmp, NailStream *uncompressed, NailStrea
 static int is_valid_directory(uint8_t *begin, uint8_t *end){
         if(end - begin<= 21 ) return 0;
         if(*(uint32_t *)begin != 0x06054b50 ) return 0;
-        if(*(uint16_t *)(begin+20) + 20 != end-begin) return 0;
+        if(*(uint16_t *)(begin+20) + 22 != end-begin) return 0;
         return 1;
 }
 int zip_end_of_directory_parse(NailArena *tmp, NailStream *filestream, NailStream *directory, NailStream *entire_file){
