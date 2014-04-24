@@ -69,3 +69,5 @@ examples/*/*.nail.*
 /examples/test/union/test
 /generator/mk_parser.cc~
 /examples/dns/resolver
+/examples/network/tun
+/examples/zip/extract
