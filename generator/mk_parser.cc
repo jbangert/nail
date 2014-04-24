@@ -707,7 +707,7 @@ class CPrimitiveParser{
           {
             header << "extern int " << mk_str(field->transform.cfunction) << "_parse(NailArena *tmp";
             FOREACH(stream, field->transform.left){
-              out << ";\nNailStream str_" << mk_str(*stream) <<";\n"; // If declaration occurs right
+              out << ";\nNailStream *str_" << mk_str(*stream) <<";\n"; // If declaration occurs right
                                                                       // after a label, we need an
                                                                       // empty statement
               // str_current cannot appear on the left
@@ -716,7 +716,7 @@ class CPrimitiveParser{
             out << mk_str(field->transform.cfunction) << "_parse(tmp_arena"; //TODO: use temp arena
 
             FOREACH(stream, field->transform.left){           
-              header << ",NailStream *str_" << mk_str(*stream);
+              header << ",NailStream **str_" << mk_str(*stream);
               out << ", &str_"  << mk_str(*stream);
             }      
             FOREACH(param, field->transform.right){
@@ -738,7 +738,7 @@ class CPrimitiveParser{
             out << ")) {" << fail << "}";
             header << ");\n";
             FOREACH(stream, field->transform.left){
-              newscope.add_stream_definition(mk_str(*stream));
+              newscope.add_stream_parameter(mk_str(*stream));
             }
             out << "n_tr_stream(trace,str_current);";
             
