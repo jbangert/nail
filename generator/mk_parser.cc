@@ -468,7 +468,7 @@ public:
 
 class CPrimitiveParser{
   std::stringstream out;
-  std::ostream &final;
+  std::ostream &final,&hdr;
   std::stringstream header;
   int nr_choice,nr_option;
   int nr_many;
@@ -840,7 +840,7 @@ class CPrimitiveParser{
     }
   }
 public:
-  CPrimitiveParser(std::ostream *os) : final(*os), nr_choice(1),nr_many(0),nr_const(0),nr_dep(0),num_iters(1), dependency_action(&out,"tmp_arena"), end(Big){}
+  CPrimitiveParser(std::ostream *os, std::ostream *header) : final(*os), hdr(*header),nr_choice(1),nr_many(0),nr_const(0),nr_dep(0),num_iters(1), dependency_action(&out,"tmp_arena"), end(Big){}
   void peg(const definition &def) {
     if(def.N_type == ENDIAN){  
       end = def.endian.N_type == BIG ? Big : Little;
@@ -875,12 +875,13 @@ public:
     }
     out << std::endl;
     final << header.str() << out.str() << std::endl;
+    hdr << header.str() << std::endl;
 
   }
 };
-void emit_parser(std::ostream *out, grammar *grammar){
+void emit_parser(std::ostream *out, std::ostream *header,grammar *grammar){
 
-  CPrimitiveParser p(out);
+  CPrimitiveParser p(out,header);
   CAction a(out,"arena");
   *out << std::string(parser_template_start,parser_template_end - parser_template_start);
   p.emit_parser(*grammar);

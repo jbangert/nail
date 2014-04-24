@@ -49,7 +49,7 @@ int main(int argc, char**argv)
          error("Cannot open output file %s\n",implfilename.c_str());
        emit_header(&header,result);
        impl << "#include \""<< headerfilename << "\""<<std::endl;
-       emit_parser(&impl,result);
+       emit_parser(&impl,&header,result);
        emit_generator(&impl,&header,result);
        impl << std::endl;
        header << std::endl;       
