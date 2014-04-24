@@ -5,7 +5,7 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <list>
 #define MAP(f,collection) FOREACH(iter,collection){ f(*iter);}
-#define DEBUG_OUT
+#undef DEBUG_OUT
 //static const std::string parser_template(_binary_parser_template_c_start,_binary_parser_template_c_end - _binary_parser_template_c_start);
 class CDataModel{
   std::stringstream out;
