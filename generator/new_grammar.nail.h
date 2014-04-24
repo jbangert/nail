@@ -339,7 +339,10 @@ struct NailStream {
 
 typedef struct NailStream NailStream;
 typedef size_t NailStreamPos;
-extern int NailOutStream_new(NailStream *str,size_t siz);
+static NailStream * NailStream_alloc(NailArena *arena) {
+    return (NailStream *)n_malloc(arena, sizeof(NailStream));
+}
+extern int NailOutStream_init(NailStream *str,size_t siz);
 extern void NailOutStream_release(NailStream *str);
 const uint8_t * NailOutStream_buffer(NailStream *str,size_t *siz);
 extern int NailOutStream_grow(NailStream *stream, size_t count);
@@ -372,6 +375,7 @@ parserinner*parse_parserinner(NailArena *arena, const uint8_t *data, size_t size
 parser*parse_parser(NailArena *arena, const uint8_t *data, size_t size);
 definition*parse_definition(NailArena *arena, const uint8_t *data, size_t size);
 grammar*parse_grammar(NailArena *arena, const uint8_t *data, size_t size);
+
 int gen_number(NailArena *tmp_arena,NailStream *out,number * val);
 int gen_varidentifier(NailArena *tmp_arena,NailStream *out,varidentifier * val);
 int gen_constidentifier(NailArena *tmp_arena,NailStream *out,constidentifier * val);

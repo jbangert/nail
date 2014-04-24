@@ -10,6 +10,37 @@ typedef struct {
     pos capacity,iter,grow;
 } n_trace;
 #define parser_fail(i) __builtin_expect(i<0,0)
+static uint64_t read_unsigned_bits_littleendian(NailStream *stream, unsigned count) {
+    uint64_t retval = 0;
+    unsigned int out_idx=0;
+    size_t pos = stream->pos;
+    char bit_offset = stream->bit_offset;
+    const uint8_t *data = stream->data;
+    while(count>0) {
+        if(bit_offset == 0 && (count &7) ==0) {
+            retval|= data[pos] << out_idx;
+            out_idx+=8;
+            pos ++;
+            count-=8;
+        }
+        else {
+            //This can use a lot of performance love
+//TODO: test this
+            retval |= ((data[pos] >> (bit_offset)) & 1) << out_idx;
+            out_idx++;
+            count--;
+            bit_offset++;
+            if(bit_offset >7) {
+                bit_offset -= 8;
+                pos++;
+            }
+        }
+    }
+    stream->pos = pos;
+    stream->bit_offset = bit_offset;
+    return retval;
+
+}
 
 static uint64_t read_unsigned_bits(NailStream *stream, unsigned count) {
     uint64_t retval = 0;
@@ -216,7 +247,9 @@ static pos n_tr_memo_many(n_trace *trace) {
 static void n_tr_write_many(n_trace *trace, pos where, pos count) {
     trace->trace[where] = count;
     trace->trace[where+1] = trace->iter;
+#ifdef NAIL_DEBUG
     fprintf(stderr,"%d = many %d %d\n", where, count,trace->iter);
+#endif
 }
 
 static pos n_tr_begin_choice(n_trace *trace) {
@@ -234,7 +267,9 @@ static int n_tr_stream(n_trace *trace, const NailStream *stream) {
     if(parser_fail(n_trace_grow(trace,sizeof(*stream)/sizeof(pos))))
         return -1;
     *(NailStream *)(trace->trace + trace->iter) = *stream;
+#ifdef NAIL_DEBUG
     fprintf(stderr,"%d = stream\n",trace->iter,stream);
+#endif
     trace->iter += sizeof(*stream)/sizeof(pos);
     return 0;
 }
@@ -244,13 +279,17 @@ static pos n_tr_memo_choice(n_trace *trace) {
 static void n_tr_pick_choice(n_trace *trace, pos where, pos which_choice, pos  choice_begin) {
     trace->trace[where] = which_choice;
     trace->trace[where + 1] = choice_begin;
+#ifdef NAIL_DEBUG
     fprintf(stderr,"%d = pick %d %d\n",where, which_choice,choice_begin);
+#endif
 }
 static int n_tr_const(n_trace *trace,NailStream *stream) {
     if(parser_fail(n_trace_grow(trace,1)))
         return -1;
     NailStreamPos newoff = stream_getpos(stream);
+#ifdef NAIL_DEBUG
     fprintf(stderr,"%d = const %d \n",trace->iter, newoff);
+#endif
     trace->trace[trace->iter++] = newoff;
     return 0;
 }
@@ -3142,8 +3181,7 @@ static pos bind_definition(NailArena *arena,definition*out,NailStream *stream, p
 static pos bind_grammar(NailArena *arena,grammar*out,NailStream *stream, pos **trace,  pos * trace_begin);
 static int bind_number(NailArena *arena,number*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
-    {   /*ARRAY*/
+    { /*ARRAY*/
         pos save = 0;
         out->count=*(tr++);
         save = *(tr++);
@@ -3179,10 +3217,8 @@ number*parse_number(NailArena *arena, const uint8_t *data, size_t size) {
 }
 static int bind_varidentifier(NailArena *arena,varidentifier*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
-    fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
     {   /*ARRAY*/
         pos save = 0;
         out->count=*(tr++);
@@ -3219,10 +3255,8 @@ varidentifier*parse_varidentifier(NailArena *arena, const uint8_t *data, size_t 
 }
 static int bind_constidentifier(NailArena *arena,constidentifier*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
-    fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
     {   /*ARRAY*/
         pos save = 0;
         out->count=*(tr++);
@@ -3259,13 +3293,10 @@ constidentifier*parse_constidentifier(NailArena *arena, const uint8_t *data, siz
 }
 static int bind_streamidentifier(NailArena *arena,streamidentifier*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
-    fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
     {   /*ARRAY*/
         pos save = 0;
         out->count=*(tr++);
@@ -3302,13 +3333,10 @@ streamidentifier*parse_streamidentifier(NailArena *arena, const uint8_t *data, s
 }
 static int bind_dependencyidentifier(NailArena *arena,dependencyidentifier*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
-    fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
     {   /*ARRAY*/
         pos save = 0;
         out->count=*(tr++);
@@ -3347,23 +3375,18 @@ dependencyidentifier*parse_dependencyidentifier(NailArena *arena, const uint8_t 
 
 static int bind_intconstant(NailArena *arena,intconstant*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
-    fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
     case ASCII:
         tr = trace_begin + *tr;
         out->N_type= ASCII;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
-        fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
         switch(*(tr++)) {
         case ESCAPE:
             tr = trace_begin + *tr;
             out->ascii.N_type= ESCAPE;
-            fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
             stream_reposition(stream,*tr);
             tr++;
             out->ascii.escape=read_unsigned_bits(stream,8);
@@ -3376,20 +3399,16 @@ static int bind_intconstant(NailArena *arena,intconstant*out,NailStream *stream,
         default:
             assert("BUG");
         }
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         break;
     case HEX:
         tr = trace_begin + *tr;
         out->N_type= HEX;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
-        fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
         {   /*ARRAY*/
             pos save = 0;
             out->hex.count=*(tr++);
@@ -3399,7 +3418,6 @@ static int bind_intconstant(NailArena *arena,intconstant*out,NailStream *stream,
                 return 0;
             }
             for(pos i6=0; i6<out->hex.count; i6++) {
-                fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
                 switch(*(tr++)) {
                 case 1:
                     tr = trace_begin + *tr;
@@ -3450,15 +3468,12 @@ intconstant*parse_intconstant(NailArena *arena, const uint8_t *data, size_t size
 }
 static int bind_intp(NailArena *arena,intp*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
     case UNSIGN:
         tr = trace_begin + *tr;
         out->N_type= UNSIGN;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
-        fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
         {   /*ARRAY*/
             pos save = 0;
             out->unsign.count=*(tr++);
@@ -3476,10 +3491,8 @@ static int bind_intp(NailArena *arena,intp*out,NailStream *stream, pos **trace ,
     case SIGN:
         tr = trace_begin + *tr;
         out->N_type= SIGN;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
-        fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
         {   /*ARRAY*/
             pos save = 0;
             out->sign.count=*(tr++);
@@ -3523,7 +3536,6 @@ static int bind_constint(NailArena *arena,constint*out,NailStream *stream, pos *
     if(parser_fail(bind_intp(arena,&out->parser, stream,&tr,trace_begin))) {
         return -1;
     }
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
     if(parser_fail(bind_intconstant(arena,&out->value, stream,&tr,trace_begin))) {
@@ -3552,18 +3564,14 @@ constint*parse_constint(NailArena *arena, const uint8_t *data, size_t size) {
 }
 static int bind_arrayvalue(NailArena *arena,arrayvalue*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
     case STRING:
         tr = trace_begin + *tr;
         out->N_type= STRING;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
-        fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
         {   /*ARRAY*/
             pos save = 0;
             out->string.count=*(tr++);
@@ -3577,17 +3585,14 @@ static int bind_arrayvalue(NailArena *arena,arrayvalue*out,NailStream *stream, p
             }
             tr = trace_begin + save;
         }
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         break;
     case VALUES:
         tr = trace_begin + *tr;
         out->N_type= VALUES;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
-        fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
         {   /*ARRAY*/
             pos save = 0;
             out->values.count=*(tr++);
@@ -3603,7 +3608,6 @@ static int bind_arrayvalue(NailArena *arena,arrayvalue*out,NailStream *stream, p
             }
             tr = trace_begin + save;
         }
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         break;
@@ -3633,13 +3637,11 @@ arrayvalue*parse_arrayvalue(NailArena *arena, const uint8_t *data, size_t size) 
 }
 static int bind_constarray(NailArena *arena,constarray*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
     if(parser_fail(bind_intp(arena,&out->parser, stream,&tr,trace_begin))) {
         return -1;
     }
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
     if(parser_fail(bind_arrayvalue(arena,&out->value, stream,&tr,trace_begin))) {
@@ -3668,8 +3670,7 @@ constarray*parse_constarray(NailArena *arena, const uint8_t *data, size_t size) 
 }
 static int bind_constfields(NailArena *arena,constfields*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
-    {   /*ARRAY*/
+    { /*ARRAY*/
         pos save = 0;
         out->count=*(tr++);
         save = *(tr++);
@@ -3679,7 +3680,6 @@ static int bind_constfields(NailArena *arena,constfields*out,NailStream *stream,
         }
         for(pos i11=0; i11<out->count; i11++) {
             if(i11>0) {
-                fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
                 stream_reposition(stream,*tr);
                 tr++;
             }
@@ -3712,7 +3712,6 @@ constfields*parse_constfields(NailArena *arena, const uint8_t *data, size_t size
 }
 static int bind_constparser(NailArena *arena,constparser*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
     case CARRAY:
         tr = trace_begin + *tr;
@@ -3724,7 +3723,6 @@ static int bind_constparser(NailArena *arena,constparser*out,NailStream *stream,
     case CREPEAT:
         tr = trace_begin + *tr;
         out->N_type= CREPEAT;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         out->crepeat= (typeof(out->crepeat)) n_malloc(arena,sizeof(*out->crepeat));
@@ -3752,20 +3750,17 @@ static int bind_constparser(NailArena *arena,constparser*out,NailStream *stream,
     case CSTRUCT:
         tr = trace_begin + *tr;
         out->N_type= CSTRUCT;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         if(parser_fail(bind_constfields(arena,&out->cstruct, stream,&tr,trace_begin))) {
             return -1;
         }
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         break;
     case CUNION:
         tr = trace_begin + *tr;
         out->N_type= CUNION;
-        fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
         {   /*ARRAY*/
             pos save = 0;
             out->cunion.count=*(tr++);
@@ -3775,7 +3770,6 @@ static int bind_constparser(NailArena *arena,constparser*out,NailStream *stream,
                 return 0;
             }
             for(pos i12=0; i12<out->cunion.count; i12++) {
-                fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
                 stream_reposition(stream,*tr);
                 tr++;
                 if(parser_fail(bind_constparser(arena,&out->cunion.elem[i12], stream,&tr,trace_begin))) {
@@ -3811,7 +3805,6 @@ constparser*parse_constparser(NailArena *arena, const uint8_t *data, size_t size
 }
 static int bind_constraintelem(NailArena *arena,constraintelem*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
     case RANGE:
         tr = trace_begin + *tr;
@@ -3828,7 +3821,6 @@ static int bind_constraintelem(NailArena *arena,constraintelem*out,NailStream *s
             tr = trace_begin + *tr;
             out->range.min= NULL;
         }
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         if(*tr<0) { /*OPTIONAL*/
@@ -3877,7 +3869,6 @@ constraintelem*parse_constraintelem(NailArena *arena, const uint8_t *data, size_
 }
 static int bind_intconstraint(NailArena *arena,intconstraint*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
     case SINGLE:
         tr = trace_begin + *tr;
@@ -3889,10 +3880,8 @@ static int bind_intconstraint(NailArena *arena,intconstraint*out,NailStream *str
     case SET:
         tr = trace_begin + *tr;
         out->N_type= SET;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
-        fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
         {   /*ARRAY*/
             pos save = 0;
             out->set.count=*(tr++);
@@ -3903,7 +3892,6 @@ static int bind_intconstraint(NailArena *arena,intconstraint*out,NailStream *str
             }
             for(pos i13=0; i13<out->set.count; i13++) {
                 if(i13>0) {
-                    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
                     stream_reposition(stream,*tr);
                     tr++;
                 }
@@ -3913,14 +3901,12 @@ static int bind_intconstraint(NailArena *arena,intconstraint*out,NailStream *str
             }
             tr = trace_begin + save;
         }
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         break;
     case NEGATE:
         tr = trace_begin + *tr;
         out->N_type= NEGATE;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         out->negate= (typeof(out->negate)) n_malloc(arena,sizeof(*out->negate));
@@ -3964,7 +3950,6 @@ static int bind_constrainedint(NailArena *arena,constrainedint*out,NailStream *s
         tr++;
         out->constraint= (typeof(out->constraint))n_malloc(arena,sizeof(*out->constraint));
         if(!out->constraint) return -1;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         if(parser_fail(bind_intconstraint(arena,&out->constraint[0], stream,&tr,trace_begin))) {
@@ -3998,8 +3983,7 @@ constrainedint*parse_constrainedint(NailArena *arena, const uint8_t *data, size_
 }
 static int bind_transform(NailArena *arena,transform*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
-    {   /*ARRAY*/
+    { /*ARRAY*/
         pos save = 0;
         out->left.count=*(tr++);
         save = *(tr++);
@@ -4009,7 +3993,6 @@ static int bind_transform(NailArena *arena,transform*out,NailStream *stream, pos
         }
         for(pos i14=0; i14<out->left.count; i14++) {
             if(i14>0) {
-                fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
                 stream_reposition(stream,*tr);
                 tr++;
             }
@@ -4019,16 +4002,13 @@ static int bind_transform(NailArena *arena,transform*out,NailStream *stream, pos
         }
         tr = trace_begin + save;
     }
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
     if(parser_fail(bind_varidentifier(arena,&out->cfunction, stream,&tr,trace_begin))) {
         return -1;
     }
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
-    fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
     {   /*ARRAY*/
         pos save = 0;
         out->right.count=*(tr++);
@@ -4044,7 +4024,6 @@ static int bind_transform(NailArena *arena,transform*out,NailStream *stream, pos
         }
         tr = trace_begin + save;
     }
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
     *trace = tr;
@@ -4071,10 +4050,8 @@ transform*parse_transform(NailArena *arena, const uint8_t *data, size_t size) {
 }
 static int bind_structparser(NailArena *arena,structparser*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
-    fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
     {   /*ARRAY*/
         pos save = 0;
         out->count=*(tr++);
@@ -4085,11 +4062,9 @@ static int bind_structparser(NailArena *arena,structparser*out,NailStream *strea
         }
         for(pos i16=0; i16<out->count; i16++) {
             if(i16>0) {
-                fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
                 stream_reposition(stream,*tr);
                 tr++;
             }
-            fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
             switch(*(tr++)) {
             case CONSTANT:
                 tr = trace_begin + *tr;
@@ -4139,7 +4114,6 @@ static int bind_structparser(NailArena *arena,structparser*out,NailStream *strea
         }
         tr = trace_begin + save;
     }
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
     *trace = tr;
@@ -4166,14 +4140,12 @@ structparser*parse_structparser(NailArena *arena, const uint8_t *data, size_t si
 }
 static int bind_wrapparser(NailArena *arena,wrapparser*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
     if(*tr<0) { /*OPTIONAL*/
         tr++;
         out->constbefore= (typeof(out->constbefore))n_malloc(arena,sizeof(*out->constbefore));
         if(!out->constbefore) return -1;
-        fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
         {   /*ARRAY*/
             pos save = 0;
             out->constbefore[0].count=*(tr++);
@@ -4184,7 +4156,6 @@ static int bind_wrapparser(NailArena *arena,wrapparser*out,NailStream *stream, p
             }
             for(pos i17=0; i17<out->constbefore[0].count; i17++) {
                 if(i17>0) {
-                    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
                     stream_reposition(stream,*tr);
                     tr++;
                 }
@@ -4194,7 +4165,6 @@ static int bind_wrapparser(NailArena *arena,wrapparser*out,NailStream *stream, p
             }
             tr = trace_begin + save;
         }
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
     }
@@ -4213,10 +4183,8 @@ static int bind_wrapparser(NailArena *arena,wrapparser*out,NailStream *stream, p
         tr++;
         out->constafter= (typeof(out->constafter))n_malloc(arena,sizeof(*out->constafter));
         if(!out->constafter) return -1;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
-        fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
         {   /*ARRAY*/
             pos save = 0;
             out->constafter[0].count=*(tr++);
@@ -4227,7 +4195,6 @@ static int bind_wrapparser(NailArena *arena,wrapparser*out,NailStream *stream, p
             }
             for(pos i18=0; i18<out->constafter[0].count; i18++) {
                 if(i18>0) {
-                    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
                     stream_reposition(stream,*tr);
                     tr++;
                 }
@@ -4242,7 +4209,6 @@ static int bind_wrapparser(NailArena *arena,wrapparser*out,NailStream *stream, p
         tr = trace_begin + *tr;
         out->constafter= NULL;
     }
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
     *trace = tr;
@@ -4269,13 +4235,10 @@ wrapparser*parse_wrapparser(NailArena *arena, const uint8_t *data, size_t size) 
 }
 static int bind_choiceparser(NailArena *arena,choiceparser*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
-    fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
     {   /*ARRAY*/
         pos save = 0;
         out->count=*(tr++);
@@ -4288,7 +4251,6 @@ static int bind_choiceparser(NailArena *arena,choiceparser*out,NailStream *strea
             if(parser_fail(bind_constidentifier(arena,&out->elem[i19].tag, stream,&tr,trace_begin))) {
                 return -1;
             }
-            fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
             stream_reposition(stream,*tr);
             tr++;
             out->elem[i19].parser= (typeof(out->elem[i19].parser)) n_malloc(arena,sizeof(*out->elem[i19].parser));
@@ -4301,7 +4263,6 @@ static int bind_choiceparser(NailArena *arena,choiceparser*out,NailStream *strea
         }
         tr = trace_begin + save;
     }
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
     *trace = tr;
@@ -4328,12 +4289,10 @@ choiceparser*parse_choiceparser(NailArena *arena, const uint8_t *data, size_t si
 }
 static int bind_arrayparser(NailArena *arena,arrayparser*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
     case MANYONE:
         tr = trace_begin + *tr;
         out->N_type= MANYONE;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         out->manyone= (typeof(out->manyone)) n_malloc(arena,sizeof(*out->manyone));
@@ -4347,7 +4306,6 @@ static int bind_arrayparser(NailArena *arena,arrayparser*out,NailStream *stream,
     case MANY:
         tr = trace_begin + *tr;
         out->N_type= MANY;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         out->many= (typeof(out->many)) n_malloc(arena,sizeof(*out->many));
@@ -4361,7 +4319,6 @@ static int bind_arrayparser(NailArena *arena,arrayparser*out,NailStream *stream,
     case SEPBYONE:
         tr = trace_begin + *tr;
         out->N_type= SEPBYONE;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         if(parser_fail(bind_constparser(arena,&out->sepbyone.separator, stream,&tr,trace_begin))) {
@@ -4378,7 +4335,6 @@ static int bind_arrayparser(NailArena *arena,arrayparser*out,NailStream *stream,
     case SEPBY:
         tr = trace_begin + *tr;
         out->N_type= SEPBY;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         if(parser_fail(bind_constparser(arena,&out->sepby.separator, stream,&tr,trace_begin))) {
@@ -4418,7 +4374,6 @@ arrayparser*parse_arrayparser(NailArena *arena, const uint8_t *data, size_t size
 }
 static int bind_parameter(NailArena *arena,parameter*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
     case PDEPENDENCY:
         tr = trace_begin + *tr;
@@ -4460,10 +4415,8 @@ parameter*parse_parameter(NailArena *arena, const uint8_t *data, size_t size) {
 }
 static int bind_parameterlist(NailArena *arena,parameterlist*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
-    fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
     {   /*ARRAY*/
         pos save = 0;
         out->count=*(tr++);
@@ -4474,7 +4427,6 @@ static int bind_parameterlist(NailArena *arena,parameterlist*out,NailStream *str
         }
         for(pos i20=0; i20<out->count; i20++) {
             if(i20>0) {
-                fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
                 stream_reposition(stream,*tr);
                 tr++;
             }
@@ -4484,7 +4436,6 @@ static int bind_parameterlist(NailArena *arena,parameterlist*out,NailStream *str
         }
         tr = trace_begin + save;
     }
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
     *trace = tr;
@@ -4511,7 +4462,6 @@ parameterlist*parse_parameterlist(NailArena *arena, const uint8_t *data, size_t 
 }
 static int bind_parameterdefinition(NailArena *arena,parameterdefinition*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
     case DSTREAM:
         tr = trace_begin + *tr;
@@ -4560,10 +4510,8 @@ parameterdefinition*parse_parameterdefinition(NailArena *arena, const uint8_t *d
 }
 static int bind_parameterdefinitionlist(NailArena *arena,parameterdefinitionlist*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
-    fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
     {   /*ARRAY*/
         pos save = 0;
         out->count=*(tr++);
@@ -4574,7 +4522,6 @@ static int bind_parameterdefinitionlist(NailArena *arena,parameterdefinitionlist
         }
         for(pos i21=0; i21<out->count; i21++) {
             if(i21>0) {
-                fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
                 stream_reposition(stream,*tr);
                 tr++;
             }
@@ -4584,7 +4531,6 @@ static int bind_parameterdefinitionlist(NailArena *arena,parameterdefinitionlist
         }
         tr = trace_begin + save;
     }
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
     *trace = tr;
@@ -4649,7 +4595,6 @@ parserinvocation*parse_parserinvocation(NailArena *arena, const uint8_t *data, s
 }
 static int bind_parserinner(NailArena *arena,parserinner*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
     case INTEGER:
         tr = trace_begin + *tr;
@@ -4689,13 +4634,11 @@ static int bind_parserinner(NailArena *arena,parserinner*out,NailStream *stream,
     case FIXEDARRAY:
         tr = trace_begin + *tr;
         out->N_type= FIXEDARRAY;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         if(parser_fail(bind_intconstant(arena,&out->fixedarray.length, stream,&tr,trace_begin))) {
             return -1;
         }
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         out->fixedarray.inner= (typeof(out->fixedarray.inner)) n_malloc(arena,sizeof(*out->fixedarray.inner));
@@ -4709,7 +4652,6 @@ static int bind_parserinner(NailArena *arena,parserinner*out,NailStream *stream,
     case LENGTH:
         tr = trace_begin + *tr;
         out->N_type= LENGTH;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         if(parser_fail(bind_dependencyidentifier(arena,&out->length.length, stream,&tr,trace_begin))) {
@@ -4726,7 +4668,6 @@ static int bind_parserinner(NailArena *arena,parserinner*out,NailStream *stream,
     case APPLY:
         tr = trace_begin + *tr;
         out->N_type= APPLY;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         if(parser_fail(bind_streamidentifier(arena,&out->apply.stream, stream,&tr,trace_begin))) {
@@ -4743,7 +4684,6 @@ static int bind_parserinner(NailArena *arena,parserinner*out,NailStream *stream,
     case OPTIONAL:
         tr = trace_begin + *tr;
         out->N_type= OPTIONAL;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         out->optional= (typeof(out->optional)) n_malloc(arena,sizeof(*out->optional));
@@ -4757,7 +4697,6 @@ static int bind_parserinner(NailArena *arena,parserinner*out,NailStream *stream,
     case NUNION:
         tr = trace_begin + *tr;
         out->N_type= NUNION;
-        fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
         {   /*ARRAY*/
             pos save = 0;
             out->nunion.count=*(tr++);
@@ -4767,7 +4706,6 @@ static int bind_parserinner(NailArena *arena,parserinner*out,NailStream *stream,
                 return 0;
             }
             for(pos i22=0; i22<out->nunion.count; i22++) {
-                fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
                 stream_reposition(stream,*tr);
                 tr++;
                 out->nunion.elem[i22]= (typeof(out->nunion.elem[i22])) n_malloc(arena,sizeof(*out->nunion.elem[i22]));
@@ -4784,7 +4722,6 @@ static int bind_parserinner(NailArena *arena,parserinner*out,NailStream *stream,
     case REF:
         tr = trace_begin + *tr;
         out->N_type= REF;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         if(parser_fail(bind_parserinvocation(arena,&out->ref, stream,&tr,trace_begin))) {
@@ -4824,18 +4761,15 @@ parserinner*parse_parserinner(NailArena *arena, const uint8_t *data, size_t size
 }
 static int bind_parser(NailArena *arena,parser*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
     case PAREN:
         tr = trace_begin + *tr;
         out->N_type= PAREN;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         if(parser_fail(bind_parserinner(arena,&out->paren, stream,&tr,trace_begin))) {
             return -1;
         }
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         break;
@@ -4872,7 +4806,6 @@ parser*parse_parser(NailArena *arena, const uint8_t *data, size_t size) {
 }
 static int bind_definition(NailArena *arena,definition*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
     switch(*(tr++)) {
     case PARSER:
         tr = trace_begin + *tr;
@@ -4892,7 +4825,6 @@ static int bind_definition(NailArena *arena,definition*out,NailStream *stream, p
             tr = trace_begin + *tr;
             out->parser.parameters= NULL;
         }
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         if(parser_fail(bind_parser(arena,&out->parser.definition, stream,&tr,trace_begin))) {
@@ -4905,13 +4837,10 @@ static int bind_definition(NailArena *arena,definition*out,NailStream *stream, p
         if(parser_fail(bind_constidentifier(arena,&out->constantdef.name, stream,&tr,trace_begin))) {
             return -1;
         }
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
-        fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
         stream_reposition(stream,*tr);
         tr++;
         if(parser_fail(bind_constparser(arena,&out->constantdef.definition, stream,&tr,trace_begin))) {
@@ -4921,25 +4850,20 @@ static int bind_definition(NailArena *arena,definition*out,NailStream *stream, p
     case ENDIAN:
         tr = trace_begin + *tr;
         out->N_type= ENDIAN;
-        fprintf(stderr,"%d = choice %d %d\n",tr-trace_begin, tr[0], tr[1]);
         switch(*(tr++)) {
         case LITTLE:
             tr = trace_begin + *tr;
             out->endian.N_type= LITTLE;
-            fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
             stream_reposition(stream,*tr);
             tr++;
-            fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
             stream_reposition(stream,*tr);
             tr++;
             break;
         case BIG:
             tr = trace_begin + *tr;
             out->endian.N_type= BIG;
-            fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
             stream_reposition(stream,*tr);
             tr++;
-            fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
             stream_reposition(stream,*tr);
             tr++;
             break;
@@ -4973,8 +4897,7 @@ definition*parse_definition(NailArena *arena, const uint8_t *data, size_t size) 
 }
 static int bind_grammar(NailArena *arena,grammar*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
-    fprintf(stderr,"%d = many %d %d\n",tr-trace_begin, tr[0], tr[1]);
-    {   /*ARRAY*/
+    { /*ARRAY*/
         pos save = 0;
         out->count=*(tr++);
         save = *(tr++);
@@ -4989,7 +4912,6 @@ static int bind_grammar(NailArena *arena,grammar*out,NailStream *stream, pos **t
         }
         tr = trace_begin + save;
     }
-    fprintf(stderr,"%d = const %d\n",tr-trace_begin, *tr);
     stream_reposition(stream,*tr);
     tr++;
     *trace = tr;
