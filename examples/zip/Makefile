@@ -1,5 +1,6 @@
 
 CFLAGS+=  -ggdb  -std=gnu99
+LDFLAGS+= -lz
 all: extract
 
 extract:  extract.o zip.nail.o zip.o

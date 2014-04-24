@@ -37,9 +37,9 @@ fileentry(@crc32 uint32,@compression_method uint16,@compressed_size uint32, @unc
                  extra n_of @extra_len uint8 
 
                  $compressed transform size_u32 ($current @compressed_size)
-                 $uncompressed transform zip_compression ($compressed @compression_method )
+                 $uncompressed transform zip_compression ($compressed @compression_method @uncompressed_size)
                  transform crc_32 ($uncompressed @crc32)
-                 contents apply $uncompressed_stream many uint8
+                 contents apply $uncompressed many uint8
                  
                  transform uint16_depend (@compression_method_local @compression_method)
                  transform uint32_depend (@crc32_local @crc32)

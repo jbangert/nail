@@ -1,4 +1,5 @@
 #include "zip.nail.h"
+#include <zlib.h>
 #define depend_parse(type) \
         int type ## _depend_parse(NailArena *foo,type ##_t *left, type ##_t *right){ \
                 if(*left != *right) return -1;                      \
@@ -52,15 +53,45 @@ int offset_u32_generate(NailArena *tmp, NailStream *fragment, NailStream *curren
         return 0;
 }
 
-int zip_compression_parse(NailArena *tmp, NailStream *uncompressed, NailStream *compressed, uint16_t *compression_method, uint32_t *crc32){
-        *uncompressed = *compressed; //TODO: do decompression here
-        //TODO: CHeck CRC32
+int zip_compression_parse(NailArena *tmp, NailStream *uncompressed, NailStream *compressed, uint16_t *compression_method, uint32_t *uncompressed_size){
+        switch(*compression_method){
+        case 0:
+                if(*uncompressed_size != compressed->size)
+                        return -1;
+                *uncompressed = *compressed; //TODO: do decompression here
+                break;
+        case 8:{
+                z_stream strm;
+                strm.zalloc = strm.zfree = strm.opaque = Z_NULL;
+                strm.avail_in = compressed->size;
+                strm.next_in = compressed->data;
+                if(inflateInit2(&strm,-MAX_WBITS) != Z_OK)
+                        return -1;
+                uncompressed->data = n_malloc(tmp,*uncompressed_size);
+                uncompressed->pos = 0;
+                uncompressed->bit_offset = 0;
+                uncompressed->size = *uncompressed_size;
+                strm.next_out =  uncompressed->data;
+                if(!strm.next_out) 
+                        return -1;
+                strm.avail_out = *uncompressed_size;
+                int ret = inflate(&strm,Z_FINISH);
+                if(ret != Z_STREAM_END || strm.avail_in != 0){
+                        (void)inflateEnd(&strm);
+                        return -1;
+                }
+                inflateEnd(&strm);
+        }
+                break;
+        default:
+                return -1;
+        }
         return 0;
 }
-int zip_compression_generate(NailArena *tmp, NailStream *uncompressed, NailStream *compressed, uint16_t *compression_method, uint32_t *crc32){
+int zip_compression_generate(NailArena *tmp, NailStream *uncompressed, NailStream *compressed, uint16_t *compression_method, uint32_t *uncompressed_size){
         *compressed = *uncompressed;
         *compression_method = 0 ;
-        *crc32 = 0;        
+        *uncompressed_size = compressed->pos;
         return 0;
 }
 static int is_valid_directory(uint8_t *begin, uint8_t *end){
@@ -99,5 +130,16 @@ int zip_end_of_directory_generate(NailArena *tmp,NailStream *filestream, NailStr
         if(NailOutStream_grow(entire_file,8*directory->pos)) return -1;
         memcpy(entire_file->data + entire_file->pos, directory->data, directory->pos);
         entire_file->pos += directory->pos;
+        return 0;
+}
+
+int crc_32_parse(NailArena *tmp_arena,NailStream *str_uncompressed,uint32_t* crc32_val){
+        if(crc32(0L,str_uncompressed->data,str_uncompressed->size) != *crc32_val)
+                return -1;
+        else
+                return 0;
+}
+int crc_32_generate(NailArena *tmp_arena,NailStream *str_uncompressed,uint32_t* crc32_val){
+        *crc32_val = crc32(0L,str_uncompressed->data,str_uncompressed->pos);
         return 0;
 }
