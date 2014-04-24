@@ -470,6 +470,7 @@ class CPrimitiveParser{
   std::stringstream out;
   std::ostream &final,&hdr;
   std::stringstream header;
+  std::stringstream forward_declarations;
   int nr_choice,nr_option;
   int nr_many;
   int nr_const;
@@ -856,7 +857,7 @@ public:
       out << "return 0;\n"
           << "fail:\n return -1;\n";
       out << "}\n";
-      header << "static pos peg_" << mk_str(def.parser.name) <<"(NailArena *tmp_arena,n_trace *trace,NailStream *str_current"<<params<<");\n";
+      forward_declarations << "static pos peg_" << mk_str(def.parser.name) <<"(NailArena *tmp_arena,n_trace *trace,NailStream *str_current"<<params<<");\n";
 
     }
     else if(def.N_type == CONSTANTDEF){
@@ -866,7 +867,7 @@ public:
       out << "return 0;\n"
           << "fail: return -1;\n"
           << "}";
-        header << "static pos peg_" << mk_str(def.constantdef.name) <<"(NailStream *str_current);\n";
+      forward_declarations << "static pos peg_" << mk_str(def.constantdef.name) <<"(NailStream *str_current);\n";
     }
   }
   void emit_parser(const grammar &gram){
@@ -874,7 +875,7 @@ public:
       peg(*def);
     }
     out << std::endl;
-    final << header.str() << out.str() << std::endl;
+    final << header.str() << forward_declarations.str() << out.str() << std::endl;
     hdr << header.str() << std::endl;
 
   }
