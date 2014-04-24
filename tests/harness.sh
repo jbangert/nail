@@ -17,6 +17,7 @@ COMPILER=`gcc  -ggdb -DXYCONST=0 -lhammer -std=gnu99 -o $TEST-test $TEST.c  2>&1
     
 for case in $CFILE.in.*
  do 
+    echo "$case"
    OUT=`./$TEST-test < $case 2>&1` || ( echo "Failed  testcase $case \n" $OUT; exit -1) || exit -1 
  done
 
