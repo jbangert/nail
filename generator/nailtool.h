@@ -5,6 +5,7 @@
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
+#include <stdexcept>
 #include <map>
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
@@ -37,7 +38,10 @@ std::string intconstant_value(const intconstant &val);
 bool parameter_type_check(parameterlist *param, parameterdefinitionlist *def);
 
 #define mk_str(x) std::string((const char *)(x).elem,(x).count)
-
+class NailException : std::logic_error { 
+public:
+NailException(const std::string &message) : std::logic_error(message){}              
+};
 struct Dependency{
   std::string name;
   std::string typedef_type;
@@ -51,7 +55,7 @@ public:
   Scope(Scope *p_parent = NULL) : parent(p_parent) {}
   void add_stream_parameter(std::string value){
     if(!streams.emplace(value, std::string("str_")+value).second){
-      throw new std::string("Duplicate stream "+value);
+      throw NailException("Duplicate stream "+value);
     }
   }
   void add_dependency_parameter(std::string value, std::string type){
@@ -59,12 +63,12 @@ public:
     dep.name = std::string("dep_")+value;
     dep.typedef_type = type;
     if(!dependencies.emplace(value,dep).second){
-      throw new std::string("Duplicate dependency "+value);
+      throw NailException("Duplicate dependency "+value);
     }
   }
   void add_stream_definition(std::string value){
     if(!streams.emplace(value, std::string("&str_")+value).second){
-      throw new std::string("Duplicate dependency "+value);
+      throw NailException("Duplicate dependency "+value);
     }
   }
   void add_dependency_definition(std::string value,std::string type){
@@ -72,14 +76,14 @@ public:
     dep.name = std::string("&dep_")+value;
     dep.typedef_type = type;
     if(!dependencies.emplace(value,dep).second){
-      throw new std::string("Duplicate dependency "+value);
+      throw NailException("Duplicate dependency "+value);
     }
   }
   std::string dependency_type(std::string name) const{
     auto i = dependencies.find(name);
     if(i==dependencies.end()){
       if(!parent)
-        throw std::string("Undefined reference to ") +  name;
+              throw NailException(std::string("Undefined reference to ") +  name);
       else
         return parent->dependency_type(name);
     }
@@ -89,7 +93,7 @@ public:
     auto i = dependencies.find(name);
     if(i==dependencies.end()){
       if(!parent)
-        throw std::string("Undefined reference to ") +  name;
+              throw NailException(std::string("Undefined reference to ") +  name);
       else
         return parent->dependency_ptr(name);
     }
@@ -99,7 +103,7 @@ public:
     auto i = streams.find(name);
     if(i==streams.end()){
       if(!parent)
-        throw std::string("Undefined reference to ") +  name;
+              throw NailException(std::string("Undefined reference to ") +  name);
       else
         return parent->stream_ptr(name);
     }
