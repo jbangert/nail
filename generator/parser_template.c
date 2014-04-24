@@ -246,7 +246,9 @@ static pos n_tr_memo_many(n_trace *trace){
 static void n_tr_write_many(n_trace *trace, pos where, pos count){
         trace->trace[where] = count;
         trace->trace[where+1] = trace->iter;
+#ifdef NAIL_DEBUG
         fprintf(stderr,"%d = many %d %d\n", where, count,trace->iter);
+#endif
 }
 
 static pos n_tr_begin_choice(n_trace *trace){
@@ -264,7 +266,9 @@ static int n_tr_stream(n_trace *trace, const NailStream *stream){
         if(parser_fail(n_trace_grow(trace,sizeof(*stream)/sizeof(pos))))
                 return -1;
         *(NailStream *)(trace->trace + trace->iter) = *stream;
+#ifdef NAIL_DEBUG
         fprintf(stderr,"%d = stream\n",trace->iter,stream);
+#endif
         trace->iter += sizeof(*stream)/sizeof(pos);  
         return 0;
 }
@@ -274,13 +278,17 @@ static pos n_tr_memo_choice(n_trace *trace){
 static void n_tr_pick_choice(n_trace *trace, pos where, pos which_choice, pos  choice_begin){
         trace->trace[where] = which_choice;
         trace->trace[where + 1] = choice_begin;
+#ifdef NAIL_DEBUG
         fprintf(stderr,"%d = pick %d %d\n",where, which_choice,choice_begin);
+#endif
 }
 static int n_tr_const(n_trace *trace,NailStream *stream){
         if(parser_fail(n_trace_grow(trace,1)))
                 return -1;
         NailStreamPos newoff = stream_getpos(stream);
+#ifdef NAIL_DEBUG
         fprintf(stderr,"%d = const %d \n",trace->iter, newoff);        
+#endif
         trace->trace[trace->iter++] = newoff;
         return 0;
 }
