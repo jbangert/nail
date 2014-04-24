@@ -1,34 +1,54 @@
 \section{Evaluation}
 \label{s:eval}
-
+\input{fig-ethernet}
 \input{fig-dnsfull}
-
-In our preliminary evaluation of Nail, we try to answer two questions:
+\input{fig-zip}
+In our preliminary evaluation of Nail, we try to answer four questions:
 
 \begin{itemize}
 \item Can Nail grammars support real-world data formats?
 \item How much programmer effort is required to build an
       application that uses Nail for data input and output?
+\item Do applications handling input and output with Nail suffer from less security vulnerabilities?
+\item How fast are systems using Nail parsers as opposed to hand-written input handling? 
 \end{itemize}
 
-\paragraph{Data formats.}
+\subsection{Data formats.}
+\label{s:eval-formats}
+To answer the first question, we implemented grammars for four protocols with particularly
+challenging features and show that Nail is a good fit for these data formats. In
+\S\ref{s:eval-effort} we will demonstrate that Nail is easier to use than hand-written parsers and
+more convenient than state-of-the-art parser generators for formats that they can handle.
 
-To answer the first question, we implemented two Nail grammars:
-one for UTF-16 encoded strings, exposing an array of code points
-(shown in Figure~\ref{fig:utf16}), and another for a subset of DNS
-packets sent to and from an authoritative name server, without label
-compression, as per RFC1035 (shown in Figure~\ref{fig:dns-full}).
-Furthermore, our GitHub repository contains other Nail
-grammars, such as a TAP network stack that processes Ethernet,
-ARP, ICMP, IP, and UDP packets, and the grammar for Nail
-itself.\footnote{\url{https://github.com/jbangert/nail/tree/master/examples}}
-The results suggest that Nail is a good fit for these data formats.
+In particular, we show extracts from grammars for the following protocols: 
+\begin{itemize}
+\item A subset of Ethernet network packets, containing ARP, ICMP and UDP/IP packets. See Figure~\ref{fig:ethernet-extract}.
+\item DNS packets as described in RFC 1035, featuring label compression. See Figure~\ref{fig:dns-full}.
+\item ZIP files, with compression, check-sums and a complicated procedure to identify the header.
+  See Figure~\ref{fig:zip-extract}.
+\end{itemize}
 
 
 
-\paragraph{Programmer effort.}
 
-To answer the second question, we implemented a functioning toy DNS
+one for  DNS queries and respones, as per RFC1035 (shown in, one for the ZIP
+archive format and a grammar for Ethernet frames containing ARP, ICMP and UDP packets. We also
+parse Nail grammars with Nail, demonstrating that our system can also handle text-based protocols
+and languages.  
+
+The results suggest that Nail is a good fit for these data formats. 
+
+
+
+\subsection{Programmer effort.}
+\label{s:eval-effort}
+To answer the second question, we implemented small example applications based on the above
+grammars and compared code size with comparable applications written without parser generators. We
+also compare our DNS implementation to the example DNS application provided with the Hammer parser generator.
+
+
+
+ a functioning toy DNS
 server.  In particular, we cloned the test DNS server from the Hammer
 distribution to Nail.  Hammer ships with a toy DNS server written in 683
 lines of code, excluding the Hammer framework itself, that responds to
@@ -57,7 +77,8 @@ including various support tools, is about 10,000 lines of C as measured by
 version with Nail that is an order of magnitude smaller and intend to
 do so.
 
-
+\paragraph{Security} 
+ 
 \paragraph{Other issues.}
 
 As Nail is work in progress, many parts of the implementation, syntax and

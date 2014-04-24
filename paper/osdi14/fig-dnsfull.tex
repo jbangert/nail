@@ -3,13 +3,15 @@
 labels = <many { @length uint8 | 1..255
                  label n_of @length uint8 }
           uint8 = 0>
-
+compressed ={
+  $decompressed transform dnscompress($current);
+  labels apply $decompressed labels
+}
 question = {
-  labels labels
+  labels compressed_lbls
   qtype uint16 | 1..16
   qclass uint16 | [1,255]
 }
-
 answer = {
   labels labels
   rtype uint16 | 1..16
@@ -18,7 +20,6 @@ answer = {
   @rlength uint16
   rdata n_of @rlength uint8
 }
-
 dnspacket = {
   id uint16
   qr uint1
