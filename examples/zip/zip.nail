@@ -34,11 +34,12 @@ fileentry(@crc32 uint32,@compression_method uint16,@compressed_size uint32, @unc
                  @filename_len uint16
                  @extra_len uint16
                  filename n_of @filename_len uint8
-                 $compressed_stream transform size_u32 ($current @compressed_size)
-                 $uncompressed_stream transform zip_compression ($compressed_stream  @compression_method @crc32)
-                 contents apply $uncompressed_stream many uint8
-
                  extra n_of @extra_len uint8 
+
+                 $compressed transform size_u32 ($current @compressed_size)
+                 $uncompressed transform zip_compression ($compressed @compression_method )
+                 transform crc_32 ($uncompressed @crc32)
+                 contents apply $uncompressed_stream many uint8
                  
                  transform uint16_depend (@compression_method_local @compression_method)
                  transform uint32_depend (@crc32_local @crc32)
@@ -66,7 +67,6 @@ dir_fileheader($filestream) = {  //TODO: we need to make the filename depend
                filename n_of @file_name_len uint8
                extra_field n_of @extra_len uint8
                comment n_of @comment_len uint8
-
                $contentstream transform offset_u32 ($filestream @off)
                contents apply $contentstream fileentry(@crc32,@compression_method,@compressed_size, @uncompressed_size)
 
