@@ -38,7 +38,7 @@ std::string intconstant_value(const intconstant &val);
 bool parameter_type_check(parameterlist *param, parameterdefinitionlist *def);
 
 #define mk_str(x) std::string((const char *)(x).elem,(x).count)
-class NailException : std::logic_error { 
+struct NailException : public std::logic_error { 
 public:
 NailException(const std::string &message) : std::logic_error(message){}              
 };

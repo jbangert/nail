@@ -180,7 +180,7 @@ public:
       }
       outs << "};\n";
       outs << out.str()<< std::endl;
-    } catch(std::exception &e){
+    } catch(const std::exception &e){
       std::cerr << "Exception while generating parser" << e.what()<<std::endl;
       exit(-1);
     }

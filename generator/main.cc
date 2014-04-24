@@ -36,8 +36,11 @@ int main(int argc, char**argv)
     //      print_grammar(result, stderr,0);    exit(1);
      std::string headerfilename = std::string(argv[1]) + ".h";
      std::string implfilename = std::string(argv[1]) + ".c";
-     
-     if(result) {
+     if(!result){
+       error("Syntax error in grammar\n");
+       return 1;
+     }
+     try {
        std::ofstream header(headerfilename);
        std::ofstream impl(implfilename);
        if(!header.is_open())
@@ -51,8 +54,8 @@ int main(int argc, char**argv)
        impl << std::endl;
        header << std::endl;       
        return 0;
-     } else {
-       error("Syntax error in grammar\n");
+     } catch ( std::exception const &e){
+       error("An error occured:%s\n",e.what());
        return 1;
      }
 }
