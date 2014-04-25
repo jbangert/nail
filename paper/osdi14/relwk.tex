@@ -31,7 +31,8 @@ are distributed as .zip files. Signatures are verified with a Java
 program, but the program is extracted with a C program.  The Java
 program interprets all fields as signed, whereas the C program
 treats them as unsigned, allowing one to replace files in a signed
-archive, thereby undermining Android's security model.}~\cite{saurik-masterkey} code signing and even the X.509 protocol
+archive, thereby undermining Android's security model.}~\cite{saurik-masterkey}\XXX{Duplicate, we
+already mention this in the eval} code signing and even the X.509 protocol
 underlying SSL~\cite{DBLP:conf/fc/KaminskyPS10}.  These mistakes are
 highly application-specific, and are difficult to mitigate using existing
 techniques, and these mistakes can occur even in high-level languages

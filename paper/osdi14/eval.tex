@@ -41,47 +41,104 @@ The results suggest that Nail is a good fit for these data formats.
 
 
 \subsection{Programmer effort.}
+
+
+%code size unzip 6.0
+%2821 lines
 \label{s:eval-effort}
 To answer the second question, we implemented small example applications based on the above
-grammars and compared code size with comparable applications written without parser generators. We
-also compare our DNS implementation to the example DNS application provided with the Hammer parser generator.
+grammars and compared code size with comparable applications that process data manually. We will
+also compare a toy DNS server implemented in Nail with a similar toy DNS server provided as an
+example for the Hammer parser generator. All code size measurements for C were performed by
+SlocCount\cite{sloccount}. \XXX[code size is primitive, but we show orders of magnitude in the same language].
 
 
+%%DNS: 
+\paragraph{DNS.}
 
- a functioning toy DNS
-server.  In particular, we cloned the test DNS server from the Hammer
-distribution to Nail.  Hammer ships with a toy DNS server written in 683
-lines of code, excluding the Hammer framework itself, that responds to
+The first application we built with Nail, is a toy DNS server inspired by the example shipped with
+Hammers DNS server consists of 683 lines of C, excluding the Hammer framework itself, that responds to
 any valid DNS query with a CNAME record to the domain ``spargelze.it''.
 Most of this code is taken up with custom validators, semantic actions,
 and data structure definitions, with only 52 lines of code defining the
 grammar with Hammer's combinators.
 
-Our DNS server consists of 148 lines of C code and 48 lines of Nail
-grammar, and supports a custom zone file format with A, NS, MX, and
-CNAME records. The same grammar is used, together with 98 lines of C,
+Our DNS grammar, which is partly reproduced in Figure~\ref{fig:dns-full} consists of a 48 line  Nail
+grammar and 64 lines of C implementing DNS label compression. \XXX[Make this smaller]
+The grammar describes both the structure of DNS packets (36 lines) and of a simple zone-file format
+(16 lines) supporting A, NS, MX and CNAME records.
+  
+Our simple DNS server, which parses a zone file, listens to incoming DNS requests, parses them and
+generates appropriate responses with this Nail grammar, is implemented in 149 lines of C. 
+
+ The same grammar is used, together with 98 lines of C,
 to implement a functional toy clone of the \texttt{host} command-line
-tool. However, because our grammar does not yet support DNS label
-compression, the latter tool will occasionally reject valid real-world
-DNS responses. Both clients have functional anti-spoofing measures.
+tool. 
 
 It is hard to compare the programming effort required to implement
 our toy DNS server to that of a real world DNS server, since
-we have less functionality, in particular for DNS compression
-and additional hint records that real-world DNS servers send.
+we have less , in particular the additional hint records that real-world DNS servers send and a
+complete lack of configuration options.
 However, the closest in functionality and intent is Dan Bernstein's
 djbdns,\footnote{\url{http://cr.yp.to/djbdns.html}} which aims to be
 a minimalist, highly secure DNS server. The latest release of djbdns,
 including various support tools, is about 10,000 lines of C as measured by
-\texttt{sloccount}.  We expect that it is possible to build a feature-par
-version with Nail that is an order of magnitude smaller and intend to
-do so.
+\texttt{sloccount}. \XXX[Show that we only count the DNS server parts, not the rest. List some
+features we don't have]
 
-\paragraph{Security} 
- 
-\paragraph{Other issues.}
+\paragraph{ZIP.}
 
-As Nail is work in progress, many parts of the implementation, syntax and
-design are not complete yet and we do not yet have meaningful performance
-or security metrics.
+Another particularly tricky file format is the ZIP compressed archive format\cite{pkzip}. The ZIP
+format has been associated with many vulnerabilities, and the PROTOS Genome project found numerous
+security vulnerabilities in most implementations of ZIP and other archive formats. Furthermore,
+Android security has been completely by-passed multiple times through parsing differentials in
+handling ZIP files\cite{saurik-masterkey}. \XXX[mention talk by Julia Wolf about zip]. 
+
+ZIP files are normally parsed end-to-beginning. At the end of each ZIP file is an \emph{end-of-directory
+header}. This header contains a variable length comment, so it has to be located by scanning
+backwards from the end of the file until a magic number and a valid length field is found. Many ZIP
+implementations disagree on how to find this header in confusing situations, such as when the
+comment contains the valid magic bytes\cite{wolf-berlinsides-zip}.
+This end-of-directory header contains the offset and size of the \emph{ZIP directory}, which is an
+array of one \emph{directory entry header} per file in the archive.
+Each entry stores file meta data, such as file name, compressed and uncompressed size and a checksum,
+in addition to the offset of a \emph{local file header}. The local file header duplicates most
+information from the directory entry header and the compressed file contents follow it immediately.
+
+Duplicating information made sense when ZIP files were
+stored on floppy disks with slow seek times and high fault rates and memory constraints made it
+impossible to keep the ZIP directory in memory or the archive was split across multiple disks.
+However, care must be taken that the meta-data is consistent. For example, vulnerabilities could occur
+if the length in the central directory is used to allocate memory and the length in the local
+directory is used to extract without checking that they are equal first.
+
+\XXX[condense]
+
+We wrote a grammar for ZIP, which consists of 92 lines of Nail and 78 lines of C implementing two
+stream transforms, one for the DEFLATE compression algorithm with the help of the zlib library and
+one for finding the end-of-directory header. This grammar avoids the two pitfalls mentioned above:
+Nail forces the programmer to specify an explicit procedure for finding the end-of-directory record
+and we use dependent fields to enforce that the duplicated information is consistent.
+
+
+Our grammar is also very efficient to use. Using our grammar, we build a ZIP file extractor in 50
+lines of C. Because more recent versions of ZIP have added more features, such as large file support
+and encryption, the closest existing tool in functionality is the historic version 5.4 of the Info-Zip unzip
+utility\cite{infozip} that is shipped with most Linux distributions. The entire unzip distribution
+is about 46.000 lines of code, which is mostly optimised implementation of various compression
+algorithms and other configuration and portability code.
+
+However, unzip isolates the equivalent of our Nail tool in the file extract.c, which parses the ZIP
+metadata and calls various decompression routines in other files. This file measures over 1,600
+lines of C. 
+
+\paragraph{Network stack.}
+Write up this stack.
+\subsection{Security.} 
+Fuzz DNS. Fuzz ZIP. Design argument that security is hard to show. 
+
+\subsection{Performance.}
+
+Compare DNS requests per second of BIND, DJBDNS and NailDNS on a small zonefile.
+Compare extraction performance for ZIP. 
 

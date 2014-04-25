@@ -32,7 +32,15 @@ int main(int argc,char **argv){
                         fprintf(stderr,"Err: Invalid ZIP file %s\n",argv[f]); 
                 } else {
                         FOREACH(file, zip->contents.files){
-                                printf("%.*s = %d\n", file->filename.count, file->filename.elem, file->contents.contents.count);
+                                char name[255];
+                                char dirname[255]="out-";
+                                strncpy(dirname+4,argv[f],sizeof(dirname)-4);
+                                mkdir(dirname,0777);
+                                snprintf(name,sizeof(name), "%s/%.*s",dirname,file->filename.count, file->filename.elem);
+                                printf("%s = %d\n", name, file->contents.contents.count);
+                                FILE *f = fopen(name,"w");
+                                fwrite(file->contents.contents.elem,file->contents.contents.count,1,f);
+                                fclose(f);
                         }
                 }
                 NailArena_release(&arena);
