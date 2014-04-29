@@ -31,6 +31,33 @@ int domain_cmp(domain *a, labels *b){
         }
         return 0;
 }
+int hashsize(zone *zon){
+        return 3*zon->count/2;
+}
+unsigned long domain_hash(domain *a){ // djb2
+        unsigned long hash = 5381;
+        FOREACH(label, *a){
+                FOREACH(ch,*label){
+                        hash = ((hash<<5) + hash) + *ch; 
+                }
+        }
+        return hash;
+}
+struct hashentry{
+        unsigned long hash;
+        definition *def;
+};
+struct hashentry *zone_hashtable(zone *zon){
+        struct hashentry * table= calloc(sizeof(struct hashentry),hashsize(zon)); //COLLISIONS
+        FOREACH(domain,*zon){
+                unsigned long hash = domain_hash(domain);
+                int entry = hash%hashsize(zon);
+                while(table[entry].def!=NULL) entry = (entry + 1) % hashsize(zon);
+                table[entry].hash = hash;
+                table[entry].def= domain;
+        }
+        return table;
+}
 //responses are a bit hackish - should really put those into the grammar too
 void domain_response(NailArena *tmp_arena,answer *rr, domain *dom){
         labels *l =(labels *)dom;
@@ -52,7 +79,7 @@ int natoi(char *s, int n)
     }
     return x;
 }
-int dns_respond(NailStream *stream,NailArena * arena,struct dnspacket *query, zone *zone)
+int dns_respond(NailStream *stream,NailArena * arena,struct dnspacket *query, zone *zone, struct hashentry *hashtable)
 {
         dnspacket response;// = n_malloc(arena,sizeof(*response));
         char *retval;
@@ -69,8 +96,12 @@ int dns_respond(NailStream *stream,NailArena * arena,struct dnspacket *query, zo
         narray_alloc(response.responses,arena,query->questions.count);
         for(int i=0;i<query->questions.count;i++){
                 question *q =  &response.questions.elem[i];
-                definition *j;// We really should do a hashtable. Oh well.
-                for(j=zone->elem + 0;j<zone->elem + zone->count;j++){
+                unsigned long hash = domain_hash((domain *) &q->labels.labels);
+                int entry = hash%hashsize(zone);
+                for(;hashtable[entry].def != NULL;entry = (entry+1)%hashsize(zone) ){
+                        definition *j = hashtable[entry].def;
+                        if(hashtable[entry].hash != hash)
+                                continue;
                         if(domain_cmp(&j->hostname, &q->labels.labels))
                                 continue;
                         if(!((j->rr.N_type == CNAME) ||
@@ -110,15 +141,14 @@ int dns_respond(NailStream *stream,NailArena * arena,struct dnspacket *query, zo
                 }
                 response.responses.count = 0;
                 response.rcode = 3;// NXDOMAIN
+                break;
         success:;
         }
         return gen_dnspacket(arena, stream,&response);
 }
 #define ZONESIZ 4096*1024
 int main(int argc, char** argv) {
-        
   int sock = start_listening();
-
   uint8_t packet[8192]; // static buffer for simplicity
   ssize_t packet_size;
   struct sockaddr_in remote;
@@ -134,12 +164,15 @@ int main(int argc, char** argv) {
   if(!zon) {fprintf(stderr,"Cannot parse zone\n"); exit(-1);}
   free(zonebuf);
   fclose(zonefil);
+  printf("Parsed zone;\n");
+  struct hashentry *hashtable = zone_hashtable(zon);
   while (1) {
           NailArena arena,tmp_arena;
           NailStream out;
           struct dnspacket *message;
           char *response;
           size_t len;
+          
           remote_len = sizeof(remote);
           packet_size = recvfrom(sock, packet, sizeof(packet), 0, (struct sockaddr*)&remote, &remote_len);
           NailArena_init(&arena,4096);
@@ -150,7 +183,7 @@ int main(int argc, char** argv) {
                   printf("Invalid packet; ignoring\n");
                   continue;
           }
-          assert(dns_respond(&out, &tmp_arena,message,zon ) == 0);
+          assert(dns_respond(&out, &tmp_arena,message,zon,hashtable ) == 0);
           response = NailOutStream_buffer(&out,&len);
           sendto(sock, response, len, 0, (struct sockaddr*)&remote, remote_len);
           NailArena_release(&arena);

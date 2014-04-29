@@ -71,3 +71,4 @@ examples/*/*.nail.*
 /examples/dns/resolver
 /examples/network/tun
 /examples/zip/extract
+/examples/dns/server
