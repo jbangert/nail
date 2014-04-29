@@ -1,0 +1,68 @@
+\begin{figure}
+\begin{tikzpicture}
+\begin{axis}[
+  y=0.75cm,
+  ytick={1,2},
+  yticklabels={NailDNS, Bind 9},
+  xmin=0,
+  xlabel ={Throughput},
+  x unit ={\frac{\text{queries}}{s}}
+]
+\addplot+[boxplot]
+  table[row sep=\\,y index=0] {
+ 140950.177719\\
+ 137100.337896\\
+ 140575.256869\\
+ 139215.019250\\
+ 109667.926913\\
+ 125123.464186\\
+ 139507.888042\\
+ };
+\addplot+[boxplot]
+  table[row sep=\\,y index=0] {
+50713.068173\\
+45230.492090\\
+47824.395302\\
+39167.055247\\
+47234.594953\\
+59239.056531\\
+40436.939492\\
+ };
+\end{axis}
+\end{tikzpicture}
+\begin{tikzpicture}
+\begin{axis}[
+  y=0.75cm,
+  ytick={1,2},
+  yticklabels={NailDNS, Bind 9},
+  xmin=0,
+  xlabel ={Round Trip Time},
+  x unit= {s}
+]
+\addplot+[boxplot]
+  table[row sep=\\,y index=0] {
+0.000137\\
+0.000141\\
+0.000138\\
+0.000139\\
+0.000176\\
+0.000155\\
+0.000139\\
+ };
+\addplot+[boxplot]
+  table[row sep=\\,y index=0] {
+0.000388\\
+0.000434\\
+0.000411\\
+0.000501\\
+0.000416\\
+0.000333\\
+0.000486\\
+ };
+\end{axis}
+\end{tikzpicture}
+
+\caption{Performance of NailDNS vs BIND 9.5.5 on 50.000 domains}
+\label{fig:perf-dns}
+
+\end{figure}

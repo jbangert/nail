@@ -1,0 +1,238 @@
+
+DNS Query Performance Testing Tool
+Version: $Id: queryperf.c,v 1.12 2007/09/05 07:36:04 marka Exp $
+
+[Status] Processing input data
+[Status] Sending queries (beginning with 127.0.0.1)
+[Status] Testing complete
+
+Statistics:
+
+  Parse input file:     multiple times
+  Run time limit:       60 seconds
+  Ran through file:     61 times
+
+  Queries sent:         3042799 queries
+  Queries completed:    3042799 queries
+  Queries lost:         0 queries
+  Queries delayed(?):   0 queries
+
+  RTT max:         	0.002546 sec
+  RTT min:              0.000034 sec
+  RTT average:          0.000388 sec
+  RTT std deviation:    0.000078 sec
+  RTT out of range:     0 queries
+
+  Percentage completed: 100.00%
+  Percentage lost:        0.00%
+
+  Started at:           Mon Apr 28 20:36:13 2014
+  Finished at:          Mon Apr 28 20:37:13 2014
+  Ran for:              60.000294 seconds
+
+  Queries per second:   50713.068173 qps
+
+
+DNS Query Performance Testing Tool
+Version: $Id: queryperf.c,v 1.12 2007/09/05 07:36:04 marka Exp $
+
+[Status] Processing input data
+[Status] Sending queries (beginning with 127.0.0.1)
+[Status] Testing complete
+
+Statistics:
+
+  Parse input file:     multiple times
+  Run time limit:       60 seconds
+  Ran through file:     54 times
+
+  Queries sent:         2713853 queries
+  Queries completed:    2713853 queries
+  Queries lost:         0 queries
+  Queries delayed(?):   0 queries
+
+  RTT max:         	0.001601 sec
+  RTT min:              0.000045 sec
+  RTT average:          0.000434 sec
+  RTT std deviation:    0.000102 sec
+  RTT out of range:     0 queries
+
+  Percentage completed: 100.00%
+  Percentage lost:        0.00%
+
+  Started at:           Mon Apr 28 20:37:30 2014
+  Finished at:          Mon Apr 28 20:38:30 2014
+  Ran for:              60.000519 seconds
+
+  Queries per second:   45230.492090 qps
+
+
+DNS Query Performance Testing Tool
+Version: $Id: queryperf.c,v 1.12 2007/09/05 07:36:04 marka Exp $
+
+[Status] Processing input data
+[Status] Sending queries (beginning with 127.0.0.1)
+[Status] Testing complete
+
+Statistics:
+
+  Parse input file:     multiple times
+  Run time limit:       60 seconds
+  Ran through file:     57 times
+
+  Queries sent:         2869485 queries
+  Queries completed:    2869485 queries
+  Queries lost:         0 queries
+  Queries delayed(?):   0 queries
+
+  RTT max:         	0.002011 sec
+  RTT min:              0.000037 sec
+  RTT average:          0.000411 sec
+  RTT std deviation:    0.000102 sec
+  RTT out of range:     0 queries
+
+  Percentage completed: 100.00%
+  Percentage lost:        0.00%
+
+  Started at:           Mon Apr 28 20:38:41 2014
+  Finished at:          Mon Apr 28 20:39:41 2014
+  Ran for:              60.000445 seconds
+
+  Queries per second:   47824.395302 qps
+
+
+DNS Query Performance Testing Tool
+Version: $Id: queryperf.c,v 1.12 2007/09/05 07:36:04 marka Exp $
+
+[Status] Processing input data
+[Status] Sending queries (beginning with 127.0.0.1)
+[Status] Testing complete
+
+Statistics:
+
+  Parse input file:     multiple times
+  Run time limit:       60 seconds
+  Ran through file:     47 times
+
+  Queries sent:         2350040 queries
+  Queries completed:    2350040 queries
+  Queries lost:         0 queries
+  Queries delayed(?):   0 queries
+
+  RTT max:         	0.001576 sec
+  RTT min:              0.000042 sec
+  RTT average:          0.000501 sec
+  RTT std deviation:    0.000072 sec
+  RTT out of range:     0 queries
+
+  Percentage completed: 100.00%
+  Percentage lost:        0.00%
+
+  Started at:           Mon Apr 28 20:39:53 2014
+  Finished at:          Mon Apr 28 20:40:53 2014
+  Ran for:              60.000426 seconds
+
+  Queries per second:   39167.055247 qps
+
+
+DNS Query Performance Testing Tool
+Version: $Id: queryperf.c,v 1.12 2007/09/05 07:36:04 marka Exp $
+
+[Status] Processing input data
+[Status] Sending queries (beginning with 127.0.0.1)
+[Status] Testing complete
+
+Statistics:
+
+  Parse input file:     multiple times
+  Run time limit:       60 seconds
+  Ran through file:     56 times
+
+  Queries sent:         2834097 queries
+  Queries completed:    2834097 queries
+  Queries lost:         0 queries
+  Queries delayed(?):   0 queries
+
+  RTT max:         	0.000995 sec
+  RTT min:              0.000038 sec
+  RTT average:          0.000416 sec
+  RTT std deviation:    0.000101 sec
+  RTT out of range:     0 queries
+
+  Percentage completed: 100.00%
+  Percentage lost:        0.00%
+
+  Started at:           Mon Apr 28 20:42:43 2014
+  Finished at:          Mon Apr 28 20:43:43 2014
+  Ran for:              60.000451 seconds
+
+  Queries per second:   47234.594953 qps
+
+
+DNS Query Performance Testing Tool
+Version: $Id: queryperf.c,v 1.12 2007/09/05 07:36:04 marka Exp $
+
+[Status] Processing input data
+[Status] Sending queries (beginning with 127.0.0.1)
+[Status] Testing complete
+
+Statistics:
+
+  Parse input file:     multiple times
+  Run time limit:       60 seconds
+  Ran through file:     71 times
+
+  Queries sent:         3554363 queries
+  Queries completed:    3554363 queries
+  Queries lost:         0 queries
+  Queries delayed(?):   0 queries
+
+  RTT max:         	0.001933 sec
+  RTT min:              0.000037 sec
+  RTT average:          0.000333 sec
+  RTT std deviation:    0.000031 sec
+  RTT out of range:     0 queries
+
+  Percentage completed: 100.00%
+  Percentage lost:        0.00%
+
+  Started at:           Mon Apr 28 20:43:55 2014
+  Finished at:          Mon Apr 28 20:44:55 2014
+  Ran for:              60.000331 seconds
+
+  Queries per second:   59239.056531 qps
+
+
+DNS Query Performance Testing Tool
+Version: $Id: queryperf.c,v 1.12 2007/09/05 07:36:04 marka Exp $
+
+[Status] Processing input data
+[Status] Sending queries (beginning with 127.0.0.1)
+[Status] Testing complete
+
+Statistics:
+
+  Parse input file:     multiple times
+  Run time limit:       60 seconds
+  Ran through file:     48 times
+
+  Queries sent:         2426234 queries
+  Queries completed:    2426234 queries
+  Queries lost:         0 queries
+  Queries delayed(?):   0 queries
+
+  RTT max:         	0.001161 sec
+  RTT min:              0.000100 sec
+  RTT average:          0.000486 sec
+  RTT std deviation:    0.000080 sec
+  RTT out of range:     0 queries
+
+  Percentage completed: 100.00%
+  Percentage lost:        0.00%
+
+  Started at:           Mon Apr 28 20:45:08 2014
+  Finished at:          Mon Apr 28 20:46:08 2014
+  Ran for:              60.000436 seconds
+
+  Queries per second:   40436.939492 qps
+
