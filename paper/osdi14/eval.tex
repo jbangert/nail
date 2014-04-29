@@ -3,10 +3,11 @@
 \input{fig-ethernet}
 \input{fig-dnsfull}
 \input{fig-zip}
-In our preliminary evaluation of Nail, we try to answer four questions:
+In our evaluation of Nail, we try to answer four questions:
 
 \begin{itemize}
-\item Can Nail grammars support real-world data formats?
+\item Can Nail grammars support real-world data formats and are Nail's concepts critical to handling
+  them?
 \item How much programmer effort is required to build an
       application that uses Nail for data input and output?
 \item Do applications handling input and output with Nail suffer from less security vulnerabilities?
@@ -16,25 +17,82 @@ In our preliminary evaluation of Nail, we try to answer four questions:
 \subsection{Data formats.}
 \label{s:eval-formats}
 To answer the first question, we implemented grammars for four protocols with particularly
-challenging features and show that Nail is a good fit for these data formats. In
-\S\ref{s:eval-effort} we will demonstrate that Nail is easier to use than hand-written parsers and
-more convenient than state-of-the-art parser generators for formats that they can handle.
+challenging features and show that Nail is a good fit for these data formats and some aspects of
+these formats would be very hard to parse with other parser generators.
+
+
 
 In particular, we show extracts from grammars for the following protocols: 
 \begin{itemize}
-\item A subset of Ethernet network packets, containing ARP, ICMP and UDP/IP packets. See Figure~\ref{fig:ethernet-extract}.
-\item DNS packets as described in RFC 1035, featuring label compression. See Figure~\ref{fig:dns-full}.
-\item ZIP files, with compression, check-sums and a complicated procedure to identify the header.
+\item DNS messages.
+\item Ethernet packets containing ARP, ICMP and UDP.
+\item ZIP files.
   See Figure~\ref{fig:zip-extract}.
 \end{itemize}
 
+\paragraph{DNS.}
+Domain Name System(DNS) packets are described in RFC 1035 and our grammar almost directly
+corresponds to the diagrams in Section 4 of that document. Each DNS packet consists of a header, a
+set of question records and a set of answer records. Domain names in both queries and answers are
+encoded as a sequence of Pascal-style strings. Each label is preceded by a length field, and the
+domain name is terminated by a $0$ octet. The client's query packet contains one question
+record to the server for each DNS look-up it wants to perform. In addition to the appropriate
+response records, the server's reply contains a duplicate of the client's question section, which
+allows stateless DNS clients and caches.
+
+To reduce the size overhead of including each domain name twice in a DNS reply, once in the
+question section, at least once in the response record, DNS includes a label compression scheme. If
+a domain name suffix is repeated, instead of repeating that suffix, the DNS packet may write a
+two-bit marker sequence followed by a 14-bit offset into the packet where that suffix was previously
+encoded.
+
+Processing these encodings in existing tools, such as Bison or Hammer, would at best be very
+awkward, because some ad-hoc trick would have to be used to re-position the parsers input stream.
+Keeping track of the position all recognised labels would not be enough, as the offset field may
+refer to any byte within the packet, not just the beginning of labels. For this reason, the DNS
+server used as a tutorial example for Hammer does not support compression.
+
+Nail handles compression with a stream transform. When parsing, this transform decompresses the DNS
+label stream by following the offset pointers. When generating, this transform receives the current
+suffix as an input and can scan the packet so far for previous occurrences. 
 
 
+\paragraph{Ethernet}
+\XXX[TODO]
+\paragraph{ZIP Files.}
 
-one for  DNS queries and respones, as per RFC1035 (shown in, one for the ZIP
-archive format and a grammar for Ethernet frames containing ARP, ICMP and UDP packets. We also
-parse Nail grammars with Nail, demonstrating that our system can also handle text-based protocols
-and languages.  
+Another particularly tricky file format is the ZIP compressed archive format\cite{pkzip}.
+ZIP files are normally parsed end-to-beginning. At the end of each ZIP file is an \emph{end-of-directory
+header}. This header contains a variable length comment, so it has to be located by scanning
+backwards from the end of the file until a magic number and a valid length field is found. Many ZIP
+implementations disagree on how to find this header in confusing situations, such as when the
+comment contains the valid magic bytes\cite{wolf-berlinsides-zip}.
+This end-of-directory header contains the offset and size of the \emph{ZIP directory}, which is an
+array of one \emph{directory entry header} per file in the archive.
+Each entry stores file meta data, such as file name, compressed and uncompressed size and a checksum,
+in addition to the offset of a \emph{local file header}. The local file header duplicates most
+information from the directory entry header and the compressed file contents follow it immediately.
+
+Duplicating information made sense when ZIP files were
+stored on floppy disks with slow seek times and high fault rates and memory constraints made it
+impossible to keep the ZIP directory in memory or the archive was split across multiple disks.
+However, care must be taken that the meta-data is consistent. For example, vulnerabilities could occur
+if the length in the central directory is used to allocate memory and the length in the local
+directory is used to extract without checking that they are equal first. 
+
+
+Furthermore, Nail transparently handles ZIP's data compression and checksums with stream
+transformations. The implementation of one of these transforms are shown in
+Figure~\ref{fig:zip-compress}. For formats such as Office documents or Android applications that are based on ZIP
+containers, our ZIP grammar could be modified by including a more concrete grammar for file
+contents, which currently are just an array of bytes.
+
+With existing parser languages, the grammar can not guarantee correctness of checksums, length
+fields or offsets, which places additional verification burden on the programmer. Furthermore,
+existing parser generators cannot decompress data as they are parsing. This is merely inconvenient
+for writing a grammar for plain ZIP files, but this prevents the grammar from validating the data
+within a ZIP file.
+
 
 The results suggest that Nail is a good fit for these data formats. 
 
@@ -56,29 +114,29 @@ SlocCount\cite{sloccount}. \XXX[code size is primitive, but we show orders of ma
 %%DNS: 
 \paragraph{DNS.}
 
-The first application we built with Nail, is a toy DNS server inspired by the example shipped with
-Hammers DNS server consists of 683 lines of C, excluding the Hammer framework itself, that responds to
-any valid DNS query with a CNAME record to the domain ``spargelze.it''.
-Most of this code is taken up with custom validators, semantic actions,
-and data structure definitions, with only 52 lines of code defining the
-grammar with Hammer's combinators.
-
 Our DNS grammar, which is partly reproduced in Figure~\ref{fig:dns-full} consists of a 48 line  Nail
 grammar and 64 lines of C implementing DNS label compression. \XXX[Make this smaller]
 The grammar describes both the structure of DNS packets (36 lines) and of a simple zone-file format
-(16 lines) supporting A, NS, MX and CNAME records.
-  
-Our simple DNS server, which parses a zone file, listens to incoming DNS requests, parses them and
-generates appropriate responses with this Nail grammar, is implemented in 149 lines of C. 
+(16 lines) supporting A, NS, MX and CNAME records. 
 
- The same grammar is used, together with 98 lines of C,
-to implement a functional toy clone of the \texttt{host} command-line
-tool. 
+  
+With this grammar, we built a simple authoritative DNS server, which parses a zone file, listens to incoming DNS
+requests, parses them and generates appropriate responses, is implemented in 183 lines of C. The
+same grammar is used, together with 98 lines of C, to implement a minimal clone of the
+\texttt{host} command-line tool. Most of this code consists of a custom hashtable and system
+interface code, such as listening to sockets and reading the zonefile. 
+
+The Hammer parser framework\cite{hammer-dns} ships with a toy DNS server that responds to
+any valid DNS query with a CNAME record to the domain ``spargelze.it''. 
+The server consists of 683 lines of C, mostly custom validators, semantic actions,
+and data structure definitions, with only 52 lines of code defining the
+grammar with Hammer's combinators.
 
 It is hard to compare the programming effort required to implement
-our toy DNS server to that of a real world DNS server, since
-we have less , in particular the additional hint records that real-world DNS servers send and a
-complete lack of configuration options.
+our DNS server to that of a real world DNS server, since we implement less functionality.
+ In particular, we do not send the additional glue records real-world DNS servers send and
+we did not implement any configuration options.
+
 However, the closest in functionality and intent is Dan Bernstein's
 djbdns,\footnote{\url{http://cr.yp.to/djbdns.html}} which aims to be
 a minimalist, highly secure DNS server. The latest release of djbdns,
@@ -88,38 +146,10 @@ features we don't have]
 
 \paragraph{ZIP.}
 
-Another particularly tricky file format is the ZIP compressed archive format\cite{pkzip}. The ZIP
-format has been associated with many vulnerabilities, and the PROTOS Genome project found numerous
-security vulnerabilities in most implementations of ZIP and other archive formats. Furthermore,
-Android security has been completely by-passed multiple times through parsing differentials in
-handling ZIP files\cite{saurik-masterkey}. \XXX[mention talk by Julia Wolf about zip]. 
-
-ZIP files are normally parsed end-to-beginning. At the end of each ZIP file is an \emph{end-of-directory
-header}. This header contains a variable length comment, so it has to be located by scanning
-backwards from the end of the file until a magic number and a valid length field is found. Many ZIP
-implementations disagree on how to find this header in confusing situations, such as when the
-comment contains the valid magic bytes\cite{wolf-berlinsides-zip}.
-This end-of-directory header contains the offset and size of the \emph{ZIP directory}, which is an
-array of one \emph{directory entry header} per file in the archive.
-Each entry stores file meta data, such as file name, compressed and uncompressed size and a checksum,
-in addition to the offset of a \emph{local file header}. The local file header duplicates most
-information from the directory entry header and the compressed file contents follow it immediately.
-
-Duplicating information made sense when ZIP files were
-stored on floppy disks with slow seek times and high fault rates and memory constraints made it
-impossible to keep the ZIP directory in memory or the archive was split across multiple disks.
-However, care must be taken that the meta-data is consistent. For example, vulnerabilities could occur
-if the length in the central directory is used to allocate memory and the length in the local
-directory is used to extract without checking that they are equal first.
-
-\XXX[condense]
 
 We wrote a grammar for ZIP, which consists of 92 lines of Nail and 78 lines of C implementing two
 stream transforms, one for the DEFLATE compression algorithm with the help of the zlib library and
-one for finding the end-of-directory header. This grammar avoids the two pitfalls mentioned above:
-Nail forces the programmer to specify an explicit procedure for finding the end-of-directory record
-and we use dependent fields to enforce that the duplicated information is consistent.
-
+one for finding the end-of-directory header. 
 
 Our grammar is also very efficient to use. Using our grammar, we build a ZIP file extractor in 50
 lines of C. Because more recent versions of ZIP have added more features, such as large file support
@@ -133,12 +163,42 @@ metadata and calls various decompression routines in other files. This file meas
 lines of C. 
 
 \paragraph{Network stack.}
-Write up this stack.
+\XXX[Write this up]
 \subsection{Security.} 
+ \XXX[The ZIP format has been associated with many vulnerabilities, and the PROTOS Genome project found numerous
+security vulnerabilities in most implementations of ZIP and other archive formats. Furthermore,
+Android security has been completely by-passed multiple times through parsing differentials in
+handling ZIP files\cite{saurik-masterkey}. mention talk by Julia Wolf about zip]. 
 Fuzz DNS. Fuzz ZIP. Design argument that security is hard to show. 
 
 \subsection{Performance.}
+\input{fig-perf-dns}
+To estimate the performance impact of using Nail grammars as opposed to hand-written grammars, we
+benchmarked our DNS server against BIND \XXX[and our network stack against \texttt{lwip-tap}, a userspace
+router implemented with the LWIP network stack\cite{lwip}].
 
-Compare DNS requests per second of BIND, DJBDNS and NailDNS on a small zonefile.
-Compare extraction performance for ZIP. 
+\paragraph{DNS}
+We compare the performance of our DNS server to the release 9.9.5 of ISC BIND 9\cite{bind8}, one of
+the oldest and most popular DNS daemons, on a load that resembles the authoritative name server at a
+hosting company. First, we generated domain names consisting of one or
+two labels randomly selected from an English dictionary and one label that is one of three popular
+Top Level Domains: ``com'', ``net'' or ``org''. Second, we randomly selected 90\% of these domains and
+created a zone file that mapped these domain names to the local IP address. 
+
+Finally, we used the \texttt{queryperf} tool provided with BIND to query each domain between zero
+and three times on a local instance of BIND or NailDNS. Both DNS servers were operating on a single, 
+core  of an Intel i7-3610QM with 12GB of RAM on an idle system, and the benchmark tool kept at most 20
+queries outstanding at once. The queryperf tool was configured to
+repeat the same, randomised sequence of queries for one minute and the average throughput and
+response latency were measured.  We repeated each test seven times  with 50.000 and one million
+domain names, restarting each daemon in between. We also performed one initial dry run to warm the
+file system cache for the zone file.
+\XXX[Add 1 million results.They are largely the same]
+
+Surprisingly, our simple Nail server outperforms the established BIND server that has seen decades
+of optimisation by a factor of 3. \XXX[Why the hell?] This demonstrates that even though Nail was
+not developed focusing on performance, applications built on Nail can compete with real-world
+hand-written parsers.
+
+
 

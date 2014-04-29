@@ -3,36 +3,15 @@
 
 \subsection{Overview}
  
-Nail grammars describe not only a 
+Nail grammars describe both the \emph{external format} and an \emph{internal representation} of a
+protocol. Typical grammar languages describe only the former and leave it up to the programmer to
+construct an internal representation, typically in the form of an abstract syntax tree. 
 
-To integrate the data format and the internal representation, Nail
-provides a rich set of combinators that not
-only describe the grammar of the external protocol, but also induce an internal
-model.
-
-A central design decision of Nail is that there is a \emph{semantic bijection} between
-the model exposed to the programmer and the byte-level input and output, up to
-syntactic equivalence for unambiguous grammars. More precisely, the parser is
-the generator's inverse, so parsing the generator's output will yield the
-generator's input, but generating the parsers output does not necessarily yield
-the parsers input. To understand why this makes sense, consider a grammar for a
-text language that tolerates white space, or a binary protocol that tolerates
-arbitrarily long padding.\footnote{Say, the physical layer of most communication
-  protocols is a possibly infinite sequence of symbols that are syntactically
-  nil followed by a pre-determined synchronization sequence and the actual
-  contents of the transmission.} In that case, the program semantics should be
-independent of the number of padding elements in the input, and Nail therefore
-does not expose that information to the programmer. We call such discarded
-fields \emph{constants}. Currently, Nail always makes a default choice when
-there are multiple options to express a constant, however Nail could be extended
-to allow a grammar-specific plug-in to make these choices, say for faster
-alignment, streaming applications when data is not ready, or visual appearance in
-human-readable protocols. Similarly, Nail does not preserve the layout of
-objects referred to by their offsets. If the grammar contains no constants and
-offset fields, there is a proper isomorphism between model and protocol.
+Our grammars are based on Parser Expression Grammars, describing 
 
 
-Nail evaluates the combinators and produces:
+
+Nail produces the following from a single, descriptive grammmar: 
 
 \begin{itemize}
 \item type declarations for the internal model,
@@ -43,8 +22,10 @@ sequence of bytes from an instance of the model.
 \end{itemize}
 
 \noindent
-In the rest of this section, we present Nail's combinators.
+In the rest of this section, we present the design of the Nail language.
 
+\subsection{Basics}
+Nail grammars contain parsers
 \begin{figure}[tb]
 \begin{tabular}{ll}
 \toprule
