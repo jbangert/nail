@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import sys
-
+import os
 import numpy as np
 from pylab import *
 
@@ -12,9 +12,10 @@ data = []
 labels = [] 
 for file in files:
     print(file)
-    data.append( loadtxt(file))
+    data.append(loadtxt(file))
     labels.append(labelstr(file))
 figure(1)
-boxplot(data)
+boxplot(data, vert=False)
 xticks(range(0,len(labels)),labels)
 
+show()
