@@ -361,7 +361,7 @@ public:
         out << count << "=" << "*(tr++);\n"
             << "save = *(tr++);\n";
         out <<data << "= " << "(typeof("<<data<<"))n_malloc("<<arena<<"," << count << "* sizeof(*"<<data<<"));\n"
-            << "if(!"<< data<< "){return 0;}\n";
+            << "if(!"<< data<< "){return -1;}\n";
 
         std::string iter = boost::str(boost::format("i%d") % num_iters++);
         out << "for(pos "<<iter<<"=0;"<<iter<<"<"<<count<<";"<<iter<<"++){";
@@ -449,15 +449,17 @@ public:
               <<"pos *tr_ptr;\n pos pos;\n"
               << name <<"* retval;\n"
               << "n_trace_init(&trace,4096,4096);\n"
-              << "tr_ptr = trace.trace;"
-              << "if(parser_fail(peg_"<<name<<"(&tmp_arena,&trace,&stream))) return NULL;"
-              << "if(stream.pos != stream.size) return NULL; "
+              << "if(parser_fail(peg_"<<name<<"(&tmp_arena,&trace,&stream))) goto fail;"
+              << "if(stream.pos != stream.size) goto fail; "
               << "retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));\n"
-              <<"if(!retval) return NULL;\n"
+              <<"if(!retval) goto fail;\n"
               << "stream.pos = 0;\n"
-              << "if(bind_"<<name<<"(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;\n"
-              << "n_trace_release(&trace);\n"
+              << "tr_ptr = trace.trace;"
+              << "if(bind_"<<name<<"(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;\n"
+              << "out: n_trace_release(&trace);\n"
+              << "NailArena_release(&tmp_arena);"
               <<"return retval;"
+              << "fail: retval = NULL; goto out;"
               <<"}";
         }
       }
