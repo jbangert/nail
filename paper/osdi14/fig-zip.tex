@@ -1,6 +1,5 @@
 \begin{figure}
 \begin{verbatim}
-!LITTLE-ENDIAN //Cut for conciseness
 fileentry(@crc32 uint32,
  @method uint16,
  @compressed_size uint32, 
@@ -8,14 +7,15 @@ fileentry(@crc32 uint32,
   uint32 = 0x04034b50
   version uint16
   flags file_flags
-  @method_local uint16//[...]
+  @method_lcl uint16//[...]
   $compressed transform size_u32 
            ($current @compressed_size)
   $uncompressed transform zip_compression 
            ($compressed @method )
   transform crc_32 ($uncompressed @crc32)
   contents apply $uncompressed many uint8
-  transform u16_depend (@method_local @method)//[...]
+  transform u16_depend (@method_lcl @method)
+  //[...]
 }
 dir_entry($file) = {
 //[...]  
@@ -56,6 +56,6 @@ zip_file = {
     end_of_directory($file)
 }
 \end{verbatim}
-\caption{Extracted Nail grammar for ZIP files.}
+\caption{Nail grammar for ZIP files. Various fields have been cut for brevity.}
 \label{fig:zip-extract}
 \end{figure}

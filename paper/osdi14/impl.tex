@@ -3,41 +3,39 @@
 
 The current prototype of the Nail parser generator supports the C programming
 language and top-down parsers. Options for C++ STL data models and emitting
-Packrat parser~\cite{packrat-parsing:icfp02} are under development. In
+Packrat parsers~\cite{packrat-parsing:icfp02} are under development. In
 this section, we will discuss some particular features of our parser
 implementation.
 
 The source code of our implementation, together with the examples described in
 \S\ref{s:eval} are available on GitHub at \url{https://github.com/jbangert/nail}.
 
-\input{fig-utf16}
 
 \paragraph{Parsing.}
 
 A generated Nail parser makes two passes through the input: the first to
 validate and recognize the input, and the second to bind this data to the internal
 model. Currently the parser is a straightforward top-down parser, although
-facilities have been made to add Packrat parsing to achieve linear parsing
+preparations have been made to add Packrat parsing to achieve linear parsing
 times.
 
 \paragraph{Memory allocation.}
 
-Many security vulnerabilities can occur when heap allocations are done
-improperly. Therefore, just like Hammer, Nail avoids using the heap as much as
-possible, using a custom arena allocator and allocating only fixed-size blocks
-from the system allocator (malloc). However, Nail extends upon Hammer's approach and uses two
-arenas for each parsed input. One arena is used for intermediate results and is
-released (and zeroed) after parsing completes, whereas the other arena is used only
-for allocating the result, and has to be freed by the programmer.
+Many security vulnerabilities can occur when heap allocations are done improperly. Therefore, just
+like Hammer, Nail avoids using the heap as much as possible, using a custom arena allocator and
+allocating only fixed-size blocks from the system allocator (malloc). However, Nail extends upon
+Hammer's approach and uses two arenas for each parsed input. One arena is used for intermediate
+structures, including dependency fields and any temporary streams, and is released (and zeroed)
+after parsing completes, whereas the other arena is used only for allocating the result, and has to
+be freed by the programmer.
 
 \paragraph{Intermediate representation.}
 
-Most parser generators, such as Bison, do not have to dynamically allocate
-temporary data, as they evaluate a semantic action on every rule. However, as
-our goal is to perform as little computation as possible before the input
-has been validated, and we do not want to mix temporary objects with the
-results of our parse, we use an append-only trace to store intermediate parser
-results. 
+Most parser generators, such as Bison, do not have to dynamically allocate temporary data on the
+heap, as they evaluate a semantic action on every rule. However, as our goal is to perform as little
+computation as possible before the input has been validated, and we do not want to mix temporary
+objects with the results of our parse, we use an append-only trace to store intermediate parser
+results.
 
 Hammer solves this problem by storing a full abstract syntax tree. However, this
 abstract syntax tree is at least an order of magnitude larger than the input,
@@ -69,15 +67,15 @@ In a second pass, the parser then allocates the internal representation from an
 arena allocator and binds the fields to values from the input, while following
 the trace to determine how many array fields to parse and which choices to pick.
 
-\paragraph{Dependency fields.}
+% \paragraph{.}
 
-During parsing, dependency fields occur before the context in which they are
-used. The parser stores their values and retrieves them afterwards when
-encountering the combinator that uses them. When generating output, the
-dependency field is first filled with a filler value, then later when the first
-combinator that determines this fields value is encountered, the field is
-overwritten. Any further combinators using this dependency will then validate
-that the dependency field is correct.
+% During parsing, dependency fields occur before the context in which they are
+% used. The parser stores their values and retrieves them afterwards when
+% encountering the combinator that uses them. When generating output, the
+% dependency field is first filled with a filler value, then later when the first
+% combinator that determines this fields value is encountered, the field is
+% overwritten. Any further combinators using this dependency will then validate
+% that the dependency field is correct.
 
 \paragraph{Bootstrapping.}
 

@@ -50,8 +50,13 @@ representation.  However, those generators require yet another set of
 semantic actions to be written, transforming the internal representation
 into an AST\@.
 
+Third, many data formats contain redundancies, such as repeating information in multiple structures.
+Applications usually do not explicitly check for consistency, and if different applications use
+different instances of the same value, an attacker can craft input that causes inconsistencies.
+Furthermore, security vulnerability can occur when an application assumes two repetitions of the
+same data to be consistent.
 
-Third, data formats, for example PNG or PDF, contain features that are hard to represent with
+Finally, data formats, for example PNG or PDF, contain features that are hard to represent with
 existing parser generators. Some features, such as length and checksum fields, require the parser to
 keep additional state. More complicated formats incorporate offset fields that require the parser to
 reposition its input stream or consume the same input multiple times. In some cases, such as with
@@ -62,11 +67,11 @@ moving the parsers input stream, looping over the invocation of a sub-parser or 
 over raw input bytes. Besides leaving much room for errors with offset arithmetic, such code is
 usually not reusable when generating output.
 
-\XXX[Motivate Stream transforms better]
+
 
 This paper presents the initial design and implementation of Nail, a parser
 generator that greatly reduces the programmer effort required to use a
-grammar-based parser. Nail addresses the above three challenges with several key
+grammar-based parser. Nail addresses the above four challenges with several key
 ideas.
 
 First, Nail reduces the expressiveness of its grammar language by removing
@@ -92,27 +97,27 @@ objects referred to by their offsets. If the grammar consists of a simple protoc
 fields, constants and the like, there is a normal bijection between the internal model and valid
 parser inputs.
 
-\XXX[Currently, Nail always makes a default choice when
-there are multiple options to express a constant, however Nail could be extended
-to allow a grammar-specific plug-in to make these choices, say for faster
-alignment, streaming applications when data is not ready, or visual appearance in
-human-readable protocols.]
+% \XXX[Currently, Nail always makes a default choice when
+% there are multiple options to express a constant, however Nail could be extended
+% to allow a grammar-specific plug-in to make these choices, say for faster
+% alignment, streaming applications when data is not ready, or visual appearance in
+% human-readable protocols.]
 
 
- However, Nail allows \emph{constants} in the
-external format to have multiple representations if they should not affect the
-semantics of the data. For example, in a text protocol, the amount of
-white-space separating tokens should not affect the meaning of the data and
-consequently Nail does not expose it to the application. As long as
-constants are only used for their intended purpose of representing syntax-only
-features, the generated output will have the same semantics as the parsed input.
+%  However, Nail allows \emph{constants} in the
+% external format to have multiple representations if they should not affect the
+% semantics of the data. For example, in a text protocol, the amount of
+% white-space separating tokens should not affect the meaning of the data and
+% consequently Nail does not expose it to the application. As long as
+% constants are only used for their intended purpose of representing syntax-only
+% features, the generated output will have the same semantics as the parsed input.
 
-Third, Nail introduces two abstractions, \emph{dependent fields} and \emph{stream transforms}, to
+Third, Nail introduces two abstractions, \emph{dependent fields} and \emph{structural transformations}, to
 elegantly handle problematic features of data formats. Dependent fields are fields in the protocol
 whose value depends in some way on the value or layout of other parts of the protocol, such as
-length, offset and checksum fields. \XXX[Stream transforms allow the programmer to write a function
-that produces one or more virtual streams from one or more virtual streams and the values of
-dependent fields.]
+length, offset and checksum fields. Structural transformations allow the programmer to write a pair
+of functions that transforms the \XXX[TODO]
+
 
 We have implemented a prototype of Nail for C\@.  Our experience
 so far suggests that it is a promising approach: we were able to construct
