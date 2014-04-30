@@ -1,19 +1,26 @@
 \section{Evaluation}
 \label{s:eval}
+
 \input{fig-ethernet}
 
 In our evaluation of Nail, we try to answer four questions:
 
 \begin{itemize}
-\item Can Nail grammars support real-world data formats and are Nail's concepts critical to handling
-  them?
+
+\item Can Nail grammars support real-world data formats, and
+      are Nail's techniques critical to handling these formats?
+
 \item How much programmer effort is required to build an
       application that uses Nail for data input and output?
-\item Do applications handling input and output with Nail suffer from less security vulnerabilities?
-\item How fast are systems using Nail parsers as opposed to hand-written input handling? 
+
+\item Does using Nail for handling input and output improve
+      application security?
+
+\item Does Nail achieve acceptable performance?
+
 \end{itemize}
 
-\subsection{Data formats.}
+\subsection{Data formats}
 \label{s:eval-formats}
 To answer the first question, we implemented grammars for four protocols with particularly
 challenging features and show that Nail is a good fit for these data formats and some aspects of
@@ -118,7 +125,7 @@ Existing parser languages are not able to handle a file format of this complexit
 
 
 
-\subsection{Programmer effort.}
+\subsection{Programmer effort}
 
 
 %code size unzip 6.0
