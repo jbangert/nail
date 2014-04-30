@@ -2,8 +2,70 @@
 \label{s:relwk}
 
 
-\paragraph{Motivation.}
-\XXX[Move to the intro, into its own section, or kill?]
+% \XXX[Move to the intro, into its own section, or kill?]
+
+
+\XXX[previous workshop paper~\cite{bangert:nail-langsec}.]
+
+\XXX[https://github.com/qualiancy/lotus also supports arbitrary formats,
+     but requires explicit encode/decode rules.  actually kind-of like
+     pack/unpack.]
+
+\XXX[Parsifal at langsec '14]
+\paragraph{Parsers}
+
+Generating parsers and generators from an executable specification
+is the core concept of Interface Generators, e.g. in CORBA or more
+recently~\cite{varda2008}. However, while interface generators work
+very well for existing grammars, they do not allow full control over the
+format of the output, so cannot be used to implement legacy protocols.
+Very related work has been done at Bell Labs with the PacketTypes
+system~\cite{mccann2000packet}, however PacketTypes works only as a
+parser, not as an output generator and does not support the expressive
+power of parsing expression grammars (PEGs), but rather implements a
+C-like structure model enhanced with data-dependent length fields and
+constraints.
+
+Parser generators for binary protocols were first introduced by the
+Hammer~\cite{hammer-parser} parser.
+While previous parser generators could also be used to write grammars
+for binary protocols,\footnote{Theoretically speaking, the alphabet
+over which a grammar is an  abstract set, so most algorithms work
+just as well on an alphabet of $\{0,1\}$.} doing so is practically
+inconvenient. Hammer allows the programmer to specify a grammar in
+terms of bits and bytes instead of characters. Common concerns, such as
+endianness and bit-packing are transparently hidden by the library. 
+
+Hammer implements grammars as language-integrated parser combinators, an approach popularized by
+Parsec for Haskell~\cite{LeijenMeijer:parsec}. The parser combinator style (to our knowledge, first
+described in~\cite{burge1975recursive}) is a natural way of concisely expressing top-down
+grammars~\cite{Danielsson:2010:TPC:1863543.1863585}\footnote{For more background on the history of
+  expressing grammars, see Bryan Ford's masters thesis~\cite{ford2002packrat}, which also describes
+  the default parsing algorithm used by Hammer.} by composing them from one or multiple sub-parsers.
+Hammer then constructs a tree of function pointers which can be invoked to parse a given input into
+an abstract syntax tree (AST).
+
+Nail improves upon Hammer in three ways. First, Nail  generates output besides recognizing input.
+Second, Nail does not require the programmer to write potentially insecure semantic actions. Last,
+Nail's structural dependencies and transformations allow it to work with protocols Hammer cannot recognize, such as
+protocols with offset fields or length fields (Hammer has extremely limited support for length
+fields: it can parse arrays immediately preceded by their length).
+
+
+\paragraph{Application use of parsers.}
+Generated parsers have long been used to parse human input, such as programming languages and
+configuration files. Frequently, such languages are often specified with a formal grammar in an
+executable form. Unfortunately,  parser frameworks are seldom used  to recognize
+machine-created input.
+
+A notable exception is the Mongrel
+web server\footnote{\url{http://mongrel2.org/}} which uses a grammar
+for HTTP written in the Ragel~\cite{ragel-paper} regular expression
+language. Mongrel was re-written from scratch multiple times to achieve
+better scalability and design, yet the grammar could be  re-used across
+all iterations~\cite{patterson-citation}.
+
+\paragraph{Other vulnerability mitigations.}
 
 Input processing vulnerabilities fall into two broad classes.  The first
 class is memory safety bugs, such as buffer overflows, which allow an
@@ -16,19 +78,19 @@ make it more difficult for an adversary to exploit these bugs.
 Nail helps developers of lower-level languages avoid these bugs
 in the first place.
 
-The second class is logic errors, where application code misinterprets
-input data.  This can lead to serious security consequences when two
-systems disagree on the meaning of a network packet or a signed message,
-as in iOS\footnote{The XNU kernel and the user code-signing verifier
-interpret executable metadata differently, so the code signature
-sees different bytes at a virtual address than the executable that
-runs.}~\cite{evaders6} and Android~\cite{saurik-masterkey}code signing and even the X.509 protocol
-underlying SSL~\cite{DBLP:conf/fc/KaminskyPS10}.  These mistakes are
-highly application-specific, and are difficult to mitigate using existing
-techniques, and these mistakes can occur even in high-level languages
-that guarantee memory safety.
-By allowing developers to specify their data format just once, Nail
-avoids logic errors and inconsistencies in parsing and output generation.
+The second class is logic errors, where application code misinterprets input data. Safe languages
+and exploit mitigation technologies do not help against such vulnerabilities. This can lead to
+serious security consequences when two systems disagree on the meaning of a network packet or a
+signed message, as in iOS\footnote{The XNU kernel and the user code-signing verifier interpret
+  executable metadata differently, so the code signature sees different bytes at a virtual address
+  than the executable that runs.}~\cite{evaders6} and Android~\cite{saurik-masterkey}code signing
+and even the X.509 protocol underlying SSL~\cite{DBLP:conf/fc/KaminskyPS10}. Logic errors are often
+causing memory corruption bugs as well, for example when a protocol stores the size of a buffer in
+two places and the implementation does not check their consistency. These mistakes are
+highly application-specific, and are difficult to mitigate using existing techniques, and these
+mistakes can occur even in high-level languages that guarantee memory safety. By allowing developers
+to specify their data format just once, Nail avoids logic errors and inconsistencies in parsing and
+output generation.
 
 % A subclass of logic errors are so-called \textit{weird machines}, where
 % implementation side effects or under-specified parser behavior leads to a
@@ -52,78 +114,13 @@ avoids logic errors and inconsistencies in parsing and output generation.
 % ``shotgun parser''~\cite{shotgun-parser}. Thus, partially invalid input might be partly 
 % processed by the program until the invalid sections are encountered.
 
-\XXX[previous workshop paper~\cite{bangert:nail-langsec}.]
 
-\XXX[https://github.com/qualiancy/lotus also supports arbitrary formats,
-     but requires explicit encode/decode rules.  actually kind-of like
-     pack/unpack.]
-
-\XXX[Parsifal at langsec '14]
-\paragraph{Related Work}
 Proper input recognition has  been shown to be an excellent way of
-eliminating malicious inputs. In one case, a  PDF parser implemented in
+eliminating ambiguous inputs. In one case, a  PDF parser implemented in
 Coq could eliminate over $95\%$ of known malicious PDFs~\cite{Bogk-PDF}.
 However, manually writing parser code does not scale to the number of
 file formats  and protocols in existence and might result in parser code
 tied to one specific application.
-
-Generating parsers and generators from an executable specification
-is the core concept of Interface Generators, e.g. in CORBA or more
-recently~\cite{varda2008}. However, while interface generators work
-very well for existing grammars, they do not allow full control over the
-format of the output, so cannot be used to implement legacy protocols.
-Very related work has been done at Bell Labs with the PacketTypes
-system~\cite{mccann2000packet}, however PacketTypes works only as a
-parser, not as an output generator and does not support the expressive
-power of parsing expression grammars (PEGs), but rather implements a
-C-like structure model enhanced with data-dependent length fields and
-constraints.
-
-Parser generators for binary protocols were first introduced by the
-Hammer~\cite{hammer-parser} parser.
-While previous parser generators could also be used to write grammars
-for binary protocols,\footnote{Theoretically speaking, the alphabet
-over which a grammar is an  abstract set, so most algorithms work
-just as well on an alphabet of $\{0,1\}$.} doing so is practically
-inconvenient. Hammer allows the programmer to specify a grammar in
-terms of bits and bytes instead of characters. Common concerns, such as
-endianness and bit-packing are transparently hidden by the library. Hammer
-implements grammars as language-integrated parser combinators, an approach
-popularized by Parsec for Haskell~\cite{LeijenMeijer:parsec}. The
-parser combinator style (to our knowledge, first  described
-in~\cite{burge1975recursive}) is a natural way of concisely expressing
-top-down grammars~\cite{Danielsson:2010:TPC:1863543.1863585}\footnote{For
-more background on the history of expressing grammars, see Bryan Ford's
-masters thesis~\cite{ford2002packrat}, which also describes the default
-parsing algorithm used by Hammer.} by composing them from one or multiple
-sub-parsers.  Hammer then constructs a tree of function pointers which
-can be invoked to parse a given input into an abstract syntax tree (AST).
-
-Nail improves upon Hammer in three ways. First, Nail  generates output besides recognizing input.
-Second, Nail does not require the programmer to write potentially insecure semantic actions. Last,
-Nail's structural dependencies and transformations allow it to work with protocols Hammer cannot recognize, such as
-protocols with offset fields or length fields (Hammer has extremely limited support for length
-fields: it can parse arrays immediately preceded by their length).
-
-\paragraph{Application use of parsers.}
-Generated parsers have long been used to parse human input, such as programming languages and
-configuration files. Frequently, such languages are often specified with a formal grammar in an
-executable form.
-
-Unfortunately,  parser frameworks are seldom used  to recognize
-machine-created input. For example, the security-critical and
-well-engineered MIT Kerberos distribution uses parser generators, but
-only for handling configuration files. A notable exception is the Mongrel
-web server\footnote{\url{http://mongrel2.org/}} which uses a grammar
-for HTTP written in the Ragel~\cite{ragel-paper} regular expression
-language. Mongrel was re-written from scratch multiple times to achieve
-better scalability and design, yet the grammar could be  re-used across
-all iterations~\cite{patterson-citation}.
-
-
-
-
-
 
 
 %%This is supposed to go into design
