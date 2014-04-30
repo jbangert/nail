@@ -57,28 +57,23 @@ Furthermore, security vulnerability can occur when an application assumes two re
 same data to be consistent, such as allocating a buffer based on one size field and copying into
 that buffer based on another.
 
-Finally, data formats, for example PNG or PDF, contain features that are hard to represent with
-existing parser generators. Some features, such as length and checksum fields, require the parser to
-keep additional state. More complicated formats incorporate offset fields that require the parser to
-reposition its input stream or consume the same input multiple times. In some cases, such as with
-compressed data, very complicated transformations on the external format are necessary before it can
-be understood. State-of-the-Art parser generators provide at most limited, unelegant facilities for
-such features, so programmers are forced to manually writing control code to handle them, such as
-moving the parsers input stream, looping over the invocation of a sub-parser or computing a checksum
-over raw input bytes. Besides leaving much room for errors with offset arithmetic, such code is
-usually not reusable when generating output.
+Finally, real-world data formats, for example PNG or PDF,  are hard to represent with
+existing parser generators. Those parsers cannot directly deal with length or checksum fields
+directly, so either the programmer has to write potentially unsafe code to deal with such features
+or build contrived grammar constructs, such as introducing one grammar rule for each possible value
+of a length fields. Offset fields usually require the programmer to manipulate a parser's internal
+state to re-position its input. More complicated transformations on the external format, such as
+compressed data, cannot be implemented at all.
 
 
 
-This paper presents the initial design and implementation of Nail, a parser
-generator that greatly reduces the programmer effort required to use a
-grammar-based parser. Nail addresses the above four challenges with several key
-ideas.
+This paper presents the design and implementation of Nail, a parser generator that greatly reduces
+the programmer effort required to use grammars. Nail addresses the above four challenges with
+several key ideas.
 
-First, Nail reduces the expressiveness of its grammar language by removing
-semantic actions. Existing parser generators allow arbitrary computation to
-transform between the AST and the parser output. Instead, Nail derives the
-structure of its output automatically from the grammar, forcing the programmer
+First, Nail grammars define both a format's external representation and an internal object model.
+This removes the semantic actions and type declarations that programmers have to write with existing
+parser generator. While this somewhat reduces the flexibility of the internal model, it forces the programmer
 to clearly separate syntactic validation and semantic processing.
 
 Second, this well-defined internal representation allows Nail to generate the external format from
