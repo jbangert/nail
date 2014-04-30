@@ -1,7 +1,30 @@
 \section{Design}
 \label{s:design}
 
-\subsection{Goals}
+Nail's goals are to reduce programmer effort required to safely interact
+with data formats.  In particular, this means:
+
+\begin{itemize}
+
+\item Using the grammar to define both the \emph{external format}
+      and the \emph{internal representation}.
+
+\item Both parsing inputs into internal representations, as well as
+      generating outputs from internal representations, without
+      requiring the programmer to write any semantic actions.
+
+\item Eliminating redundancy in internal representations, such as
+      storing both an explicit length field and an implicit length
+      of a container data structure, to ensure that programmers
+      see a consistent view of the data.
+
+\item Allow programmers to define grammars for complex real-world
+      data formats through well-defined extensibility mechanisms.
+
+\end{itemize}
+
+\subsection{Overview}
+
 \paragraph{Internal Model.}
 Nail grammars describe both the \emph{external format} and an \emph{internal representation} of a
 protocol, as opposed to existing grammar languages describe only the former and leave it up to the programmer to
