@@ -1,13 +1,9 @@
 \section{Related work}
 \label{s:relwk}
 
-\XXX[previous workshop paper~\cite{bangert:nail-langsec}.]
 
-\XXX[https://github.com/qualiancy/lotus also supports arbitrary formats,
-     but requires explicit encode/decode rules.  actually kind-of like
-     pack/unpack.]
-
-\paragraph{Language safety.}
+\paragraph{Motivation.}
+\XXX[Move to the intro, into its own section, or kill?]
 
 Input processing vulnerabilities fall into two broad classes.  The first
 class is memory safety bugs, such as buffer overflows, which allow an
@@ -26,13 +22,7 @@ systems disagree on the meaning of a network packet or a signed message,
 as in iOS\footnote{The XNU kernel and the user code-signing verifier
 interpret executable metadata differently, so the code signature
 sees different bytes at a virtual address than the executable that
-runs.}~\cite{evaders6} and Android\footnote{Android applications
-are distributed as .zip files. Signatures are verified with a Java
-program, but the program is extracted with a C program.  The Java
-program interprets all fields as signed, whereas the C program
-treats them as unsigned, allowing one to replace files in a signed
-archive, thereby undermining Android's security model.}~\cite{saurik-masterkey}\XXX{Duplicate, we
-already mention this in the eval} code signing and even the X.509 protocol
+runs.}~\cite{evaders6} and Android~\cite{saurik-masterkey}code signing and even the X.509 protocol
 underlying SSL~\cite{DBLP:conf/fc/KaminskyPS10}.  These mistakes are
 highly application-specific, and are difficult to mitigate using existing
 techniques, and these mistakes can occur even in high-level languages
@@ -40,21 +30,21 @@ that guarantee memory safety.
 By allowing developers to specify their data format just once, Nail
 avoids logic errors and inconsistencies in parsing and output generation.
 
-A subclass of logic errors are so-called \textit{weird machines}, where
-implementation side effects or under-specified parser behavior leads to a
-protocol or data format inadvertently becoming a Turing-complete execution
-environment, even though the original grammar did not require it.
-Frequently, this execution environment can either
-then directly manipulate data in unwanted ways or be used to make
-exploiting another bug feasible.\footnote{For example, by compiling a
-return-oriented-programming exploit from code fragments discovered on
-the fly.} Examples include x86 page tables~\cite{bangert2013page}, and
-ELF symbols and relocations~\cite{shapiro2013weird}. In the offensive
-research community, this has been generalized into treating a program
-as a \textit{weird machine}~\cite{bratus2011exploit} that operates on
-an input, analogous to a virtual machine operating on bytecode.
-Nail avoids these problems by having the parser precisely match the
-specified grammar, eliminating under-specified behavior.
+% A subclass of logic errors are so-called \textit{weird machines}, where
+% implementation side effects or under-specified parser behavior leads to a
+% protocol or data format inadvertently becoming a Turing-complete execution
+% environment, even though the original grammar did not require it.
+% Frequently, this execution environment can either
+% then directly manipulate data in unwanted ways or be used to make
+% exploiting another bug feasible.\footnote{For example, by compiling a
+% return-oriented-programming exploit from code fragments discovered on
+% the fly.} Examples include x86 page tables~\cite{bangert2013page}, and
+% ELF symbols and relocations~\cite{shapiro2013weird}. In the offensive
+% research community, this has been generalized into treating a program
+% as a \textit{weird machine}~\cite{bratus2011exploit} that operates on
+% an input, analogous to a virtual machine operating on bytecode.
+% Nail avoids these problems by having the parser precisely match the
+% specified grammar, eliminating under-specified behavior.
 
 % With currently prevalent software design methods, it is hard to isolate
 % input-handling code from the rest of the program, as user input is
@@ -62,7 +52,14 @@ specified grammar, eliminating under-specified behavior.
 % ``shotgun parser''~\cite{shotgun-parser}. Thus, partially invalid input might be partly 
 % processed by the program until the invalid sections are encountered.
 
-\paragraph{Parsing frameworks.}
+\XXX[previous workshop paper~\cite{bangert:nail-langsec}.]
+
+\XXX[https://github.com/qualiancy/lotus also supports arbitrary formats,
+     but requires explicit encode/decode rules.  actually kind-of like
+     pack/unpack.]
+
+\XXX[Parsifal at langsec '14]
+\paragraph{Related Work}
 Proper input recognition has  been shown to be an excellent way of
 eliminating malicious inputs. In one case, a  PDF parser implemented in
 Coq could eliminate over $95\%$ of known malicious PDFs~\cite{Bogk-PDF}.
@@ -104,7 +101,7 @@ can be invoked to parse a given input into an abstract syntax tree (AST).
 
 Nail improves upon Hammer in three ways. First, Nail  generates output besides recognizing input.
 Second, Nail does not require the programmer to write potentially insecure semantic actions. Last,
-Nail's structural dependencies allow it to work with protocols Hammer cannot recognize, such as
+Nail's structural dependencies and transformations allow it to work with protocols Hammer cannot recognize, such as
 protocols with offset fields or length fields (Hammer has extremely limited support for length
 fields: it can parse arrays immediately preceded by their length).
 

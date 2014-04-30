@@ -128,14 +128,13 @@ To answer the second question, we implemented small example applications based o
 grammars and compared code size with comparable applications that process data manually. We will
 also compare a toy DNS server implemented in Nail with a similar toy DNS server provided as an
 example for the Hammer parser generator. All code size measurements for C were performed by
-SlocCount\cite{sloccount}. \XXX[code size is primitive, but we show orders of magnitude in the same language].
-
+SlocCount\cite{sloccount}.
 
 %%DNS: 
 \paragraph{DNS.}
 
 Our DNS grammar, which is partly reproduced in Figure~\ref{fig:dns-full} consists of a 48 line  Nail
-grammar and 64 lines of C implementing DNS label compression. \XXX[Make this smaller]
+grammar and 64 lines of C implementing DNS label compression.
 The grammar describes both the structure of DNS packets (36 lines) and of a simple zone-file format
 (16 lines) supporting A, NS, MX and CNAME records. 
 
@@ -185,20 +184,51 @@ lines of C.
 \paragraph{Network stack.}
 \XXX[Write this up]
 \subsection{Security.} 
-\XXX[Add PROTOS genome CVE's. count]
- \XXX[The ZIP format has been associated with many vulnerabilities, and the PROTOS Genome project found numerous
-security vulnerabilities in most implementations of ZIP and other archive formats. Furthermore,
-Android security has been completely by-passed multiple times through parsing differentials in
-handling ZIP files\cite{saurik-masterkey}. mention talk by Julia Wolf about zip]. 
-Fuzz DNS. Fuzz ZIP. Design argument that security is hard to show. 
+We use a twofold approach to evaluate the security of applications implemented with Nail. First, we
+analyse a list of CVE's related to the ZIP file format and argue how our ZIP tools based on Nail are
+immune against those vulnerability classes. Second, we present the results of fuzz-testing our DNS
+server.
 
+The ZIP format has been associated with many vulnerabilities, and the PROTOS Genome project found numerous
+security vulnerabilities in most implementations of ZIP and other archive formats that are directly
+related to input handling.
+
+Between May 2011 and May 2014, the CVE database\cite{cve-database} lists 83 vulnerabilities when searching for the
+string ``ZIP''. Of these, 42 were completely unrelated to the archive format, for example reporting
+vulnerabilities revealing Zip codes of other users. 26 vulnerabilities were related to ZIP archives,
+but not to input processing, such as trusting arbitrary update ZIP files sent to a server or
+vulnerabilities that can be accessed through manipulating files in a ZIP container. This includes
+several vulnerabilities allowing another files to replaced while they are extracted from ZIP
+files because insufficiently secure temporary directories are used. Of the 15 remaining
+vulnerabilities pertaining to ZIP files, 14 vulnerabilities were related to input processing. The
+ other vulnerability, which falls outside of Nails purview, concerns a ZIP packer choosing a weak
+ legacy cryptosystem even when configured to use AES.
+
+ Nail parsers are immune by design to vulnerabilities like these 14. Ten of those vulnerabilities
+ are memory corruption attacks, that could also be avoided by using safer languages or better
+ verification tools. Most of the buffer overflows seem to result from inconsistent offset fields
+ being manipulated without checking. Because Nail's generated code checks offsets before reading and
+ does not expose any untrusted pointers to the application, it protects against memory corruption
+ attacks by design.
+
+The remaining four vulnerabilities do not involve memory corruption, but rather parser ambiguities.
+Two of them relate to implementations mis-parsing ZIP files, particularly in virus scanners. One
+other vulnerability is in a Python ZIP library, which uses both the size field in the file entry and
+in the header, without checking for their consistency. This results in a denial-of-service through
+endless loops or incorrectly extracted ZIP files.
+
+A similar attack was used by the fourth vulnerability, the infamous Android master key bug
+\cite{saurik-masterkey}, that completely by-passed Android security multiple times through parser
+differentials between the ZIP handler that checks signatures for privileged applications and the ZIP
+implementations that ultimately extracts those files. Thus, valid  application bundles could be
+modified to include malicious applications without breaking their signatures. Instead of both
+components containing an ad-hoc archive implementation, a single Nail grammar would be reusable
+across both implementations. 
 \subsection{Performance.}
 \input{fig-perf-dns}
 To estimate the performance impact of using Nail grammars as opposed to hand-written grammars, we
-benchmarked our DNS server against BIND \XXX[and our network stack against \texttt{lwip-tap}, a userspace
-router implemented with the LWIP network stack\cite{lwip}].
+benchmarked our DNS server against BIND.
 
-\paragraph{DNS}
 We compare the performance of our DNS server to the release 9.9.5 of ISC BIND 9\cite{bind8}, one of
 the oldest and most popular DNS daemons, on a load that resembles the authoritative name server at a
 hosting company. First, we generated domain names consisting of one or
@@ -211,13 +241,13 @@ and three times on a local instance of BIND or NailDNS. Both DNS servers were op
 core  of an Intel i7-3610QM with 12GB of RAM on an idle system, and the benchmark tool kept at most 20
 queries outstanding at once. The queryperf tool was configured to
 repeat the same, randomised sequence of queries for one minute and the average throughput and
-response latency were measured.  We repeated each test seven times  with 50.000 and one million
+response latency were measured.  We repeated each test seven times  with 50.000
 domain names, restarting each daemon in between. We also performed one initial dry run to warm the
-file system cache for the zone file.
-\XXX[Add 1 million results.They are largely the same]
+file system cache for the zone file. We repeated the tests with 1 million domain names and found
+that the servers performed almost identically.
 
 Surprisingly, our simple Nail server outperforms the established BIND server that has seen decades
-of optimisation by a factor of 3. \XXX[Why the hell?] This demonstrates that even though Nail was
+of optimisation by a factor of 3.  This demonstrates that even though Nail was
 not developed focusing on performance, applications built on Nail can compete with real-world
 hand-written parsers.
 

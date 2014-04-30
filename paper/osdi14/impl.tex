@@ -2,7 +2,10 @@
 \label{s:impl}
 
 The current prototype of the Nail parser generator supports the C programming
-language and top-down parsers. Options for C++ STL data models and emitting
+language and top-down parsers. The implementation parses Nail grammars with Nail itself, using a 130
+line Nail grammar feeding into a 2000 line C++ program that implements the parser. Bootstrapping is
+performed with a subset of the grammar implemented using conventional grammars. 
+Options for C++ STL data models and emitting
 Packrat parsers~\cite{packrat-parsing:icfp02} are under development. In
 this section, we will discuss some particular features of our parser
 implementation.
@@ -76,12 +79,3 @@ the trace to determine how many array fields to parse and which choices to pick.
 % combinator that determines this fields value is encountered, the field is
 % overwritten. Any further combinators using this dependency will then validate
 % that the dependency field is correct.
-
-\paragraph{Bootstrapping.}
-
-To demonstrate the feasibility of the Nail parser generator, our parser
-generator uses a Nail parser to recognize Nail grammars. A superset of the
-grammar language described in this paper is implemented in 100 lines of Nail,
-which feed into about 1,000 lines of C++ that implement the actual parser
-generator. Bootstrapping is supported via an implementation of the Nail language
-in the Lemon parser generator, a variant of Yacc.
