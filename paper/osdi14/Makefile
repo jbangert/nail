@@ -1,9 +1,22 @@
 
-main.pdf: $(wildcard *.tex) $(wildcard *.bib)
+main.pdf: $(wildcard *.tex) $(wildcard *.bib) $(wildcard code/*.tex)
 	pdflatex main
 	bibtex -min-crossrefs=100 main
 	pdflatex main
 	pdflatex main
+
+code/fmt.tex:
+	pygmentize -f latex -S default \
+		| grep -vw 'PY@tok@m' \
+		| grep -vw 'PY@tok@mi' \
+		| grep -vw 'PY@tok@o' \
+		> $@~
+	mv $@~ $@
+
+code/%.tex: code/%.c
+	pygmentize -P mathescape -f latex $< > $@
+
+pygmentize: code/fmt.tex $(patsubst %.c,%.tex,$(wildcard code/*.c))
 
 clean:
 	rm -f main.pdf main.aux main.bbl main.blg main.log main.out
