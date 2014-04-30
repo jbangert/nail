@@ -1,15 +1,13 @@
 \section{Design}
 \label{s:design}
 
-\subsection{Overview}
- 
+\subsection{Goals}
+\paragraph{Internal Model.}
 Nail grammars describe both the \emph{external format} and an \emph{internal representation} of a
-protocol. Typical grammar languages describe only the former and leave it up to the programmer to
+protocol, as opposed to existing grammar languages describe only the former and leave it up to the programmer to
 construct an internal representation, typically in the form of an abstract syntax tree. 
 
-
 Nail produces the following from a single, descriptive grammmar: 
-
 \begin{itemize}
 \item type declarations for the internal model,
 \item the \textit{parser}, a function to parse a sequence of bytes into an
@@ -19,8 +17,52 @@ sequence of bytes from an instance of the model.
 \end{itemize}
 
 \noindent
-In the rest of this section, we present the design of the Nail language.
 
+\paragraph{Semantic Bijecction.}
+Second, this well-defined internal representation allows Nail to invert the
+parser and generate output, while maintaining a \emph{semantic bijection}, that is, when generating
+the corresponding output to a parser input, the two byte streams will have the same meaning, i.e. be
+interpreted the same by Nail, but might not be identical.
+A bijection in the traditional sense often does not make sense when parsing data formats. 
+Consider a grammar for a text language that tolerates white space, or a binary protocol that tolerates
+arbitrarily long padding.\footnote{Say, the physical layer of most communication
+  protocols is a possibly infinite sequence of symbols that are syntactically
+  nil followed by a pre-determined synchronization sequence and the actual
+  contents of the transmission.} Program semantics should be
+independent of the number of padding elements in the input, and Nail therefore
+does not expose that information to the programmer. We call such discarded
+fields \emph{constants}. 
+Similarly, Nail does not preserve the layout of
+objects referred to by their offsets. If the grammar consists of a simple protocol without offset
+fields, constants and the like, there is a normal bijection between the internal model and valid
+parser inputs.
+\paragraph{Hide redundant information.}
+Nail's internal model is designed to hide unneeded information from the application. The more
+information Nail automatically deduces, the less the application can produce invalid data.
+Therefore, Nail introduces \emph{dependent fields}, which contain data that can be computed during
+generation and needs to be kept as additional state during parsing. 
+
+\paragraph{Allow parser extension.}
+Real-world protocols contain complicated ways of encoding data. Representing these in an
+intentionally limited model such as our parser language is complicated. Therefore, Nail introduces
+\emph{transformations}, which allow arbitrary code by the programmer to interact with the parser and
+generator. Nail parsers and generators interact with data through an abstract stream, which allows
+reading and writing of bits as re-positioning. Transformations allow the programmer to write
+functions in a general purpose language that consume streams and define new temporary streams, while
+also reading or writing the value of dependent fields.
+
+Initial versions of Nail included an offset combinator, which consumed a dependent field and applied
+a parser at the offset specified therein. However, it proved impossible to foresee all the ways in which a protocol could encode an offset, for example
+some protocols such as PDF and ZIP locate structures by scanning for a magic number starting at the
+end of the file or a fixed offset. In nested grammars, offsets are also not necessarily from
+the beginning of a file or packet.
+
+We will introduce transformations, which allow the programmer to write arbitrary functions that can
+handle such structures and streams, which are a generic abstraction for input and output data that
+allow the decoded data to be integrated with the rest of the generated Nail parser.
+
+\XXX[In the rest of this section, we first present the design of the Nail language and then show how
+Nail's features match these goals.]
 \subsection{Basics}
 Nail grammars are a set of rules. Each rule assigns a parser, which can be a reference to another
 rule, a trivial parser describing an integer of a certain width or a combinator that combines
@@ -214,7 +256,8 @@ parsing and generation without exposing them to the internal model.
 
 
 Dependent fields are defined within a structure like normal fields, but their name starts with an \@-sign. 
-A dependent field is in scope and can be referred to by the definition of all subsequent fields in the same structure.
+A dependent field is in scope and can be referred to by the definition of all subsequent fields in
+the same structure. Dependency fields can be passed to rule invocations as parameters.
 
 During parsing, dependent fields are parsed just like other fields, but instead of storing their
 value in a structure that will be returned to the programmer, the parser stores the value in a
@@ -243,59 +286,65 @@ through stream transformation.
 
 \subsection{Input streams and Transformations.}
 
+In order to handle complicated input functions, Nail allows the programmer to
+break out of Nail's generated code in a controlled fashion, by manipulating dependent fields and
+streams. 
+By default, Nail implements streams with in-memory buffers, but the programmer can override this implementation.
+While parsing or generating a Nail grammar, there is always an implicit \emph{current stream} and
+referred to as \texttt{\$current} in the Nail language.
 
-% Data formats often contain redundant information, such as checksums or duplicated values.
-% Conventional parsers expose all this information and validate it manually, which can lead to bugs.
+The programmer can define additional temporary streams by writing a \emph{transformation}, a pair of
+functions, one for parsing and one for generating output. Temporary streams follow the naming and
+scoping convention of dependent fields, but their names start with a \$-sign. 
 
-% Another problem for interface generators is that binary protocols often contain length and offset
-% fields. Conventional parsing algorithms can, in principle, deal with bounded offset fields - a finite
-% automaton can count a bounded integer, by introducing a state for each value. However, such grammars
-% are very large, making the state-machine implementation inefficient and the grammar very complicated.
+The parsing function of the transform takes any number of streams, either temporary or the current,
+and outputs any number of temporary streams. The parsing function may reposition and read from the
+input streams and read the values of dependent fields, but not change their values. The generating
+function has to be an inverse of the parsing function. It takes the same set of temporary streams
+the parsing function returned and is supposed to change the values of the same set of values the
+generating function produced.
 
-% Nail will properly support both offset and length fields and much of the
-% following discussion applies to both, although the current prototype only
-% implements lengths, which we will focus on.
+The programmer has to guarantee memory safety and unambiguity of the stream transformations. To
+reduce both programmer effort and the risk of unsafe operations, we provide implementations of
+transformations for many common features, such as checksums and size and offset fields. Furthermore,
+we provide library functions that can be used to safely operate on streams, such as splitting and
+concatenation. Nail implements streams as iterators, so they can share underlying buffers and can be
+efficiently duplicated and split.
 
-% We call length or offset fields \textit{dependent fields}, because during
-% parsing, another parser depends on them, and while generating output, their
-% value depends on some other structure in the data model. Dependency fields
-% appear in a structure combinator as would any other integer field, but
-% their name begins with an \texttt{@} sign.  A dependency field has to
-% appear in the grammar before it can be used.
+Transformations can handle a wide variety of patterns in data formats, including the following: 
+\paragraph{Offsets.}
+We provide a transform for handling offset fields that is invoked as follows:
+\texttt{$fragment transform offset\_u32($file_stream, @offset)}. 
+They are implemented by two  functions:
+\begin{figure}[tb]
+\begin{verbatim}
+int offset_u32_parse(NailStream *out_fragment,NailStream *in_current,const uint32_t *off){
+   out_fragment = suffix of in_current at offset off
+}
+int offset_u32_generate(NailStream *in_fragment, NailStream *out_current,uint32_t *off){
+   off = position of out_current
+   append in_fragment to out_current
+}
+\end{verbatim}
+\caption{Pseudocode for the two C functions implementing an offset transformation.}
+\end{figure}
 
-% Dependency fields are not exposed in the data model, but instead are
-% transparently computed.  This frees the developer from checking that
-% these fields are correct (for input) or having to keep their values in
-% sync with the rest of the data structure (for output).
 
-% \paragraph{Length fields.}
+\paragraph{Sizes.}
+A similar transform handles size fields. Just like the offset transform, it takes two parameters, a
+stream and a dependent field, but instead of returning the suffix of the current stream after an
+offset, it returns a slice of the given size from the current stream starting at its current
+position. When generating, it appends the fragment stream to the current stream and writes the size
+of the fragment to the dependent field.
 
-% The length combinator, \texttt{n_of}, takes a dependency field $n$
-% and a parser, evaluates the parser exactly $n$ times (i.e., setting
-% the number of iterations to be the $n$ field's value), and returns
-% an array of the parser's values. When generating output, it emits
-% the array and writes its length to the dependency field.
+\paragraph{Compressed data.}
+Transforms can handle encoded or compressed data. \XXX[More]
+\paragraph{Checksum}
+Checksums can also be implemented using transform \XXX[How?]
 
-% \paragraph{Offsets.}
 
-% The \texttt{offset} combinator takes a dependency field and a parser. It
-% moves the parser to the position specified in the offset field and
-% invokes the inner parser, and then moves the input back to its original
-% position.  While generating output, all structures referred to by offset
-% are generated after the main structure and the dependent offset fields
-% are patched up.
-
-% \paragraph{Checksums.}
-
-% In many data formats, some values depend on external representation,
-% such as checksums and cryptographic signatures.  While it would be
-% possible to extend our constraint language to be powerful enough to
-% support such constructs, we would essentially be building a separate,
-% Turing-complete language that has all the same pitfalls existing programs
-% have.  Therefore, we intend to allow the programmer to carefully escape
-% Nail's programming model and write a function that takes a pointer to
-% the dependent value and a range of bytes, using the \texttt{raw_depend}
-% combinator.
+\noindent A real-world example with many different transforms is explained in Section~\ref{s:eval-format-zip}.
+ 
 
 % For example, we imagine the following grammar could be used to represent
 % a sequence of bytes \texttt{data} followed by its CRC32 checksum:

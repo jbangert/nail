@@ -60,7 +60,7 @@ suffix as an input and can scan the packet so far for previous occurrences.
 \paragraph{Ethernet}
 \XXX[TODO]
 \paragraph{ZIP Files.}
-
+\label{s:eval-format-zip}
 Another particularly tricky file format is the ZIP compressed archive format\cite{pkzip}.
 ZIP files are normally parsed end-to-beginning. At the end of each ZIP file is an \emph{end-of-directory
 header}. This header contains a variable length comment, so it has to be located by scanning
@@ -165,6 +165,7 @@ lines of C.
 \paragraph{Network stack.}
 \XXX[Write this up]
 \subsection{Security.} 
+\XXX[Add PROTOS genome CVE's. count]
  \XXX[The ZIP format has been associated with many vulnerabilities, and the PROTOS Genome project found numerous
 security vulnerabilities in most implementations of ZIP and other archive formats. Furthermore,
 Android security has been completely by-passed multiple times through parsing differentials in

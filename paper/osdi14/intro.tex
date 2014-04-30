@@ -80,22 +80,8 @@ transform between the AST and the parser output. Instead, Nail derives the
 structure of its output automatically from the grammar, forcing the programmer
 to clearly separate syntactic validation and semantic processing.
 
-Second, this well-defined internal representation allows Nail to invert the
-parser and generate output, while maintaining a \emph{semantic bijection}.
-A bijection in the traditional sense often does not make sense when parsing data formats. 
-Consider a grammar for a
-text language that tolerates white space, or a binary protocol that tolerates
-arbitrarily long padding.\footnote{Say, the physical layer of most communication
-  protocols is a possibly infinite sequence of symbols that are syntactically
-  nil followed by a pre-determined synchronization sequence and the actual
-  contents of the transmission.} Program semantics should be
-independent of the number of padding elements in the input, and Nail therefore
-does not expose that information to the programmer. We call such discarded
-fields \emph{constants}. 
-Similarly, Nail does not preserve the layout of
-objects referred to by their offsets. If the grammar consists of a simple protocol without offset
-fields, constants and the like, there is a normal bijection between the internal model and valid
-parser inputs.
+Second, this well-defined internal representation allows Nail to generate the external format from
+the internal representation, without requiring the programmer to write additional code.
 
 % \XXX[Currently, Nail always makes a default choice when
 % there are multiple options to express a constant, however Nail could be extended
@@ -112,12 +98,11 @@ parser inputs.
 % constants are only used for their intended purpose of representing syntax-only
 % features, the generated output will have the same semantics as the parsed input.
 
-Third, Nail introduces two abstractions, \emph{dependent fields} and \emph{structural transformations}, to
-elegantly handle problematic features of data formats. Dependent fields are fields in the protocol
-whose value depends in some way on the value or layout of other parts of the protocol, such as
-length, offset and checksum fields. Structural transformations allow the programmer to write a pair
-of functions that transforms the \XXX[TODO]
-
+Third, Nail introduces two abstractions, \emph{dependent fields} and \emph{transformations}, to
+elegantly handle problematic structures, such as offset fields or checksums. Dependent fields are
+fields in the protocol whose value depends in some way on the value or layout of other parts of the
+format. Transformations allow the programmer to escape the generated code to modify the raw data and
+interact with dependent fields in a controlled manner. 
 
 We have implemented a prototype of Nail for C\@.  Our experience
 so far suggests that it is a promising approach: we were able to construct
