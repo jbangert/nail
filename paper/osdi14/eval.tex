@@ -24,17 +24,26 @@ In our evaluation of Nail, we try to answer four questions:
 \label{s:eval-formats}
 To answer the first question, we implemented grammars for four protocols with particularly
 challenging features and show that Nail is a good fit for these data formats and some aspects of
-these formats would be very hard to parse with other parser generators.
+these formats would be very hard to parse with other parser generators. The following table lists
+our example grammars, along with any features that make those protocols hard or impossible to handle
+with existing grammar languages and the size of the grammar and its associated transform functions
+measured in lines of code.
+
+\begin{tabular}{l|l|l}
+\textbf{Protocol} & \textbf{LOC} & \textbf{Problematic features} \\ \hline
+DNS messages &  48+64 & Label compression\\
+& & Count fields \\
+ZIP archives & 92 + 78 & Checksums, \\ 
+& & compression, offsets, \\
+& &  variable length trailer\\ 
+Ethernet frames & 16 & \\
+ARP &  10  & \\
+IP &  25 & Total Length field, options \\
+UDP & 7 & Checksum, Length field \\
+ICMP & 5 & Checksum \\
 
 
-
-In particular, we show extracts from grammars for the following protocols: 
-\begin{itemize}
-\item DNS messages.
-\item Ethernet packets containing ARP, ICMP and UDP.
-\item ZIP files.
-
-\end{itemize}
+\end{tabular}
 
 \subsubsection{DNS.}
 
@@ -145,6 +154,17 @@ also compare a toy DNS server implemented in Nail with a similar toy DNS server 
 example for the Hammer parser generator. All code size measurements for C were performed by
 SlocCount\cite{sloccount}.
 
+\noindent We implemented the following applications and compare them to applications written without
+Nail:
+
+\noindent\begin{tabular}{l | l | l }
+\textbf{System} & \textbf{Nail LoC}  & \textbf{LoC w/o Nail} \\
+DNS server & 183 + 48 + 64 & 683 (Hammer parser)\\
+&&  ~10.000 (DJBDNS)\\ 
+DNS \texttt{host} tool & 98 + 48 + 64  & \XXX[TODO]\\
+\texttt{unzip} & 50 + 92 + 78 & 1600 (Info-Zip) \\
+
+\end{tabular}
 %%DNS: 
 \paragraph{DNS.}
 
@@ -173,11 +193,9 @@ our DNS server to that of a real world DNS server, since we implement less funct
 we did not implement any configuration options.
 
 However, the closest in functionality and intent is Dan Bernstein's
-djbdns,\footnote{\url{http://cr.yp.to/djbdns.html}} which aims to be
-a minimalist, highly secure DNS server. The latest release of djbdns,
-including various support tools, is about 10,000 lines of C as measured by
-\cc{sloccount}. \XXX[Show that we only count the DNS server parts, not the rest. List some
-features we don't have]
+djbdns,\footnote{\url{http://cr.yp.to/djbdns.html}} which aims to be a minimalist, highly secure,
+authoritative-only DNS server. The latest release of djbdns, including various support tools, is
+about 10,000 lines of C as measured by \cc{sloccount}. DJ
 
 \paragraph{ZIP.}
 

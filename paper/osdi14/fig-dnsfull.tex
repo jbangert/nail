@@ -33,12 +33,12 @@ dnspacket = {
   rcode uint4
   @qc uint16
   @ac uint16
-  uint16 = 0    // authority
-  uint16 = 0    // additional
-  // We don't support authority or
-  // additional sections in the prototype
+  @ns uint16
+  @ar uint16
   questions n_of @qc question
   responses n_of @ac answer
+  authority n_of @ns answer
+  additional n_of @ar answer
 }
 \end{verbatim}
 \caption{Nail grammar for DNS packets, used by our prototype DNS server.}
