@@ -1,20 +1,28 @@
 \section{Evaluation}
 \label{s:eval}
+
 \input{fig-ethernet}
 \input{fig-dnsfull}
 \input{fig-zip}
-In our evaluation of Nail, we try to answer four questions:
+
+Our evaluation of Nail answers four questions:
 
 \begin{itemize}
-\item Can Nail grammars support real-world data formats and are Nail's concepts critical to handling
-  them?
+
+\item Can Nail grammars support real-world data formats, and
+      are Nail's techniques critical to handling these formats?
+
 \item How much programmer effort is required to build an
       application that uses Nail for data input and output?
-\item Do applications handling input and output with Nail suffer from less security vulnerabilities?
-\item How fast are systems using Nail parsers as opposed to hand-written input handling? 
+
+\item Does using Nail for handling input and output improve
+      application security?
+
+\item Does Nail achieve acceptable performance?
+
 \end{itemize}
 
-\subsection{Data formats.}
+\subsection{Data formats}
 \label{s:eval-formats}
 To answer the first question, we implemented grammars for four protocols with particularly
 challenging features and show that Nail is a good fit for these data formats and some aspects of
@@ -98,7 +106,7 @@ The results suggest that Nail is a good fit for these data formats.
 
 
 
-\subsection{Programmer effort.}
+\subsection{Programmer effort}
 
 
 %code size unzip 6.0
@@ -164,14 +172,14 @@ lines of C.
 
 \paragraph{Network stack.}
 \XXX[Write this up]
-\subsection{Security.} 
+\subsection{Security} 
  \XXX[The ZIP format has been associated with many vulnerabilities, and the PROTOS Genome project found numerous
 security vulnerabilities in most implementations of ZIP and other archive formats. Furthermore,
 Android security has been completely by-passed multiple times through parsing differentials in
 handling ZIP files\cite{saurik-masterkey}. mention talk by Julia Wolf about zip]. 
 Fuzz DNS. Fuzz ZIP. Design argument that security is hard to show. 
 
-\subsection{Performance.}
+\subsection{Performance}
 \input{fig-perf-dns}
 To estimate the performance impact of using Nail grammars as opposed to hand-written grammars, we
 benchmarked our DNS server against BIND \XXX[and our network stack against \texttt{lwip-tap}, a userspace
