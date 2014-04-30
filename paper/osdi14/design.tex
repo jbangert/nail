@@ -273,16 +273,13 @@ for count fields. For example, DNS labels are encoded as Pascal-style strings - 
 the value of the label. The Nail grammar for DNS packets in Figure~\ref{fig:dns-full} represents
 this pattern as follows:
 
-\begin{figure}[tb]
 \begin{verbatim}
 { @length uint8 | 1..64
   label n_of @length uint8 }
 \end{verbatim}
-\caption{Nail grammar for uncompressed DNS labels.}
-\end{figure}
 
 Other dependencies, such as offset fields or checksums are not handled directly by combinators, but
-through stream transformation.
+through  transformations.
 
 \subsection{Input streams and Transformations.}
 
@@ -293,11 +290,13 @@ By default, Nail implements streams with in-memory buffers, but the programmer c
 While parsing or generating a Nail grammar, there is always an implicit \emph{current stream} and
 referred to as \texttt{\$current} in the Nail language.
 
-The programmer can define additional temporary streams by writing a \emph{transformation}, a pair of
-functions, one for parsing and one for generating output. Temporary streams follow the naming and
+The programmer can define additional streams by writing a \emph{transformation}, a pair of
+functions, one that generates new streams from existing streams during parsing and one that
+combines streams during output generation. Temporary streams follow the naming and
 scoping convention of dependent fields, but their names start with a \$-sign. 
 
-The parsing function of the transform takes any number of streams, either temporary or the current,
+
+The parsing function of the transformation takes any number of streams, either temporary or the current,
 and outputs any number of temporary streams. The parsing function may reposition and read from the
 input streams and read the values of dependent fields, but not change their values. The generating
 function has to be an inverse of the parsing function. It takes the same set of temporary streams
@@ -313,34 +312,43 @@ efficiently duplicated and split.
 
 Transformations can handle a wide variety of patterns in data formats, including the following: 
 \paragraph{Offsets.}
-We provide a transform for handling offset fields that is invoked as follows:
-\texttt{$fragment transform offset\_u32($file_stream, @offset)}. 
-They are implemented by two  functions:
-\begin{figure}[tb]
+We provide a transformation for handling offset fields that is invoked as follows:
+\texttt{\$fragment transform offset\_u32(\$file\_stream, \@offset)}. 
+They are implemented by these two pseudocode functions:
 \begin{verbatim}
-int offset_u32_parse(NailStream *out_fragment,NailStream *in_current,const uint32_t *off){
-   out_fragment = suffix of in_current at offset off
+int offset_u32_parse(NailArena *tmp,
+ NailStream *out_str,
+ NailStream *in_current,const uint32_t *off){
+ out_str = suffix of in_current at offset off
 }
-int offset_u32_generate(NailStream *in_fragment, NailStream *out_current,uint32_t *off){
+int offset_u32_generate(NailArena *tmp,
+  NailStream *in_fragment,
+  NailStream *out_current,
+  uint32_t *off){
    off = position of out_current
    append in_fragment to out_current
 }
 \end{verbatim}
-\caption{Pseudocode for the two C functions implementing an offset transformation.}
-\end{figure}
 
 
 \paragraph{Sizes.}
-A similar transform handles size fields. Just like the offset transform, it takes two parameters, a
+A similar transformation handles size fields. Just like the offset transform, it takes two parameters, a
 stream and a dependent field, but instead of returning the suffix of the current stream after an
 offset, it returns a slice of the given size from the current stream starting at its current
 position. When generating, it appends the fragment stream to the current stream and writes the size
 of the fragment to the dependent field.
 
 \paragraph{Compressed data.}
-Transforms can handle encoded or compressed data. \XXX[More]
-\paragraph{Checksum}
-Checksums can also be implemented using transform \XXX[How?]
+Encoded, compressed or encrypted data can be handled transparently by writing a custom
+transformation that transforms a coded stream into one that can be parsed by a Nail grammar and vice
+versa. Usually, this involves calling an existing library.
+
+\paragraph{Checksums.}
+Checksums can be verified and computed in a transformation that takes a stream and a dependent
+field. In some cases, a checksum is calculated over a buffer that contains the checksum itself, with
+the checksum being set to some particular value. Because the functions implementing a transformation
+are passed a pointer to any dependent fields, the checksum function can set the checksums initial
+value before calculating the checksum over the entire buffer, including the checksum.
 
 
 \noindent A real-world example with many different transforms is explained in Section~\ref{s:eval-format-zip}.
