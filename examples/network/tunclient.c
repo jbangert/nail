@@ -94,17 +94,18 @@ void make_ip(ethernet *eth, struct phy_iface *iface){
 void send_frame(ethernet *packet,struct phy_iface *iface){
         const char *buf;
         size_t len;
-        HBitWriter *writer = h_bit_writer_new(&system_allocator);
-        gen_ethernet(writer,packet);
+        NailStream out;
+        NailOutStream_init(&out,4096);
+        gen_ethernet(&out,packet);
         buf =  h_bit_writer_get_buffer(writer,&len);
         write(iface->tun_fd,buf,len);
-        h_bit_writer_free(writer);
+        NailOutStream_release(&out);
 }
 void prepare_ethernet(ethernet *eth, struct phy_iface *iface){
         switch(eth->payload.N_type){
         case ARP:
-                memcpy(eth->dest,eth->payload.ARP.targethost,sizeof(eth->dest));
-                memcpy(eth->src,eth->payload.ARP.senderhost,sizeof(eth->src));
+                memcpy(eth->dest,eth->payload.arp.targethost,sizeof(eth->dest));
+                memcpy(eth->src,eth->payload.arp.senderhost,sizeof(eth->src));
 
                 //TODO: Prepare VLAN trunking. Is a host ever supposed to see VLAN trunking? 
                 break;
@@ -124,12 +125,12 @@ void process_arp(arpfour *arp, struct phy_iface *i, ethernet *eth){
                         //Send response, with our MAC
                         ethernet response;
                         response.payload.N_type = ARP;
-                        response.payload.ARP.operation = 2;
+                        response.payload.arp.operation = 2;
                         response.vlan = NULL;
-                        memcpy(response.payload.ARP.senderhost,i->mac,sizeof(macaddr));
-                        response.payload.ARP.senderip = i->ip.ip;
-                        memcpy(response.payload.ARP.targethost,arp->senderhost,sizeof(macaddr));
-                        response.payload.ARP.targetip = arp->senderip;
+                        memcpy(response.payload.arp.senderhost,i->mac,sizeof(macaddr));
+                        response.payload.arp.senderip = i->ip.ip;
+                        memcpy(response.payload.arp.targethost,arp->senderhost,sizeof(macaddr));
+                        response.payload.arp.targetip = arp->senderip;
                         prepare_ethernet(&response,i);
                         send_frame(&response,i);
                 }
@@ -143,7 +144,7 @@ void process_arp(arpfour *arp, struct phy_iface *i, ethernet *eth){
 #define IP_BROADCAST 0xFFFFFFFF
 void process_ip(ipfour *ip, struct ip_iface *i){
         //TODO: Handle fragmentation 
-        if(ip->dest != i->ip && ip->dest != i->broadcast && ip->dest !=  IP_BROADCAST)
+        if(ip->packet.dest != i->ip && ip->packet.dest != i->broadcast && ip->packet.dest !=  IP_BROADCAST)
                 return; 
         //TODO: Deal with the rest of the protocol
 }
@@ -154,9 +155,9 @@ void process_icmp(icmp *icmp, struct iface *i,ethernet *eth){
                 memcpy(&reply.src,eth->dest,sizeof(macaddr));
                 reply.vlan = eth->vlan;
                 reply.payload.N_type = ICMP;
-                reply.payload.ICMP.type = 0; // Echo reply
-                reply.payload.ICMP.code = 0;
-                reply.payload.ICMP.data = icmp->data;
+                reply.payload.icmp.type = 0; // Echo reply
+                reply.payload.icmp.code = 0;
+                reply.payload.icmp.data = icmp->data;
                 send_frame(&reply,i);
         }
 }
@@ -169,13 +170,13 @@ void process_frame(ethernet *frame, struct phy_iface *i ){
         }
         switch(frame->payload.N_type){
         case ARP: 
-                process_arp(&frame->payload.ARP, i, frame);
+                process_arp(&frame->payload.arp, i, frame);
                 break;
         case IPFOUR:
-                process_ip(&frame->payload.IPFOUR,&i->ip);
+                process_ip(&frame->payload.ipfour,&i->ip);
                 break;
         case ICMP:
-                process_icmp(&frame->payload.ICMP,i, frame);
+                process_icmp(&frame->payload.icmp,i, frame);
                 break;
         }
 }

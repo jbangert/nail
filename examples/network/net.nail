@@ -1,10 +1,13 @@
 macaddr = [6]uint8
+
 udp = {
     source      uint16 
     destination uint16 
     @length      uint16 
     checksum uint16 
-    payload n_of @length uint8 
+    $content transform size_u16(@length $current)
+    payload apply $content (many uint8)
+
 }
 arpfour = {
     uint16 = 1//HTYPE = ETHERNET
@@ -20,31 +23,34 @@ arpfour = {
 icmp = {
      type uint8 
      code uint8
-     checksum uint16
+     checksum uint16 // TODO: Compute UDP checksum 
      data uint32
 }
 ipfour = {
-       uint4 = 4 // version
-//       ihl  uint4 // header length, TODO: 
-         uint4 = 5
-       dscp uint6
-       ecn  uint2 
-       totallength uint16
-       ident uint16
-       uint1 = 0
-       df uint1 
-       mf uint1
-       fragmentoff uint13
-       ttl uint8
-       uint8 = 17
-//       protocol uint8
-       hdrchecksum uint16 //We need some way to compute this dependency...
-       source uint32
-       dest uint32
-       payload udp // This really needs fixing
-//       payload length @total_length - 20 switch @protocol {
-//               UDP=17=udp
-//       }
+       $ippacket transform tail($current)
+       packet  apply $ippacket {
+              uint4 = 4 //version 
+              @ihl uint4
+              dscp uint6
+              ecn  uint2 
+              @totallength uint16
+              ident uint16
+              uint1 = 0
+              df uint1 
+              mf uint1
+              fragmentoff uint13
+              ttl uint8
+              protocol uint8  | [17]
+              @hdrchecksum uint16
+              source uint32
+              dest uint32
+              $options transform ip_header($current @ihl)     
+
+              $header transform head($current)
+              transform ip_checksum($header @hdrchecksum)
+              payload udp // This really needs fixing       
+              transform check_offset($current @totallength)
+        }               
 }
 ethernet = { 
            dest macaddr
