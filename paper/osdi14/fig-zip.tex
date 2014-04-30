@@ -2,25 +2,26 @@
 \smaller[0.5]
 \begin{verbatim}
 zip_file = { 
- $file, $header transform 
+  $file, $header transform 
     zip_end_of_directory ($current)
   contents apply $header
-    end_of_directory($file)
+    end_of_directory ($file)
 }
-end_of_directory($file) = {//[...]
- @directory_size uint32 
- @directory_start uint32
- $dirstr1 transform offset_u32 
-     ($filestream @directory_start) 
- $directory_stream transform size_u32 
-     ($dirstr1 @directory_size)
- @comment_length uint16
- comment n_of @comment_length uint8
- files apply $directory_stream n_of 
-     @total_directory_records dir_entry($file)
+end_of_directory ($file) = {
+  // ...
+  @directory_size uint32 
+  @directory_start uint32
+  $dirstr1 transform
+    offset_u32 ($filestream @directory_start)
+  $directory_stream transform
+    size_u32 ($dirstr1 @directory_size)
+  @comment_length uint16
+  comment n_of @comment_length uint8
+  files apply $directory_stream n_of 
+    @total_directory_records dir_entry ($file)
 }
-dir_entry($file) = {
-//[...]  
+dir_entry ($file) = {
+  // ...
   @compression_method uint16      
   mtime uint16
   mdate uint16
@@ -29,31 +30,33 @@ dir_entry($file) = {
   @uncompressed_size uint32
   @file_name_len uint16
   @extra_len uint16
-  @comment_len uint16//[...]
+  @comment_len uint16
+  // ...
   @off uint32
   filename n_of @file_name_len uint8
   extra_field n_of @extra_len uint8
   comment n_of @comment_len uint8
   $content transform offset_u32 ($file @off)
-  contents apply $content file(@crc32,
-     @compression_method,@compressed_size, 
-     @uncompressed_size)
+  contents apply $content
+    file (@crc32, @compression_method,
+          @compressed_size, @uncompressed_size)
 }
-file(@crc32 uint32, @method uint16,
- @compressed_size uint32, 
- @uncompressed_size uint32) = { 
+file (@crc32 uint32, @method uint16,
+      @compressed_size uint32,
+      @uncompressed_size uint32) = {
   uint32 = 0x04034b50
   version uint16
   flags file_flags
-  @method_lcl uint16//[...]
-  $compressed transform size_u32 
-           ($current @compressed_size)
-  $uncompressed transform zip_compression 
-           ($compressed @method )
+  @method_lcl uint16
+  // ...
+  $compressed transform
+    size_u32 ($current @compressed_size)
+  $uncompressed transform
+    zip_compression ($compressed @method)
   transform crc_32 ($uncompressed @crc32)
   contents apply $uncompressed many uint8
   transform u16_depend (@method_lcl @method)
-  //[...]
+  // ...
 }
 \end{verbatim}
 \caption{Nail grammar for ZIP files. Various fields have been cut for brevity.}
