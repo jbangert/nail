@@ -40,10 +40,14 @@ dnspacket = {
   responses n_of @ac answer
 }
 \end{verbatim}
-The program
+The programmer also has to provide implementations of these two functions to handle DNS compression:
 \begin{verbatim}
-int dnscompress_parse(NailArena *tmp,NailStream *str_decompressed, NailStream *current);
-int dnscompress_generate(NailArena *tmp,NailStream *str_compressed, NailStream *current);
+int dnscompress_parse(NailArena *tmp,
+  NailStream *out_decomp, 
+  NailStream *in_current);
+int dnscompress_generate(NailArena *tmp,
+ NailStream *in_decomp, 
+ NailStream *out_current);
 \end{verbatim}
 \caption{Nail grammar for DNS packets, used by our prototype DNS server.}
 \label{fig:dns-full}

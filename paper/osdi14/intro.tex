@@ -54,7 +54,8 @@ Third, many data formats contain redundancies, such as repeating information in 
 Applications usually do not explicitly check for consistency, and if different applications use
 different instances of the same value, an attacker can craft input that causes inconsistencies.
 Furthermore, security vulnerability can occur when an application assumes two repetitions of the
-same data to be consistent.
+same data to be consistent, such as allocating a buffer based on one size field and copying into
+that buffer based on another.
 
 Finally, data formats, for example PNG or PDF, contain features that are hard to represent with
 existing parser generators. Some features, such as length and checksum fields, require the parser to
