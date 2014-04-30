@@ -99,7 +99,7 @@ output generation.
 % Frequently, this execution environment can either
 % then directly manipulate data in unwanted ways or be used to make
 % exploiting another bug feasible.\footnote{For example, by compiling a
-% return-oriented-programming exploit from code fragments discovered on
+% return-oriented-programming exploit from code fragments discoverepd on
 % the fly.} Examples include x86 page tables~\cite{bangert2013page}, and
 % ELF symbols and relocations~\cite{shapiro2013weird}. In the offensive
 % research community, this has been generalized into treating a program
@@ -115,12 +115,12 @@ output generation.
 % processed by the program until the invalid sections are encountered.
 
 
-Proper input recognition has  been shown to be an excellent way of
-eliminating ambiguous inputs. In one case, a  PDF parser implemented in
-Coq could eliminate over $95\%$ of known malicious PDFs~\cite{Bogk-PDF}.
-However, manually writing parser code does not scale to the number of
-file formats  and protocols in existence and might result in parser code
-tied to one specific application.
+Proper input recognition has been shown to be an excellent way of eliminating ambiguous inputs. In
+one case, a PDF parser implemented in Coq could eliminate over $95\%$ of known malicious
+PDFs~\cite{Bogk-PDF}. The same project also produced a ``counter-example'' PDF that triggered
+numerous bugs in other PDF parsers. However, manually writing parser code and proving unambiguity
+does not scale to the number of file formats and protocols in existence and might result in parser
+code tied to one specific application.
 
 
 %%This is supposed to go into design

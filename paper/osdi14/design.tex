@@ -42,28 +42,26 @@ sequence of bytes from an instance of the model.
 \noindent
 
 \paragraph{Semantic Bijecction.}
-Second, this well-defined internal representation allows Nail to invert the
-parser and generate output, while maintaining a \emph{semantic bijection}, that is, when generating
-the corresponding output to a parser input, the two byte streams will have the same meaning, i.e. be
-interpreted the same by Nail, but might not be identical.
-A bijection in the traditional sense often does not make sense when parsing data formats. 
-Consider a grammar for a text language that tolerates white space, or a binary protocol that tolerates
-arbitrarily long padding.\footnote{Say, the physical layer of most communication
-  protocols is a possibly infinite sequence of symbols that are syntactically
-  nil followed by a pre-determined synchronization sequence and the actual
-  contents of the transmission.} Program semantics should be
-independent of the number of padding elements in the input, and Nail therefore
-does not expose that information to the programmer. We call such discarded
-fields \emph{constants}. 
-Similarly, Nail does not preserve the layout of
-objects referred to by their offsets. If the grammar consists of a simple protocol without offset
-fields, constants and the like, there is a normal bijection between the internal model and valid
-parser inputs.
+Second, in order to generate output, Nail maintaining
+a \emph{semantic bijection} between the external format and the internal model. That is, when
+generating the corresponding output to a parser input, the two byte streams will have the same
+meaning, i.e. be interpreted the same by Nail, but might not be identical.
+ A bijection in the traditional sense often does not make sense for data
+formats. Consider a grammar for a text language that tolerates white space, or a binary protocol
+that tolerates arbitrarily long padding.
+%\footnote{Say, the physical layer of most communication
+%  protocols is a possibly infinite sequence of symbols that are syntactically nil followed by a
+%  pre-determined synchronization sequence and the actual contents of the transmission.}
+ Program semantics should be independent of the number of padding elements in the input, and Nail therefore
+does not expose that information to the programmer. We call such discarded fields \emph{constants}.
+Similarly, Nail does not preserve the layout of objects referred to by their offsets. If the grammar
+consists of a simple protocol without offset fields, constants and the like, there is a conventional
+bijection between  internal models and valid parser inputs.
 \paragraph{Hide redundant information.}
-Nail's internal model is designed to hide unneeded information from the application. The more
-information Nail automatically deduces, the less the application can produce invalid data.
-Therefore, Nail introduces \emph{dependent fields}, which contain data that can be computed during
-generation and needs to be kept as additional state during parsing. 
+Nail's internal model is designed to hide unneeded and redundant information from the application.
+Nail introduces \emph{dependent fields}, which contain data that can be computed during generation
+and needs to be kept as additional state during parsing. Dependent fields are for example used to represent
+lengths, offsets and checksums.
 
 \paragraph{Allow parser extension.}
 Real-world protocols contain complicated ways of encoding data. Representing these in an
@@ -80,7 +78,7 @@ some protocols such as PDF and ZIP locate structures by scanning for a magic num
 end of the file or a fixed offset. In nested grammars, offsets are also not necessarily from
 the beginning of a file or packet.
 
-We will introduce transformations, which allow the programmer to write arbitrary functions that can
+Nail introduce transformations, which allow the programmer to write arbitrary functions that can
 handle such structures and streams, which are a generic abstraction for input and output data that
 allow the decoded data to be integrated with the rest of the generated Nail parser.
 
