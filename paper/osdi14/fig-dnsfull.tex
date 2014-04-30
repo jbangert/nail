@@ -1,9 +1,10 @@
 \begin{figure}
+\smaller[0.5]
 \begin{verbatim}
 labels = <many { @length uint8 | 1..64
                  label n_of @length uint8 }
           uint8 = 0>
-compressed ={
+compressed = {
   $decompressed transform dnscompress($current)
   labels apply $decompressed labels
 }
@@ -39,15 +40,6 @@ dnspacket = {
   questions n_of @qc question
   responses n_of @ac answer
 }
-\end{verbatim}
-The programmer also has to provide implementations of these two functions to handle DNS compression:
-\begin{verbatim}
-int dnscompress_parse(NailArena *tmp,
-  NailStream *out_decomp, 
-  NailStream *in_current);
-int dnscompress_generate(NailArena *tmp,
- NailStream *in_decomp, 
- NailStream *out_current);
 \end{verbatim}
 \caption{Nail grammar for DNS packets, used by our prototype DNS server.}
 \label{fig:dns-full}

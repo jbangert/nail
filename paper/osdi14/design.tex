@@ -74,21 +74,21 @@ grammar does not depend on these semantic labels.
 
 \paragraph{Integers and Constraints}
 \begin{figure}[tb]
-\begin{tabular}{ll}
+\begin{tabular}{@{}ll@{}}
 \toprule
 \bf Syntax & \bf Semantics \\
 \midrule
-\texttt{int32} & 32-bit signed integer \\
-\multirow{2}{*}{\texttt{uint4}}
+\cc{int32} & 32-bit signed integer \\
+\multirow{2}{*}{\cc{uint4}}
   & 4-bit unsigned integer, \\
   & returned as an 8-bit value \\
-\multirow{2}{*}{\texttt{uint8 | 1..3}}
+\multirow{2}{*}{\cc{uint8 | 1..3}}
   & 8-bit unsigned integer, \\
   & $1\leq x \leq 3$ \\
-\multirow{2}{*}{\texttt{uint16 | [1,2]}}
+\multirow{2}{*}{\cc{uint16 | [1,2]}}
   & unsigned 16-bit integer, \\
   & $x \in \{1,2\}$ \\
-\multirow{2}{*}{\texttt{int32 | [1,5..255,512]}}
+\multirow{2}{*}{\cc{int32 | [1,5..255,512]}}
   & signed 32 bit integer, \\
   & $x \in \{ 1, 512 \} \vee 5\leq x\leq 255$ \\
 \bottomrule
@@ -120,14 +120,14 @@ until it fails, returning an array of the inner parsers results. The
 additionally takes a constant parser, which it applies in between parsing
 two values, but not before parsing the first value or after parsing the
 last.
-For example, \texttt{many uint8} represents an array of 8-bit unsigned
-integers, and \texttt{sepBy uint8=',' (many uint8 | '0'..'9')} recognizes
+For example, \cc{many uint8} represents an array of 8-bit unsigned
+integers, and \cc{sepBy uint8=',' (many uint8 | '0'..'9')} recognizes
 comma-separated lists of decimal numbers.
 
 \paragraph{Structures.}
 
 \begin{figure}[tb]
-
+\smaller[0.5]
 \begin{minipage}{0.45\columnwidth}
 \begin{verbatim}
 dns_header = {
@@ -160,7 +160,7 @@ struct dns_header {
 \end{minipage}
 
 \caption{Nail grammar (left) and data model (right) for a part of the
-grammar for DNS packets.  The \texttt{uint3 = 0} grammar represents
+grammar for DNS packets.  The \cc{uint3 = 0} grammar represents
 3 bits of padding (filled with zeroes).}
 \label{fig:dns-struct}
 \end{figure}
@@ -182,12 +182,12 @@ In some cases, not all bytes in a structure actually contain information, such a
 reserved fields. Those fields can be represented in Nail grammars by constant fields in structures.
 Constant fields do not correspond to a field in the internal model, but they are validated during
 parsing and generated during output.  Constants can either have integer values, such as
-\texttt{uint3=0} or string values for text-based protocols, e.g. \texttt{many uint8 = ``Foo''}.
+\cc{uint3 = 0} or string values for text-based protocols, e.g. \cc{many uint8 = ``Foo''}.
 
 In some protocols, there might be many ways to represent the same constant field
 and there is no semantic difference between the different syntactic representations.
-Nail therefore allows repeated constants, such as \texttt{many (uint8=' ')}, which parses any number of space characters, or
-\texttt{|| uint8 = 0x90 || uint16 = 0x1F0F}, which parses two of the many representations for X86
+Nail therefore allows repeated constants, such as \cc{many (uint8=' ')}, which parses any number of space characters, or
+\cc{|| uint8 = 0x90 || uint16 = 0x1F0F}, which parses two of the many representations for X86
 NOP instructions, which are used as padding between basic blocks in an executable. 
 
 As discussed above, choosing to use these combinators on constant parsers
@@ -206,14 +206,14 @@ single value in another structure, making the application-visible representation
 (and thus application code) more concise.
 
 
-For example, \texttt{word= <uint8='"'; many int8 | 'a'..'z'; uint8='"'>} parses a quoted
+For example, \cc{word=<uint8='"'; many int8 | 'a'..'z'; uint8='"'>} parses a quoted
 lowercase word into an array.
 
 \paragraph{References.}
-To support recursive structures, we include a reference combinator \texttt{*}, which is
+To support recursive structures, we include a reference combinator \cc{*}, which is
 syntactically equivalent to directly including the parser, but in the internal model adds a level of
 indirection to the value. This allows recursive structures to be parsed, for example, balanced
-parentheses could be parsed as follows: \texttt{paren = < uint8 ="("; optional *paren ;uint8=")">}
+parentheses could be parsed as follows: \cc{paren = < uint8 ="("; optional *paren ;uint8=")">}
 
 \paragraph{Choices.}
 Our choice combinator takes multiple labelled parsers and tries each of them in turn, backtracking
@@ -223,20 +223,17 @@ Internally, the choice combinator represents choices as tagged unions.
 
 If two options the same string could be parser by two options, generated output for the latter
 option is not necessarily understood identically by the parser. However, actual data formats are
-usually not ambiguous in this sense. Figure~\ref{fig:choice} demonstrates a simple choice
+usually not ambiguous in this sense.
+For example, Figure~\ref{fig:choice} demonstrates a simple choice
 combinator.
 
-Nail also includes an \texttt{optional} combinator, which attempts to recognise a value, but succeeds
-without consuming input when it cannot recognise that value. Syntactically, \texttt{optional} is
-equivalent to a choice between the parser and an empty structure, but in the internal model it is
-more concisely represented as a reference that is null when the parser fails.
-
-\begin{figure}[tb]
+\begin{figure}[h!]
+\smaller[0.5]
 \begin{verbatim}
-choose {
-  A = uint8 | 1..8
-  B = uint16 | ..256
-}
+  choose {
+    A = uint8 | 1..8
+    B = uint16 | ..256
+  }
 \end{verbatim}
 \caption{A simple choice combinator that parses either an 8-bit unsigned
 integer with a value between 1 and 8 (option A), or a 16-bit unsigned
@@ -244,6 +241,10 @@ integer with a value of at most 256 (option B).}
 \label{fig:choice}
 \end{figure}
 
+Nail also includes an \cc{optional} combinator, which attempts to recognise a value, but succeeds
+without consuming input when it cannot recognise that value. Syntactically, \cc{optional} is
+equivalent to a choice between the parser and an empty structure, but in the internal model it is
+more concisely represented as a reference that is null when the parser fails.
 
 
 
@@ -268,15 +269,20 @@ structure, it will reserve space for the dependent field in the output, but not 
 the dependent field goes out of scope, the generator will backtrack to this space and write the
 dependent fields value.
 
-Nail only provides one built-in combinator, \texttt{n_of} that uses dependency fields, which is used
-for count fields. For example, DNS labels are encoded as Pascal-style strings - a length followed by
-the value of the label. The Nail grammar for DNS packets in Figure~\ref{fig:dns-full} represents
+Nail only provides one built-in combinator, \cc{n_of} that uses dependency fields, which is used
+for count fields. For example, DNS labels are encoded as Pascal-style strings: a length followed by
+the value of the label. The Nail grammar for DNS labels can represent
 this pattern as follows:
 
+{
+\smaller[0.5]
 \begin{verbatim}
-{ @length uint8 | 1..64
-  label n_of @length uint8 }
+  {
+    @length uint8 | 1..64
+    label n_of @length uint8
+  }
 \end{verbatim}
+}
 
 Other dependencies, such as offset fields or checksums are not handled directly by combinators, but
 through  transformations.
@@ -288,7 +294,7 @@ break out of Nail's generated code in a controlled fashion, by manipulating depe
 streams. 
 By default, Nail implements streams with in-memory buffers, but the programmer can override this implementation.
 While parsing or generating a Nail grammar, there is always an implicit \emph{current stream} and
-referred to as \texttt{\$current} in the Nail language.
+referred to as \cc{\$current} in the Nail language.
 
 The programmer can define additional streams by writing a \emph{transformation}, a pair of
 functions, one that generates new streams from existing streams during parsing and one that
@@ -313,22 +319,15 @@ efficiently duplicated and split.
 Transformations can handle a wide variety of patterns in data formats, including the following: 
 \paragraph{Offsets.}
 We provide a transformation for handling offset fields that is invoked as follows:
-\texttt{\$fragment transform offset\_u32(\$file\_stream, \@offset)}. 
-They are implemented by these two pseudocode functions:
-\begin{verbatim}
-int offset_u32_parse(NailArena *tmp,
- NailStream *out_str,
- NailStream *in_current,const uint32_t *off){
- out_str = suffix of in_current at offset off
-}
-int offset_u32_generate(NailArena *tmp,
-  NailStream *in_fragment,
-  NailStream *out_current,
-  uint32_t *off){
-   off = position of out_current
-   append in_fragment to out_current
-}
-\end{verbatim}
+\cc{\$fragment transform offset\_u32(\$file\_stream, \@offset)}. 
+They are implemented by two functions, as shown in Figure~\ref{fig:xform-sig}.
+
+\begin{figure}[h]
+\smaller[0.5]
+\input{code/offset-xform}
+\caption{Pseudocode for two functions that implement the offset transform.}
+\label{fig:xform-sig}
+\end{figure}
 
 
 \paragraph{Sizes.}
