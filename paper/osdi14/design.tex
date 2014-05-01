@@ -115,50 +115,50 @@ until it fails, returning an array of the inner parsers results. The
 additionally takes a constant parser, which it applies in between parsing
 two values, but not before parsing the first value or after parsing the
 last.
-For example, \cc{many uint8} represents an array of 8-bit unsigned
-integers, and \cc{sepBy uint8=',' (many uint8 | '0'..'9')} recognizes
-comma-separated lists of decimal numbers.
+%For examle, \cc{many uint8} represents an array of 8-bit unsigned
+%integers, and \cc{sepBy uint8=',' (many uint8 | '0'..'9')} recognizes
+%comma-separated lists of decimal numbers.
 
 \paragraph{Structures.}
 
-\begin{figure}[tb]
-\smaller[0.5]
-\begin{minipage}{0.45\columnwidth}
-\begin{verbatim}
-dns_header = {
-  id uint16
-  qr uint1
-  opcode uint4
-  aa uint1 
-  tc uint1
-  rd uint1
-  ra uint1
-  uint3 = 0
-  rcode uint4
-}
-\end{verbatim} 
-\end{minipage}
-~
-\begin{minipage}{0.45\columnwidth}
-\begin{verbatim}
-struct dns_header {
-  uint16_t id;
-  uint8_t qr;
-  uint8_t opcode;
-  uint8_t aa;
-  uint8_t tc;
-  uint8_t rd;
-  uint8_t ra;
-  uint8_t rcode;
-};
-\end{verbatim} 
-\end{minipage}
+% \begin{figure}[tb]
+% \smaller[0.5]
+% \begin{minipage}{0.45\columnwidth}
+% \begin{verbatim}
+% dns_header = {
+%   id uint16
+%   qr uint1
+%   opcode uint4
+%   aa uint1 
+%   tc uint1
+%   rd uint1
+%   ra uint1
+%   uint3 = 0
+%   rcode uint4
+% }
+% \end{verbatim} 
+% \end{minipage}
+% ~
+% \begin{minipage}{0.45\columnwidth}
+% \begin{verbatim}
+% struct dns_header {
+%   uint16_t id;
+%   uint8_t qr;
+%   uint8_t opcode;
+%   uint8_t aa;
+%   uint8_t tc;
+%   uint8_t rd;
+%   uint8_t ra;
+%   uint8_t rcode;
+% };
+% \end{verbatim} 
+% \end{minipage}
 
-\caption{Nail grammar (left) and data model (right) for a part of the
-grammar for DNS packets.  The \cc{uint3 = 0} grammar represents
-3 bits of padding (filled with zeroes).}
-\label{fig:dns-struct}
-\end{figure}
+% \caption{Nail grammar (left) and data model (right) for a part of the
+% grammar for DNS packets.  The \cc{uint3 = 0} grammar represents
+% 3 bits of padding (filled with zeroes).}
+% \label{fig:dns-struct}
+% \end{figure}
 
 
 Nail provides a structure combinator with semantic labels instead of the sequence combinator that
@@ -169,8 +169,8 @@ parser that describes the contents of that field. Other field types will be desc
 In our opinion, this syntax is easier to read than the widespread C-style structure and type
 declarations.
 
-A sample grammar for a DNS header and the corresponding C data type the Nail parser produces, are
-shown in Figure~\ref{fig:dns-struct}.
+% A sample grammar for a DNS header and the corresponding C data type the Nail parser produces, are
+% shown in Figure~\ref{fig:dns-struct}.
 
 \paragraph{Constants.}
 In some cases, not all bytes in a structure actually contain information, such as magic numbers or
@@ -186,9 +186,9 @@ Nail therefore allows repeated constants, such as \cc{many (uint8=' ')}, which p
 NOP instructions, which are used as padding between basic blocks in an executable. 
 
 As discussed above, choosing to use these combinators on constant parsers
-removes the bijection between byte-strings and our data model, as there are
-multiple byte-strings that correspond to the same internal data structure and
-the generator has to choose one of these representations.
+weakens the bijection between the format and the data type, as there are
+multiple byte-strings that correspond to the same internal representation and
+the generator chooses one of these.
 \paragraph{Wrap combinator.} 
 When implementing real protocols with Nail, we often found that
 structures that consist of many constant parsers and only one named field. This pattern is
@@ -252,14 +252,14 @@ Dependent fields are defined within a structure like normal fields, but their na
 A dependent field is in scope and can be referred to by the definition of all subsequent fields in
 the same structure. Dependency fields can be passed to rule invocations as parameters.
 
-During parsing, dependent fields are parsed just like other fields, but instead of storing their
-value in a structure that will be returned to the programmer, the parser stores the value in a
-temporary location. Thereafter, the value can be referenced in the grammar. 
+Dependent fields are parsed just like other fields in the external format, but they are not stored
+in the internal data type. Instead, the parser stores the value in a
+temporary location the field can be referenced by subsequent parsers.
 
-When generating output, Nail visits a dependent field twice. When generating the fields of a
-structure, it will reserve space for the dependent field in the output, but not write a value. When
-the dependent field goes out of scope, the generator will backtrack to this space and write the
-dependent fields value.
+When generating output, Nail visits a dependent field twice. First, while generating the other fields of a
+structure, the generator reserves space for the dependent field in the output. Once
+the dependent field goes out of scope, the generator  write the
+dependent field's value to this space.
 
 Nail only provides one built-in combinator, \cc{n_of} that uses dependency fields, which is used
 for count fields. For example, DNS labels are encoded as Pascal-style strings: a length followed by
