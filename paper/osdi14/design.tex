@@ -105,8 +105,7 @@ Figure~\ref{fig:syntax} shows the elements of Nail grammars, which we describe i
 \paragraph{Integers and constraints.}
 
 Nail's fundamental parsers represent signed or unsigned
-integers with arbitrary lengths up to 64 bits, an
-approach popularized by the Hammer framework~\cite{hammer-parser}.
+integers with arbitrary lengths up to 64 bits.
 Note that is possible to define parsers for sub-byte lengths, e.g.,
 to parse the 4-bit
 data offset within the TCP header.  The internal representation rounds up to the nearest integer
@@ -178,8 +177,6 @@ other parser combinator libraries use to capture structures in data formats.
 The structure combinator consists of a sequence of fields, typically consisting of a label and a
 parser that describes the contents of that field. Other field types will be described below.
  The syntax of the structure combinator is inspired by the Go language~\cite{golang}, with field names preceding their definition.
-In our opinion, this syntax is easier to read than the widespread C-style structure and type
-declarations.
 
 % A sample grammar for a DNS header and the corresponding C data type the Nail parser produces, are
 % shown in Figure~\ref{fig:dns-struct}.
@@ -232,7 +229,8 @@ Nail includes an \cc{optional} combinator, which attempts to recognize a value, 
 without consuming input when it cannot recognize that value. Syntactically, \cc{optional} is
 equivalent to a choice between the parser and an empty structure, but in the internal model it is
 more concisely represented as a reference that is null when the parser fails.
-
+For example, the grammar for  Ethernet headers uses \cc{optional vlan\_header} to parse the VLAN
+header that only appears in Ethernet packets transmitted to a non-default VLAN.
 \paragraph{Rules.}
 A Nail grammar consists of rules that assign a parser to a name. Rules are written as
 assignments, such as \cc{ints = many uint8}, which defines a rule called \cc{ints} with the
@@ -245,7 +243,18 @@ the body of the rule had been substituted in the code. If parameters appear, the
 Rules allow for recursive grammars. To support recursive data types, we allow introduce the
 reference combinator \cc{*}  that does not change the syntax of the external format described, but
 introduces a layer of indirection, such as a reference or pointer, to the model data type.
-For example example,   balanced parentheses could be parsed as follows: \cc{paren = < uint8="("; optional *paren; uint8=")" >}.
+The reference combinator does not need to used when another combinator, such as \cc{optional} or
+\cc{many} already introduces indirection in the data type.
+For example example,   arithmetic expressions consisting of sums and products can be parsed as follows:
+
+\begin{verbatim}
+expr = choose {
+  PAREN = <uint8='('; *expr; uint8=')'>
+  PRODUCT = sepBy1 uint8='*' expr
+  SUM = sepBy1 uint8='+' expr
+  INTEGER = many1 uint8 | '0' .. '9'
+}
+\end{verbatim} \cc{paren = < uint8="("; optional *paren; uint8=")" >}.
 
 \XXX[nz][Do you need \cc{*} here?  It seems like \cc{optional paren} would
 already have a C representation of \cc{paren*} according to our big figure.]
@@ -330,16 +339,19 @@ be broken up by various transformations and passed to sub-rules, which eventuall
 fragment streams. Upon parsing, these fragment streams are generated and then combined by the
 transforms.
 
-The programmer has to guarantee memory safety and unambiguity of the stream transformations. To
-reduce both programmer effort and the risk of unsafe operations, we provide implementations of
+ To reduce both programmer effort and the risk of unsafe operations, Nails provides implementations of
 transformations for many common features, such as checksums, size, and offset fields. Furthermore,
-we provide library functions that can be used to safely operate on streams, such as splitting and
+Nail provides library functions that can be used to safely operate on streams, such as splitting and
 concatenation. Nail implements streams as iterators, so they can share underlying buffers and can be
 efficiently duplicated and split.
 
+Transformations need to be carefully written, because they can escape Nail's security and introduce
+bugs. However, as we will show in \S\ref{s:eval-effort}, Nail transformations are much shorter than
+hand-written parsers and many formats can be represented with just the provided transforms
+
 Transformations can handle a wide variety of patterns in data formats, including the following: 
 \paragraph{Offsets.}
-We provide a transformation for handling offset fields, which is invoked as follows:
+A built-in transformation for handling offset fields, which is invoked as follows:
 \cc{\$fragment transform offset\_u32(\$current, \cc{@}offset)}. 
 This transformation corresponds to two functions for parsing and
 generation, as shown in Figure~\ref{fig:xform-sig}. It defines a new stream \cc{\$fragment} that can
@@ -364,7 +376,7 @@ of the fragment to the dependent field.
 \paragraph{Compressed data.}
 Encoded, compressed, or encrypted data can be handled transparently by writing a custom
 transformation that transforms a coded stream into one that can be parsed by a Nail grammar and vice
-versa. Usually, this involves calling an existing library.
+versa. This transformation must be carefully written to not have bugs.
 
 \paragraph{Checksums.}
 Checksums can be verified and computed in a transformation that takes a stream and a dependent

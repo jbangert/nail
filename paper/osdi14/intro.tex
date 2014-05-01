@@ -30,11 +30,9 @@ tree (AST) that corresponds to the grammar.  In order to produce a data
 structure that the rest of the application code can easily process,
 application developers must write explicit {\em semantic actions} that
 update the application's internal representation of the data based on
-each AST node.  Writing these semantic actions by hand is error-prone,
-much like other input processing code, and mistakes can result in memory
-corruption bugs or misinterpreted inputs.
-\XXX[do we have any evidence to cite for this claim?]
-Writing these semantic actions
+each AST node.  Not only does the programmer allocate memory and manipulate pointers,
+ operations that are error-prone, but
+writing these semantic actions
 also requires the programmer to describe the structure of the input three
 times---once to describe the grammar, once to describe the internal data
 structure, and once again in the semantic actions that translate the
@@ -118,18 +116,18 @@ in this category.  Transformations allow the programmer to escape the
 generated code to modify the raw data and interact with dependent fields
 in a controlled manner.
 
-To evaluate whether Nail's design is effective at handling real-world
-data formats, we implemented a prototype of Nail for C\@.  Using our
-prototype, we implemented succinct grammars for parts of an IP network
-stack, for DNS packets, and for ZIP files, each in about a hundred lines
-of grammar.  On top of these grammars, we were able to build a fully
-functional DNS server in under 200 lines of C code, and an {\tt unzip}
-utility in about 50 lines of C code.  This suggests both that Nail is
-effective at handling complex real-world data formats, and that Nail
-makes it easy for application developers to parse and generate external
-data representations.  Performance results show that the Nail-based DNS
-server outperforms the widely used BIND DNS server, demonstrating that
-Nail-based parsers and generators can achieve good performance.
+To evaluate whether Nail's design is effective at handling real-world data
+formats, we implemented a prototype of Nail for C\@. Using our prototype, we
+implemented succinct grammars for parts of an IP network stack, for DNS packets,
+and for ZIP files, each in about a hundred lines of grammar. On top of these
+grammars, we were able to build a DNS server in under 200 lines of C code, and
+an {\tt unzip} utility in about 50 lines of C code, with performance comparable
+to or exceeding existing implementations.This suggests both that Nail is
+effective at handling complex real-world data formats, and that Nail makes it
+easy for application developers to parse and generate external data
+representations. Performance results show that the Nail-based DNS server
+outperforms the widely used BIND DNS server, demonstrating that Nail-based
+parsers and generators can achieve good performance.
 
 The rest of this paper is organized as follows.  \S\ref{s:relwk}
 puts Nail in the context of related work.
