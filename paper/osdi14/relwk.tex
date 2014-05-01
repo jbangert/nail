@@ -23,8 +23,8 @@ Very related work has been done at Bell Labs with the PacketTypes
 system~\cite{mccann2000packet}, however PacketTypes works only as a
 parser, not as an output generator and does not support the expressive
 power of parsing expression grammars (PEGs), but rather implements a
-C-like structure model enhanced with data-dependent length fields and
-constraints.
+C-like structure model enhanced with  length fields and
+constraints. PacketTypes cannot handle complicated encodings such as  compressed data.
 
 Parser generators for binary protocols were first introduced by the
 Hammer~\cite{hammer-parser} parser.
@@ -59,7 +59,7 @@ executable form. Unfortunately,  parser frameworks are seldom used  to recognize
 machine-created input.
 
 A notable exception is the Mongrel
-web server\footnote{\url{http://mongrel2.org/}} which uses a grammar
+web server~\cite{mongrel} which uses a grammar
 for HTTP written in the Ragel~\cite{ragel-paper} regular expression
 language. Mongrel was re-written from scratch multiple times to achieve
 better scalability and design, yet the grammar could be  re-used across
@@ -71,8 +71,8 @@ Input processing vulnerabilities fall into two broad classes.  The first
 class is memory safety bugs, such as buffer overflows, which allow an
 adversary to corrupt the application's memory using specially crafted
 inputs.  These mistakes arise in lower-level languages that do not
-provide memory safety guarantees (such as C), and can be partially
-mitigated by a wide range of techniques, such as static analysis,
+provide memory safety guarantees such as C, and can be partially
+mitigated by a wide range of techniques, for example static analysis,
 dynamic instrumentation, and address space layout randomization, that
 make it more difficult for an adversary to exploit these bugs.
 Nail helps developers of lower-level languages avoid these bugs

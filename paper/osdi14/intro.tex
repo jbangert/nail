@@ -54,8 +54,8 @@ Third, many data formats contain redundancies, such as repeating information in 
 Applications usually do not explicitly check for consistency, and if different applications use
 different instances of the same value, an attacker can craft input that causes inconsistencies.
 Furthermore, security vulnerability can occur when an application assumes two repetitions of the
-same data to be consistent, such as allocating a buffer based on one size field and copying into
-that buffer based on another.
+same data to be consistent, such as allocating a buffer based on the value of one size field and copying into
+that buffer based on the value of another.
 
 Finally, real-world data formats, for example PNG or PDF,  are hard to represent with
 existing parser generators. Those parsers cannot directly deal with length or checksum fields
@@ -76,7 +76,7 @@ This removes the semantic actions and type declarations that programmers have to
 parser generator. While this somewhat reduces the flexibility of the internal model, it forces the programmer
 to clearly separate syntactic validation and semantic processing.
 
-Second, this well-defined internal representation allows Nail to generate the external format from
+Second, this well-defined internal representation allows Nail to generate output from
 the internal representation, without requiring the programmer to write additional code.
 
 % \XXX[Currently, Nail always makes a default choice when

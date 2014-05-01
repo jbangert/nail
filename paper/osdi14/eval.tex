@@ -24,13 +24,15 @@ In our evaluation of Nail, we try to answer four questions:
 \label{s:eval-formats}
 To answer the first question, we implemented grammars for four protocols with particularly
 challenging features and show that Nail is a good fit for these data formats and some aspects of
-these formats would be very hard to parse with other parser generators. The following table lists
-our example grammars, along with any features that make those protocols hard or impossible to handle
-with existing grammar languages and the size of the grammar and its associated transform functions
-measured in lines of code.
+these formats would be very hard to parse with other parser generators.
+Figure~\ref{fig:eval-protocols} lists various example protocols we have implemented.
 
-\begin{tabular}{l|l|l}
-\textbf{Protocol} & \textbf{LOC} & \textbf{Problematic features} \\ \hline
+\begin{figure}[tb]
+\label{fig:eval-protocols}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Protocol} & \textbf{LoC} & \textbf{Problematic features} \\ 
+\midrule
 DNS messages &  48+64 & Label compression\\
 & & Count fields \\
 ZIP archives & 92 + 78 & Checksums, \\ 
@@ -41,10 +43,12 @@ ARP &  10  & \\
 IP &  25 & Total Length field, options \\
 UDP & 7 & Checksum, Length field \\
 ICMP & 5 & Checksum \\
-
+\bottomrule
 
 \end{tabular}
-
+\caption{Example Nail grammars, their code size of the grammar plus  the transformations they use
+  and protocol features that cannot be expressed in existing grammar languages. }
+\end{figure}
 \subsubsection{DNS.}
 
 \input{fig-dnsfull}
@@ -82,8 +86,6 @@ label stream by following the offset pointers. When generating, this transform r
 suffix as an input and can scan the packet so far for previous occurrences. 
 
 
-\subsubsection{Ethernet}
-\XXX[TODO]
 \subsubsection{ZIP Files.}
 \input{fig-zip}
 \label{s:eval-format-zip}
@@ -157,13 +159,15 @@ SlocCount\cite{sloccount}.
 \noindent We implemented the following applications and compare them to applications written without
 Nail:
 
-\noindent\begin{tabular}{l | l | l }
+\noindent\begin{tabular}{@{}lll@{}} 
+\toprule
 \textbf{System} & \textbf{Nail LoC}  & \textbf{LoC w/o Nail} \\
-DNS server & 183 + 48 + 64 & 683 (Hammer parser)\\
+\midrule
+DNS server & 295 & 683 (Hammer parser)\\
 &&  ~10.000 (DJBDNS)\\ 
-DNS \texttt{host} tool & 98 + 48 + 64  & \XXX[TODO]\\
-\texttt{unzip} & 50 + 92 + 78 & 1600 (Info-Zip) \\
-
+DNS \texttt{host} tool & 210  & \XXX[TODO]\\
+\texttt{unzip} & 220 & 1600 (Info-Zip) \\
+\bottomrule
 \end{tabular}
 %%DNS: 
 \paragraph{DNS.}
@@ -215,8 +219,6 @@ However, unzip isolates the equivalent of our Nail tool in the file extract.c, w
 metadata and calls various decompression routines in other files. This file measures over 1,600
 lines of C. 
 
-\paragraph{Network stack.}
-\XXX[Write this up]
 \subsection{Security.} 
 We use a twofold approach to evaluate the security of applications implemented with Nail. First, we
 analyse a list of CVE's related to the ZIP file format and argue how our ZIP tools based on Nail are
@@ -259,7 +261,10 @@ modified to include malicious applications without breaking their signatures. In
 components containing an ad-hoc archive implementation, a single Nail grammar would be reusable
 across both implementations. 
 
-\XXX[Add fuzzing results - no crashes]
+To provide additional assurance that Nail parsers are free of memory corruption attacks, we ran the
+DNS fuzzer provided with the Metasploit\cite{mspframework} framework on our server, which sent
+randomly corrupted DNS queries to our server for 4 hours, during which it did not crash or trigger
+the stack or heap corruption detector.
 \subsection{Performance.}
 \input{fig-perf-dns}
 To estimate the performance impact of using Nail grammars as opposed to hand-written grammars, we

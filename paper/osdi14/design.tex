@@ -45,7 +45,7 @@ sequence of bytes from an instance of the model.
 Second, in order to generate output, Nail maintaining
 a \emph{semantic bijection} between the external format and the internal model. That is, when
 generating the corresponding output to a parser input, the two byte streams will have the same
-meaning, i.e. be interpreted the same by Nail, but might not be identical.
+meaning, i.e. be interpreted equivalently by Nail, but might not be identical.
  A bijection in the traditional sense often does not make sense for data
 formats. Consider a grammar for a text language that tolerates white space, or a binary protocol
 that tolerates arbitrarily long padding.
@@ -82,43 +82,17 @@ Nail introduce transformations, which allow the programmer to write arbitrary fu
 handle such structures and streams, which are a generic abstraction for input and output data that
 allow the decoded data to be integrated with the rest of the generated Nail parser.
 
-\XXX[In the rest of this section, we first present the design of the Nail language and then show how
-Nail's features match these goals.]
+In the rest of this section, we describe the design on the Nail grammar language.
+\input{fig-syntax}
 \subsection{Basics}
-Nail grammars are a set of rules. Each rule assigns a parser, which can be a reference to another
-rule, a trivial parser describing an integer of a certain width or a combinator that combines
-multiple parsers in some way. We provide the most common combinators familiar from other parser
-combinator libraries, such as Parsec\cite{LeijenMeijer:parsec} and Hammer\cite{hammer-parser}.
-However, we extend the sequence and choice combinators normally found in parser combinator libraries
-with \emph{semantic labels} that name fields in the internal models. The syntax described by a Nail
-grammar does not depend on these semantic labels.
-
+A Nail parser defines both the structure of some external format and a data type to represent that
+format. Parsers are constructed by combinators over simpler parsers, an approach popularised by the Parsec
+framework\cite{LeijenMeijer:parsec}. We provide the most common combinators familiar from other parser
+ combinator libraries, such as Parsec and Hammer\cite{hammer-parser} and extend them so they also
+ describe a data type. 
 \paragraph{Integers and Constraints}
-\begin{figure}[tb]
-\begin{tabular}{@{}ll@{}}
-\toprule
-\bf Syntax & \bf Semantics \\
-\midrule
-\cc{int32} & 32-bit signed integer \\
-\multirow{2}{*}{\cc{uint4}}
-  & 4-bit unsigned integer, \\
-  & returned as an 8-bit value \\
-\multirow{2}{*}{\cc{uint8 | 1..3}}
-  & 8-bit unsigned integer, \\
-  & $1\leq x \leq 3$ \\
-\multirow{2}{*}{\cc{uint16 | [1,2]}}
-  & unsigned 16-bit integer, \\
-  & $x \in \{1,2\}$ \\
-\multirow{2}{*}{\cc{int32 | [1,5..255,512]}}
-  & signed 32 bit integer, \\
-  & $x \in \{ 1, 512 \} \vee 5\leq x\leq 255$ \\
-\bottomrule
-\end{tabular}
-\caption{Example Nail grammars for integer values.}
-\label{fig:range}
-\end{figure}
 
-Nail's fundamental parsers recognise signed or unsigned with arbitrary lengths up to 64 bits, an
+Nail's fundamental parsers represent signed or unsigned with arbitrary lengths up to 64 bits, an
 approach popularised by the Hammer framework.\cite{hammer-parser}  
 Note that is possible to define parsers for sub-byte lengths, e.g. to parse the 4-bit
 data offset within the TCP header.  In the internal representation, integer values are represented
@@ -230,12 +204,6 @@ single value in another structure, making the application-visible representation
 For example, \cc{word=<uint8='"'; many int8 | 'a'..'z'; uint8='"'>} parses a quoted
 lowercase word into an array.
 
-\paragraph{References.}
-To support recursive structures, we include a reference combinator \cc{*}, which is
-syntactically equivalent to directly including the parser, but in the internal model adds a level of
-indirection to the value. This allows recursive structures to be parsed, for example, balanced
-parentheses could be parsed as follows: \cc{paren = < uint8 ="("; optional *paren ;uint8=")">}
-
 \paragraph{Choices.}
 Our choice combinator takes multiple labelled parsers and tries each of them in turn, backtracking
 to the initial position if an option fails. This behaviour for the choice combinator, the defining
@@ -245,32 +213,37 @@ Internally, the choice combinator represents choices as tagged unions.
 If two options the same string could be parser by two options, generated output for the latter
 option is not necessarily understood identically by the parser. However, actual data formats are
 usually not ambiguous in this sense.
-For example, Figure~\ref{fig:choice} demonstrates a simple choice
+For example, Figure~\ref{fig:syntax} demonstrates a simple choice
 combinator.
 
-\begin{figure}[h!]
-\smaller[0.5]
-\begin{verbatim}
-  choose {
-    A = uint8 | 1..8
-    B = uint16 | ..256
-  }
-\end{verbatim}
-\caption{A simple choice combinator that parses either an 8-bit unsigned
-integer with a value between 1 and 8 (option A), or a 16-bit unsigned
-integer with a value of at most 256 (option B).}
-\label{fig:choice}
-\end{figure}
 
 Nail also includes an \cc{optional} combinator, which attempts to recognise a value, but succeeds
 without consuming input when it cannot recognise that value. Syntactically, \cc{optional} is
 equivalent to a choice between the parser and an empty structure, but in the internal model it is
 more concisely represented as a reference that is null when the parser fails.
 
+\paragraph{Rules.}
+A Nail grammar file consists of rules that assign a parser to a name. Rules are written as
+assignments, such as \texttt{ints = many uint8}, which defines a rule called \texttt{ints} with the
+body \texttt{many uint8}.  As we will describe in Sections~\ref{s:dependent}
+and~\ref{s:transforms}, rules can optionally consume parameters. 
+Rules can be invoked in a Nail grammar anywhere a parser can appear. Rule invocations act as though
+the body of the rule had been substituted in the code. If parameters appear, they are passed by reference.
+
+Rules allow for recursive grammars. To support recursive data types, we allow introduce the
+reference combinator \cc{*}  that does not change the syntax of the external format described, but
+introduces a layer of indirection, such as a reference or pointer, to the model data type.
+
+% To support recursive structures, we include a reference combinator \cc{*}, which
+%   is syntactically equivalent to directly including the parser, but in the internal model adds a
+%   level of indirection to the value. This allows recursive structures to be parsed, for example,
+%   balanced parentheses could be parsed as follows: \cc{paren = < uint8 ="("; optional *paren
+%     ;uint8=")">}
+
 
 
 \subsection{Dependent fields}
-
+\label{s:dependent}
 Data formats often contain values that are determined by other values or the layout of information,
 such as checksums, duplicated information  or offset and  length fields.
 We represent such as values with \emph{dependent fields} and handle them transparently during
@@ -309,7 +282,7 @@ Other dependencies, such as offset fields or checksums are not handled directly 
 through  transformations.
 
 \subsection{Input streams and Transformations.}
-
+\label{s:transforms}
 In order to handle complicated input functions, Nail allows the programmer to
 break out of Nail's generated code in a controlled fashion, by manipulating dependent fields and
 streams. 
