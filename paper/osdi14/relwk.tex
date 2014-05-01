@@ -2,10 +2,8 @@
 \label{s:relwk}
 
 
-% \XXX[Move to the intro, into its own section, or kill?]
 
 
-\XXX[previous workshop paper~\cite{bangert:nail-langsec}.]
 
 \XXX[https://github.com/qualiancy/lotus also supports arbitrary formats,
      but requires explicit encode/decode rules.  actually kind-of like
@@ -122,7 +120,11 @@ numerous bugs in other PDF parsers. However, manually writing parser code and pr
 does not scale to the number of file formats and protocols in existence and might result in parser
 code tied to one specific application.
 
-
+\paragraph{Workshop paper}
+We presented an early design of Nail at the LangSec workshop~\cite{bangert:nail-langsec} that had
+no support for transformations, as described in Section~\ref{s:transforms}, and much more limited
+dependent fields, as described in Section~\ref{s:dependent}. With our extended and refined design,
+Nail can support much more complicated, real-world data formats.
 %%This is supposed to go into design
 % While it is possible to express short transformations on the input
 % entirely as semantic actions\footnote{This is in fact the design

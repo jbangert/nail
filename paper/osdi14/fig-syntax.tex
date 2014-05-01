@@ -45,7 +45,7 @@ struct {
 A parser definition \textit{p}\\
 \verb+int8='"'>+
 \end{minipage}
-\cc{} & Lowercase string enclosed in quotes. & The data type of {\it p} \\\hline
+\cc{} & A value described by $p$ enclosed in quotes. & The data type of {\it p} \\\hline
 
 
 \begin{minipage}{5cm}
@@ -72,10 +72,8 @@ struct{
 
 \begin{minipage}{5cm}
 \begin{verbatim}
-{ 
  @valuelen uint16
  value n_of @valuelen uint8
- }
 \end{verbatim}
 \end{minipage}
 &
@@ -85,10 +83,10 @@ A 16-bit field, followed by a length field, followed by that many bytes.
 &
 \begin{minipage}{5cm}
 \begin{lstlisting}
-struct{ struct{ 
+struct{ 
     size_t N_count;
     uint8_t *elem;
-} value;}
+} value;
 \end{lstlisting}
 \end{minipage}
 \\\hline
@@ -104,9 +102,13 @@ Applies a programmer-specified function to create a new stream based on the curr
 a dependent field. See
 Section~\ref{s:transforms}.&\lstinline+//none+ \\\hline
 \verb+apply $stream many +\textsl{p}\textit{/*parser*/}&  Parse $p$ from a different stream, then
-resume parsing the current stream& Data type of $p$ \\
+resume parsing the current stream.& The data type of $p$ \\\hline
+\verb+foo=/*parser p*/+ & Define a rule \textit{foo} that can be used in place of the parser $p$. & 
+\lstinline+typedef /*type of p*/ foo;+\\\hline
+\verb+* foo+ & Same syntax as \texttt{foo} & \lstinline+foo *+\\\hline
 \bottomrule
 \end{tabular}
+
 \caption{Syntax of Nail parser declarations and the formats and data types they describe.}
 \label{fig:syntax}
 \end{figure*}

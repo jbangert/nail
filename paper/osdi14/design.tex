@@ -63,7 +63,7 @@ Nail introduces \emph{dependent fields}, which contain data that can be computed
 and needs to be kept as additional state during parsing. Dependent fields are for example used to represent
 lengths, offsets and checksums.
 
-\paragraph{Allow parser extension.}
+\paragraph{Parser Extensions.}
 Real-world protocols contain complicated ways of encoding data. Representing these in an
 intentionally limited model such as our parser language is complicated. Therefore, Nail introduces
 \emph{transformations}, which allow arbitrary code by the programmer to interact with the parser and
@@ -90,16 +90,17 @@ format. Parsers are constructed by combinators over simpler parsers, an approach
 framework\cite{LeijenMeijer:parsec}. We provide the most common combinators familiar from other parser
  combinator libraries, such as Parsec and Hammer\cite{hammer-parser} and extend them so they also
  describe a data type. 
+
+Figure~\ref{fig:syntax} shows the elements of Nail grammars, which we describe in more detail below.
 \paragraph{Integers and Constraints}
 
 Nail's fundamental parsers represent signed or unsigned with arbitrary lengths up to 64 bits, an
 approach popularised by the Hammer framework.\cite{hammer-parser}  
 Note that is possible to define parsers for sub-byte lengths, e.g. to parse the 4-bit
-data offset within the TCP header.  In the internal representation, integer values are represented
-by the nearest usable integer size, for example a 24-bit unsigned integer will be stored in an
-unsigned 32-bit double word.
+data offset within the TCP header.  The internal representation rounds up to the nearest integer
+type, for example a 24-bit unsigned integer will be stored in an unsigned 32-bit double word.
 
-The grammar can also express a constraint on an integer field. The current version of Nail expresses
+The grammar can also constraint the values of an integer. The current version of Nail expresses
 constraints as a set of permissible values or value ranges. Extending the Nail language and
 implementation to support richer constraints languages would be relatively trivial, however we have
 found that the current syntax covers permissible values within existing protocols correctly and
@@ -213,8 +214,6 @@ Internally, the choice combinator represents choices as tagged unions.
 If two options the same string could be parser by two options, generated output for the latter
 option is not necessarily understood identically by the parser. However, actual data formats are
 usually not ambiguous in this sense.
-For example, Figure~\ref{fig:syntax} demonstrates a simple choice
-combinator.
 
 
 Nail also includes an \cc{optional} combinator, which attempts to recognise a value, but succeeds
@@ -223,7 +222,7 @@ equivalent to a choice between the parser and an empty structure, but in the int
 more concisely represented as a reference that is null when the parser fails.
 
 \paragraph{Rules.}
-A Nail grammar file consists of rules that assign a parser to a name. Rules are written as
+A Nail grammar consists of rules that assign a parser to a name. Rules are written as
 assignments, such as \texttt{ints = many uint8}, which defines a rule called \texttt{ints} with the
 body \texttt{many uint8}.  As we will describe in Sections~\ref{s:dependent}
 and~\ref{s:transforms}, rules can optionally consume parameters. 
