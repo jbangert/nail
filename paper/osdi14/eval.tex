@@ -222,13 +222,13 @@ DNS server
   & 683
   & (Hammer parser) \\
 
-  &
-  & 10,000
-  & (DJBDNS) \\
+%  &
+%  & 10,000
+%  & (DJBDNS) \\
 
 \cc{unzip}
   & 220
-  & 1600
+  & 1,600
   & (Info-Zip) \\
 \bottomrule
 \end{tabular}
@@ -252,33 +252,37 @@ Their DNS server does not implement label compression, zone files, etc.
 From this, we conclude that Nail leads to much more compact code for
 dealing with DNS packet formats.
 
-It is hard to compare the programming effort required to implement
-our DNS server to that of a real world DNS server, since we implement
-less functionality: we do not send the additional glue records and
-we did not implement any configuration options.  However, the closest
-in functionality and intent is Dan Bernstein's djbdns~\cite{djbdns},
-which aims to be a minimalist, highly secure, authoritative-only DNS
-server. The latest release of djbdns, including various support tools,
-is about 10,000 lines of C\@.  \XXX[nz][so what does this mean?]
+% It is hard to compare the programming effort required to implement
+% our DNS server to that of a real world DNS server, since we implement
+% less functionality: we do not send the additional glue records and
+% we did not implement any configuration options.  However, the closest
+% in functionality and intent is Dan Bernstein's djbdns~\cite{djbdns},
+% which aims to be a minimalist, highly secure, authoritative-only DNS
+% server. The latest release of djbdns, including various support tools,
+% is about 10,000 lines of C\@.  \XXX[nz][so what does this mean?]
 
 \paragraph{ZIP.}
 
-We wrote a grammar for ZIP, which consists of 92 lines of Nail and 78 lines of C implementing two
-stream transforms, one for the DEFLATE compression algorithm with the help of the zlib library and
-one for finding the end-of-directory header. 
+We implemented a ZIP file extractor in 50 lines of C code, together with
+92 lines of Nail grammar and 78 lines of C code implementing two stream
+transforms (one for the DEFLATE compression algorithm with the help of
+the zlib library, and one for finding the end-of-directory header).
 
-Our grammar is also very efficient to use. Using our grammar, we build a ZIP file extractor in 50
-lines of C. Because more recent versions of ZIP have added more features, such as large file support
-and encryption, the closest existing tool in functionality is the historic version 5.4 of the Info-Zip unzip
-utility\cite{infozip} that is shipped with most Linux distributions. The entire unzip distribution
-is about 46.000 lines of code, which is mostly optimized implementation of various compression
-algorithms and other configuration and portability code.
+Because more recent versions of ZIP have added more features, such
+as large file support and encryption, the closest existing tool
+in functionality is the historic version 5.4 of the Info-Zip unzip
+utility~\cite{infozip} that is shipped with most Linux distributions.
+The entire unzip distribution is about 46,000 lines of code, which is
+mostly optimized implementations of various compression algorithms and
+other configuration and portability code.  However, unzip isolates the
+equivalent of our Nail tool in the file \cc{extract.c}, which parses the
+ZIP metadata and calls various decompression routines in other files. This
+file measures over 1,600 lines of C, which suggests that Nail is highly
+effective at reducing manual input parsing code, even for the complex
+ZIP file format.
 
-However, unzip isolates the equivalent of our Nail tool in the file extract.c, which parses the ZIP
-metadata and calls various decompression routines in other files. This file measures over 1,600
-lines of C. 
+\subsection{Security} 
 
-\subsection{Security.} 
 We use a twofold approach to evaluate the security of applications implemented with Nail. First, we
 analyze a list of CVE's related to the ZIP file format and argue how our ZIP tools based on Nail are
 immune against those vulnerability classes. Second, we present the results of fuzz-testing our DNS
@@ -324,10 +328,13 @@ To provide additional assurance that Nail parsers are free of memory corruption 
 DNS fuzzer provided with the Metasploit\cite{mspframework} framework on our server, which sent
 randomly corrupted DNS queries to our server for 4 hours, during which it did not crash or trigger
 the stack or heap corruption detector.
-\subsection{Performance.}
-\input{fig-perf-dns}
+
+\subsection{Performance}
+
 To estimate the performance impact of using Nail grammars as opposed to hand-written grammars, we
 benchmarked our DNS server against BIND.
+
+\input{fig-perf-dns}
 
 We compare the performance of our DNS server to the release 9.9.5 of ISC BIND 9\cite{bind9}, one of
 the oldest and most popular DNS daemons, on a load that resembles the authoritative name server at a
