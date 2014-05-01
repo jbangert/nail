@@ -97,20 +97,22 @@ generated Nail parser.
 
 A Nail parser defines both the structure of some external format and a data type to represent that
 format. Parsers are constructed by combinators over simpler parsers, an approach popularized by the Parsec
-framework\cite{LeijenMeijer:parsec}. We provide the most common combinators familiar from other parser
- combinator libraries, such as Parsec and Hammer\cite{hammer-parser} and extend them so they also
+framework~\cite{LeijenMeijer:parsec}. We provide the most common combinators familiar from other parser
+ combinator libraries, such as Parsec and Hammer~\cite{hammer-parser} and extend them so they also
  describe a data type. 
-
 Figure~\ref{fig:syntax} shows the elements of Nail grammars, which we describe in more detail below.
-\paragraph{Integers and Constraints}
 
-Nail's fundamental parsers represent signed or unsigned with arbitrary lengths up to 64 bits, an
-approach popularized by the Hammer framework.\cite{hammer-parser}  
-Note that is possible to define parsers for sub-byte lengths, e.g. to parse the 4-bit
+\paragraph{Integers and constraints.}
+
+Nail's fundamental parsers represent signed or unsigned
+integers with arbitrary lengths up to 64 bits, an
+approach popularized by the Hammer framework~\cite{hammer-parser}.
+Note that is possible to define parsers for sub-byte lengths, e.g.,
+to parse the 4-bit
 data offset within the TCP header.  The internal representation rounds up to the nearest integer
-type, for example a 24-bit unsigned integer will be stored in an unsigned 32-bit double word.
+type; for example, a 24-bit unsigned integer will be stored in an unsigned 32-bit integer.
 
-The grammar can also constraint the values of an integer. The current version of Nail expresses
+The grammar can also constrain the values of an integer.  Nail expresses
 constraints as a set of permissible values or value ranges. Extending the Nail language and
 implementation to support richer constraints languages would be relatively trivial, however we have
 found that the current syntax covers permissible values within existing protocols correctly and
@@ -120,11 +122,11 @@ concisely.
 \paragraph{Repetition.}
 
 The \emph{many} combinator takes a parser and applies it repeatedly
-until it fails, returning an array of the inner parsers results. The
+until it fails, returning an array of the inner parser's results. The
 \emph{sepBy} combinator
 additionally takes a constant parser, which it applies in between parsing
 two values, but not before parsing the first value or after parsing the
-last.
+last.  This is useful for parsing an array of items delimited by a separator.
 %For examle, \cc{many uint8} represents an array of 8-bit unsigned
 %integers, and \cc{sepBy uint8=',' (many uint8 | '0'..'9')} recognizes
 %comma-separated lists of decimal numbers.
@@ -175,7 +177,7 @@ Nail provides a structure combinator with semantic labels instead of the sequenc
 other parser combinator libraries use to capture structures in data formats. 
 The structure combinator consists of a sequence of fields, typically consisting of a label and a
 parser that describes the contents of that field. Other field types will be described below.
- The syntax of the structure combinator is inspired by the Go language\cite{golang}, with field names preceding their definition.
+ The syntax of the structure combinator is inspired by the Go language~\cite{golang}, with field names preceding their definition.
 In our opinion, this syntax is easier to read than the widespread C-style structure and type
 declarations.
 
@@ -192,16 +194,17 @@ parsing and generated during output.  Constants can either have integer values, 
 In some protocols, there might be many ways to represent the same constant field
 and there is no semantic difference between the different syntactic representations.
 Nail therefore allows repeated constants, such as \cc{many (uint8=' ')}, which parses any number of space characters, or
-\cc{|| uint8 = 0x90 || uint16 = 0x1F0F}, which parses two of the many representations for X86
+\cc{|| uint8 = 0x90 || uint16 = 0x1F0F}, which parses two of the many representations for x86
 NOP instructions, which are used as padding between basic blocks in an executable. 
 
 As discussed above, choosing to use these combinators on constant parsers
 weakens the bijection between the format and the data type, as there are
 multiple byte-strings that correspond to the same internal representation and
 the generator chooses one of these.
+
 \paragraph{Wrap combinator.} 
-When implementing real protocols with Nail, we often found that
-structures that consist of many constant parsers and only one named field. This pattern is
+When implementing real protocols with Nail, we often found
+structures that consist of many constants and only one named field. This pattern is
 common in binary protocols which use fixed headers to denote the type of data
 structure to be parsed.  In order to keep the internal representation cleaner,
 we introduced the wrap combinator, which takes a sequence of parsers containing
@@ -209,40 +212,40 @@ exactly one non-constant parser. The parser and generator act as though the wrap
 combinator was a sequence of parsers, but the data model does not wrap the
 single value in another structure, making the application-visible representation
 (and thus application code) more concise.
-
-
 For example, \cc{<uint8='"'; many int8 | 'a'..'z'; uint8='"'>} parses a quoted
 lowercase word into an array.
 
 \paragraph{Choices.}
 Our choice combinator takes multiple labeled parsers and tries each of them in turn, backtracking
 to the initial position if an option fails. This behavior for the choice combinator, the defining
-feature of Parser Expression Grammars\cite{ford2002packrat}, resolves any ambiguities explicitly.
+feature of Parser Expression Grammars~\cite{ford2002packrat}, resolves any ambiguities explicitly.
 Internally, the choice combinator represents choices as tagged unions. 
 
 If two options the same string could be parser by two options, generated output for the latter
 option is not necessarily understood identically by the parser. However, actual data formats are
 usually not ambiguous in this sense.
+\XXX[nz][I don't understand this paragraph (esp the first sentence).]
 
 
-\paragraph{Optional.}Nail also includes an \cc{optional} combinator, which attempts to recognize a value, but succeeds
+\paragraph{Optional.}
+Nail includes an \cc{optional} combinator, which attempts to recognize a value, but succeeds
 without consuming input when it cannot recognize that value. Syntactically, \cc{optional} is
 equivalent to a choice between the parser and an empty structure, but in the internal model it is
 more concisely represented as a reference that is null when the parser fails.
 
 \paragraph{Rules.}
 A Nail grammar consists of rules that assign a parser to a name. Rules are written as
-assignments, such as \texttt{ints = many uint8}, which defines a rule called \texttt{ints} with the
-body \texttt{many uint8}.  As we will describe in Sections~\ref{s:dependent}
-and~\ref{s:transforms}, rules can optionally consume parameters. 
+assignments, such as \cc{ints = many uint8}, which defines a rule called \cc{ints} with the
+body \cc{many uint8}.  As we will describe in \S\ref{s:dependent}
+and \S\ref{s:transforms}, rules can optionally consume parameters. 
 Rules can be invoked in a Nail grammar anywhere a parser can appear. Rule invocations act as though
 the body of the rule had been substituted in the code. If parameters appear, they are passed by reference.
 
-\paragraph{References.}Rules allow for recursive grammars. To support recursive data types, we allow introduce the
+\paragraph{References.}
+Rules allow for recursive grammars. To support recursive data types, we allow introduce the
 reference combinator \cc{*}  that does not change the syntax of the external format described, but
 introduces a layer of indirection, such as a reference or pointer, to the model data type.
-
-For example example,   balanced parentheses could be parsed as follows: \cc{paren = < uint8 ="("; optional *paren;uint8=")">}
+For example example,   balanced parentheses could be parsed as follows: \cc{paren = < uint8="("; optional *paren; uint8=")" >}.
 
 % To support recursive structures, we include a reference combinator \cc{*}, which
 %   is syntactically equivalent to directly including the parser, but in the internal model adds a
