@@ -2,8 +2,9 @@
 \label{s:impl}
 
 The current prototype of the Nail parser generator supports the C programming
-language and top-down parsers. The implementation parses Nail grammars with Nail itself, using a 130
-line Nail grammar feeding into a 2000 line C++ program that implements the parser. Bootstrapping is
+language and top-down parsers. The implementation parses Nail grammars with Nail itself, using a
+130-line Nail grammar feeding into a 2,000-line C++ program that
+implements the parser. Bootstrapping is
 performed with a subset of the grammar implemented using conventional grammars. 
 Options for C++ STL data models and emitting
 Packrat parsers~\cite{packrat-parsing:icfp02} are under development. In
@@ -53,15 +54,16 @@ Under this premise, the actions need limited information from the
 recognizer to correctly handle the input stream. In particular, the parser's
 control flow branches only at the choice, repetition, and constant combinators.
 Thus, for each of those combinators, we store the minimum amount of information
-required to reconstruct the syntactic structure of the input. The trace is an
+required to reconstruct the syntactic structure of the input.
+
+The trace is an
 array of integers.
-Whenever the parser encounters a choice, it appends two integers to the trace. After it
-successfully parses a choice, the parser writes the number of that choice and
+Whenever the parser encounters a choice, it appends two integers to the trace:
+the number of that choice and
 the length of the trace when it began parsing that choice. When backtracking in
 the input, the parser does not backtrack in the trace. This means that offsets
-within the trace can be used for a Packrat hash-table to memoize backtrack-heavy
+within the trace can be used for a Packrat hash table to memoize backtrack-heavy
 parsers.
-
 When encountering a repetition combinator, the parser records the number of
 times the inner parser succeeded, and when encountering a constant parser of
 variable size, it records how much input was consumed by the constant parser. 
