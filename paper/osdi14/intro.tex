@@ -52,7 +52,7 @@ into an AST\@.
 
 Third, many data formats contain redundancies, such as repeating information in multiple structures.
 Applications usually do not explicitly check for consistency, and if different applications use
-different instances of the same value, an attacker can craft input that causes inconsistencies.
+different instances of the same value, an attacker can craft inputs that cause inconsistencies.
 Furthermore, security vulnerabilities can occur when an application assumes two repetitions of the
 same data to be consistent, such as allocating a buffer based on the value of one size field and copying into
 that buffer based on the value of another.
@@ -63,7 +63,7 @@ directly, so either the programmer has to write potentially unsafe code to deal 
 or build contrived grammar constructs, such as introducing one grammar rule for each possible value
 of a length fields. Offset fields usually require the programmer to manipulate a parser's internal
 state to re-position its input. More complicated transformations on the external format, such as
-compressed data, cannot be implemented at all.
+compressed data, cannot be represented at all.
 
 
 
