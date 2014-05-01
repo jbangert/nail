@@ -39,18 +39,29 @@ default parsing algorithm used by Hammer.}
 Hammer then constructs a tree of function pointers which can be invoked to parse a given input into
 an AST\@.
 
-Nail improves upon Hammer in three ways. First, Nail  generates output besides recognizing input.
-Second, Nail does not require the programmer to write potentially insecure semantic actions. Last,
-Nail's structural dependencies and transformations allow it to work with protocols Hammer cannot recognize, such as
-protocols with offset fields or length fields, although Hammer has special facilities for  arrays immediately preceded by their length.
+Nail improves upon Hammer in three ways.  First, Nail generates output in
+addition to parsing input.  Second, Nail does not require the programmer
+to write potentially insecure semantic actions.  Last, Nail's structural
+dependencies and stream transforms allow it to work with protocols that
+Hammer cannot handle, such as protocols with offset fields, length fields,
+checksums, or compressed data, although Hammer has special facilities for  arrays immediately preceded by their length..  
+Parsifal~\cite{ANSSI:parsifal} is a parser framework that also supports
+generating output for OCaml.  Parsifal structures grammars as an OCaml
+type that holds an internal model and functions for parsing input and
+output.  However, their generator can produce parsers and generators
+only for simple, fixed-size structures.  The programmer can then use
+these when implementing parsers and generators for more complicated
+formats, manually handling offsets, checksums, and the like, risking bugs.
+Nail handles more complicated constructs without the programmer manually
+writing code to support them.
 
-Parsifal~\cite{ANSSI:parsifal} is a parser framework that also supports generating output for Ocaml.
-Parsifal structures grammars as an Ocaml type that holds an internal model and functions for parsing
-input and output.
-However, their generator can only produce parsers and generators for simple, fixed-size structures.
-The programmer can then use these when implementing parsers and generators for more
-complicated formats, manually handling offsets, checksums and the like, risking bugs. Nail can
-handle more complicated constructs without the programmer writing code to support them.
+We presented an earlier design of Nail at a
+workshop~\cite{bangert:nail-langsec-anon}.  At that stage, Nail had only
+limited support for dependent fields, and did not support stream
+transforms at all, which are crucial for supporting real-world formats
+like DNS and Zip.  The workshop paper also did not provide a detailed
+design discussion or evaluation.
+
 
 \paragraph{Application use of parsers.}
 
@@ -85,6 +96,7 @@ make it more difficult for an adversary to exploit these bugs.
 Nail helps developers of lower-level languages avoid these bugs
 in the first place.
 
+<<<<<<< HEAD
 The second class is logic errors, where application code misinterprets input data. Safe languages
 and exploit mitigation technologies do not help against such vulnerabilities. This can lead to
 serious security consequences when two systems disagree on the meaning of a network packet or a
@@ -98,6 +110,26 @@ highly application-specific, and are difficult to mitigate using existing techni
 mistakes can occur even in high-level languages that guarantee memory safety. By allowing developers
 to specify their data format just once, Nail avoids logic errors and inconsistencies in parsing and
 output generation.
+=======
+The second class is logic errors, where application code misinterprets
+input data. Safe languages and exploit mitigation technologies do not
+help against such vulnerabilities. This can lead to serious security
+consequences when two systems disagree on the meaning of a network
+packet or a signed message.  For example, the XNU kernel in iOS and the
+user code-signing verifier interpret executable metadata differently,
+so the code signature sees different bytes at a virtual address than the
+executable that runs~\cite{evaders6}.  Android's code signing system also
+had a vulnerability due to parsing ambiguities~\cite{saurik-masterkey},
+and parsing ambiguities even contributed to attacks on the X.509 protocol
+underlying SSL~\cite{DBLP:conf/fc/KaminskyPS10}.  Logic errors can also
+cause memory corruption bugs as well, for example when a protocol stores
+the size of a buffer in two places and the implementation does not check
+their consistency. These mistakes are highly application-specific, and
+are difficult to mitigate using existing techniques, and these mistakes
+can occur even in high-level languages that guarantee memory safety. By
+allowing developers to specify their data format just once, Nail avoids
+logic errors and inconsistencies in parsing and output generation.
+>>>>>>> 0e44407b4c6d5aac0f8d94e421b7447a1057bb08
 
 % A subclass of logic errors are so-called \textit{weird machines}, where
 % implementation side effects or under-specified parser behavior leads to a
@@ -122,18 +154,27 @@ output generation.
 % processed by the program until the invalid sections are encountered.
 
 
+<<<<<<< HEAD
 Proper input recognition has been shown to be an excellent way of eliminating ambiguous inputs. In
 one case, a PDF parser implemented in Coq rejects over $95\%$ of known malicious
 PDFs~\cite{Bogk-PDF}. The same project also produced a ``counter-example'' PDF that triggered
 numerous bugs in other PDF parsers. However, manually writing parser code and proving unambiguity
 does not scale to the number of file formats and protocols in existence and might result in parser
 code tied to one specific application.
+=======
+Proper input recognition has been shown to be an excellent way of
+eliminating ambiguous inputs.  In one case, a PDF parser (implemented
+in Coq) could eliminate over $95\%$ of known malicious PDFs by checking
+whether they conform to the PDF format~\cite{Bogk-PDF}. The same project
+also produced a ``counter-example'' PDF that triggered numerous bugs
+in other PDF parsers. However, manually writing parser code and proving
+unambiguity does not scale to the number of file formats and protocols
+in existence and might result in parser code tied to one specific
+application. By supporting a wide range of real-world file formats,
+Nail helps programmers produce precise parsers for complex grammars.
 
-\paragraph{Workshop paper}
-We presented an early design of Nail at the LangSec workshop~\cite{bangert:nail-langsec} that had
-no support for transformations, as described in Section~\ref{s:transforms}, and much more limited
-dependent fields, as described in Section~\ref{s:dependent}. With our extended and refined design,
-Nail can support much more complicated, real-world data formats.
+>>>>>>> 0e44407b4c6d5aac0f8d94e421b7447a1057bb08
+
 %%This is supposed to go into design
 % While it is possible to express short transformations on the input
 % entirely as semantic actions\footnote{This is in fact the design
