@@ -4,17 +4,17 @@
 labels = <many { @length uint8 | 1..64
                  label n_of @length uint8 }
           uint8 = 0>
-compressed = {
-  $decompressed transform dnscompress($current)
+compressed_labels = {
+  $decompressed transform dnscompress ($current)
   labels apply $decompressed labels
 }
 question = {
-  labels compressed_lbls
+  labels compressed_labels
   qtype uint16 | 1..16
   qclass uint16 | [1,255]
 }
 answer = {
-  labels labels
+  labels compressed_labels
   rtype uint16 | 1..16
   class uint16 | [1]
   ttl uint32
