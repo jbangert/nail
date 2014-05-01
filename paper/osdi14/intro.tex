@@ -6,12 +6,12 @@ attackers.  This is in part because attackers have precise control
 over the inputs to that code, and can craft inputs that trigger
 subtle corner cases in input processing.  For example, the libpng image decompression
 library has had 24 remotely exploitable vulnerabilities from 2007 to
-2013,\footnote{\url{http://www.cvedetails.com/vulnerability-list/vendor_id-7294/Libpng.html}}
+2013~\cite{cvedetails:libpng},
 and Adobe's PDF and Flash viewers have been notoriously
 plagued by input processing vulnerabilities.  Even relatively
 simple formats, such as those used by the zlib compression
 library, have had input processing vulnerabilities in the
-past.\footnote{\url{http://www.cvedetails.com/vulnerability-list/vendor_id-72/product_id-1820/GNU-Zlib.html}}
+past~\cite{cvedetails:zlib}.
 
 A promising approach to avoid such vulnerabilities is to specify
 a precise grammar for the input data format, and to use a parser
