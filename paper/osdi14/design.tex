@@ -281,25 +281,38 @@ through  transformations.
 
 \subsection{Input streams and Transformations.}
 \label{s:transforms}
-In order to handle complicated input functions, Nail allows the programmer to
-break out of Nail's generated code in a controlled fashion, by manipulating dependent fields and
-streams. 
-By default, Nail implements streams with in-memory buffers, but the programmer can override this implementation.
-While parsing or generating a Nail grammar, there is always an implicit \emph{current stream} and
-referred to as \cc{\$current} in the Nail language.
+Traditional parsers handle input one symbol at a time, beginning to end.
+However, real-world formats often require non-linear parsing. Offset fields require a parser to move
+to a different position in the input, possibly backwards. Size fields require the parser to stop
+processing before the end of input has been reached and perhaps continue executing a parent parser.
+Other cases, such as compressed data require more complicated processing on parts of the input
+before it can be handled.
 
-The programmer can define additional streams by writing a \emph{transformation}, a pair of
-functions, one that generates new streams from existing streams during parsing and one that
-combines streams during output generation. Temporary streams follow the naming and
-scoping convention of dependent fields, but their names start with a \$-sign. 
+Nail introduces two concepts to handle this, \emph{streams} and \emph{transformations}. 
+Streams represent a sequence of bytes that contain some external format. The parsers and generators
+Nail generates always operate on an implicit stream named \cc{\$current} that they process front to
+back, reading input or appending output.
+
+Grammars can use the \cc{apply} combinator to parse or generate external data on a different stream,
+inserting the result in the data model. Streams can be defined in two ways.
+
+First, a rule can require streams as arguments, which can be passed in by the program that invokes
+the generated parser.Every rule needs toe passed at least the implicit current stream.
+
+Second, the programmer can create temporary streams in the grammars with \emph{transformations},
+which are two arbitrary functions called during parsing and output generation.
+The parsing function  takes any number of stream arguments and dependent field values
+and produces any number of temporary streams. This function may reposition and read from the
+input streams and read the values of dependent fields, but not change their contents and values. 
+The generating function has to be an inverse of the parsing function. It takes the same number of temporary streams
+the parsing function produces and and writes the same number of streams and dependent field
+values the parsing function consumes.
 
 
-The parsing function of the transformation takes any number of streams, either temporary or the current,
-and outputs any number of temporary streams. The parsing function may reposition and read from the
-input streams and read the values of dependent fields, but not change their values. The generating
-function has to be an inverse of the parsing function. It takes the same set of temporary streams
-the parsing function returned and is supposed to change the values of the same set of values the
-generating function produced.
+Typically, the top level of most grammars is a rule that only takes a single stream, which may then
+be broken up by various transformations and passed to sub-rules, which eventually parse various linear
+fragment streams. Upon parsing, these fragment streams are generated and then combined by the
+transforms.
 
 The programmer has to guarantee memory safety and unambiguity of the stream transformations. To
 reduce both programmer effort and the risk of unsafe operations, we provide implementations of
