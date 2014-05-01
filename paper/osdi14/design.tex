@@ -314,19 +314,17 @@ processing before the end of input has been reached, and perhaps resume executin
 Other cases, such as compressed data, require more complicated processing on parts of the input
 before it can be handled.
 
-Nail introduces two concepts to handle this, \emph{streams} and \emph{transformations}. 
+Nail introduces two concepts to handle these challenges, \emph{streams} and \emph{transformations}. 
 Streams represent a sequence of bytes that contain some external format. The parsers and generators
 that Nail generates always operate on an implicit stream named \cc{\$current} that they process front to
 back, reading input or appending output.
 Grammars can use the \cc{apply} combinator to parse or generate external data on a different stream,
 inserting the result in the data model.
 
-Streams can be defined in two ways.
-First, a rule can require streams as arguments, which can be passed in by the program that invokes
-the generated parser. Every rule needs to be passed at least the implicit current stream.
+Streams are passed as arguments to a rule or defined within the grammar through \emph{transformations}.
+The current stream is always passed as an implicit parameter.
 
-Second, the programmer can create temporary streams in the grammar with \emph{transformations},
-which are two arbitrary functions called during parsing and output generation respectively.
+Transformations are two arbitrary functions called during parsing and output generation.
 The parsing function  takes any number of stream arguments and dependent field values,
 and produces any number of temporary streams. This function may reposition and read from the
 input streams and read the values of dependent fields, but not change their contents and values. 
