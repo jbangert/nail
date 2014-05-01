@@ -1,8 +1,6 @@
 \section{Related work}
 \label{s:relwk}
 
-\XXX[Parsifal at langsec '14]
-
 \paragraph{Parsers.}
 
 Generating parsers and generators from an executable specification is the
@@ -32,26 +30,32 @@ endianness and bit-packing are transparently hidden by the library.
 
 Hammer implements grammars as language-integrated parser combinators, an approach popularized by
 Parsec for Haskell~\cite{LeijenMeijer:parsec}. The parser combinator style (to our knowledge, first
-described in~\cite{burge1975recursive}) is a natural way of concisely expressing top-down
-grammars~\cite{Danielsson:2010:TPC:1863543.1863585}\footnote{For more background on the history of
-  expressing grammars, see Bryan Ford's masters thesis~\cite{ford2002packrat}, which also describes
-  the default parsing algorithm used by Hammer.} by composing them from one or multiple sub-parsers.
+described by Burge~\cite{burge1975recursive}) is a natural way of concisely expressing top-down
+grammars~\cite{Danielsson:2010:TPC:1863543.1863585}
+by composing them from one or multiple sub-parsers.\footnote{For more
+background on the history of expressing grammars, see Bryan Ford's
+masters thesis~\cite{ford2002packrat}, which also describes the
+default parsing algorithm used by Hammer.}
 Hammer then constructs a tree of function pointers which can be invoked to parse a given input into
-an abstract syntax tree (AST).
+an AST\@.
 
-Nail improves upon Hammer in three ways. First, Nail  generates output besides recognizing input.
-Second, Nail does not require the programmer to write potentially insecure semantic actions. Last,
-Nail's structural dependencies and transformations allow it to work with protocols Hammer cannot recognize, such as
-protocols with offset fields or length fields (Hammer has extremely limited support for length
-fields: it can parse arrays immediately preceded by their length).
+Nail improves upon Hammer in three ways.  First, Nail generates output in
+addition to parsing input.  Second, Nail does not require the programmer
+to write potentially insecure semantic actions.  Last, Nail's structural
+dependencies and stream transforms allow it to work with protocols that
+Hammer cannot handle, such as protocols with offset fields, length fields,
+checksums, or compressed data.  (Hammer has limited support for length
+fields: it can parse arrays immediately preceded by their length.)
 
-Parsifal~\cite{ANSSI:parsifal} is a parser framework that also supports generating output for Ocaml.
-Parsifal structures grammars as an Ocaml type that holds an internal model and functions for parsing
-input and output.
-However, their generator can only produce parsers and generators for simple, fixed-size structures.
-The programmer can then use these when implementing parsers and generators for more
-complicated formats, manually handling offsets, checksums and the like, risking bugs. Nail can
-handle more complicated constructs without the programmer writing code to support them.
+Parsifal~\cite{ANSSI:parsifal} is a parser framework that also supports
+generating output for Ocaml.  Parsifal structures grammars as an Ocaml
+type that holds an internal model and functions for parsing input and
+output.  However, their generator can produce parsers and generators
+only for simple, fixed-size structures.  The programmer can then use
+these when implementing parsers and generators for more complicated
+formats, manually handling offsets, checksums, and the like, risking bugs.
+Nail handles more complicated constructs without the programmer manually
+writing code to support them.
 
 \paragraph{Application use of parsers.}
 Generated parsers have long been used to parse human input, such as programming languages and
