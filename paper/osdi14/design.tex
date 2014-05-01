@@ -30,7 +30,7 @@ Nail grammars describe both the \emph{external format} and an \emph{internal rep
 protocol, as opposed to existing grammar languages describe only the former and leave it up to the programmer to
 construct an internal representation, typically in the form of an abstract syntax tree. 
 
-Nail produces the following from a single, descriptive grammmar: 
+Nail produces the following from a single, descriptive grammar: 
 \begin{itemize}
 \item type declarations for the internal model,
 \item the \textit{parser}, a function to parse a sequence of bytes into an
@@ -41,7 +41,7 @@ sequence of bytes from an instance of the model.
 
 \noindent
 
-\paragraph{Semantic Bijecction.}
+\paragraph{Semantic Bijection.}
 Second, in order to generate output, Nail maintaining
 a \emph{semantic bijection} between the external format and the internal model. That is, when
 generating the corresponding output to a parser input, the two byte streams will have the same
@@ -86,7 +86,7 @@ In the rest of this section, we describe the design on the Nail grammar language
 \input{fig-syntax}
 \subsection{Basics}
 A Nail parser defines both the structure of some external format and a data type to represent that
-format. Parsers are constructed by combinators over simpler parsers, an approach popularised by the Parsec
+format. Parsers are constructed by combinators over simpler parsers, an approach popularized by the Parsec
 framework\cite{LeijenMeijer:parsec}. We provide the most common combinators familiar from other parser
  combinator libraries, such as Parsec and Hammer\cite{hammer-parser} and extend them so they also
  describe a data type. 
@@ -95,7 +95,7 @@ Figure~\ref{fig:syntax} shows the elements of Nail grammars, which we describe i
 \paragraph{Integers and Constraints}
 
 Nail's fundamental parsers represent signed or unsigned with arbitrary lengths up to 64 bits, an
-approach popularised by the Hammer framework.\cite{hammer-parser}  
+approach popularized by the Hammer framework.\cite{hammer-parser}  
 Note that is possible to define parsers for sub-byte lengths, e.g. to parse the 4-bit
 data offset within the TCP header.  The internal representation rounds up to the nearest integer
 type, for example a 24-bit unsigned integer will be stored in an unsigned 32-bit double word.
@@ -205,8 +205,8 @@ For example, \cc{<uint8='"'; many int8 | 'a'..'z'; uint8='"'>} parses a quoted
 lowercase word into an array.
 
 \paragraph{Choices.}
-Our choice combinator takes multiple labelled parsers and tries each of them in turn, backtracking
-to the initial position if an option fails. This behaviour for the choice combinator, the defining
+Our choice combinator takes multiple labeled parsers and tries each of them in turn, backtracking
+to the initial position if an option fails. This behavior for the choice combinator, the defining
 feature of Parser Expression Grammars\cite{ford2002packrat}, resolves any ambiguities explicitly.
 Internally, the choice combinator represents choices as tagged unions. 
 
@@ -215,8 +215,8 @@ option is not necessarily understood identically by the parser. However, actual 
 usually not ambiguous in this sense.
 
 
-\paragraph{Optional.}Nail also includes an \cc{optional} combinator, which attempts to recognise a value, but succeeds
-without consuming input when it cannot recognise that value. Syntactically, \cc{optional} is
+\paragraph{Optional.}Nail also includes an \cc{optional} combinator, which attempts to recognize a value, but succeeds
+without consuming input when it cannot recognize that value. Syntactically, \cc{optional} is
 equivalent to a choice between the parser and an empty structure, but in the internal model it is
 more concisely represented as a reference that is null when the parser fails.
 
