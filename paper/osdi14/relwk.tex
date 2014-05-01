@@ -58,19 +58,26 @@ Nail handles more complicated constructs without the programmer manually
 writing code to support them.
 
 \paragraph{Application use of parsers.}
-Generated parsers have long been used to parse human input, such as programming languages and
-configuration files. Frequently, such languages are often specified with a formal grammar in an
-executable form. Unfortunately,  parser frameworks are seldom used  to recognize
-machine-created input.
 
-A notable exception is the Mongrel
-web server~\cite{mongrel} which uses a grammar
-for HTTP written in the Ragel~\cite{ragel-paper} regular expression
-language. Mongrel was re-written from scratch multiple times to achieve
-better scalability and design, yet the grammar could be  re-used across
-all iterations~\cite{patterson-citation}.
+Generated parsers have long been used to parse human input, such
+as programming languages and configuration files. Frequently, such
+languages are often specified with a formal grammar in an executable
+form. Unfortunately, parser frameworks are seldom used to recognize
+machine-created input; as we demonstrate in \S\ref{s:eval},
+state-of-the-art parser generators are not suitable for parsing or
+generating many real-world data formats.
 
-\paragraph{Other vulnerability mitigations.}
+A notable exception is the Mongrel web server~\cite{mongrel} which
+uses a grammar for HTTP written in the Ragel regular expression
+language~\cite{ragel-paper}.  Mongrel was re-written from scratch
+multiple times to achieve better scalability and design, yet the
+grammar was reused across all iterations~\cite{patterson-citation}.
+We hope that Nail's ideas make it possible to handle a wider range of
+protocols using parser generators, and to build more applications on
+top of grammar-based parsers.
+
+
+\paragraph{Vulnerability mitigation.}
 
 Input processing vulnerabilities fall into two broad classes.  The first
 class is memory safety bugs, such as buffer overflows, which allow an
