@@ -1,4 +1,4 @@
-\begin{figure*}[thb]
+\begin{figure*}
 \begin{tabular}{@{}p{5cm}p{6cm}p{5cm}@{}}
 \toprule
 \bf Nail grammar & \bf External format & \bf Internal data type in C\\
@@ -41,21 +41,11 @@ struct {
 \\\hline
 
 \begin{minipage}{5cm}
-\begin{verbatim}
-<int8 = '"'
- many int8 | ['a'..'z', ' ']
- int8='"'>
-\end{verbatim}
+\verb+<int8 = '"'+\\
+A parser definition \textit{p}\\
+\verb+int8='"'>+
 \end{minipage}
-\cc{} & Lowercase string enclosed in quotes. & 
-\begin{minipage}{5cm}
-\begin{lstlisting}
-struct {
-  size_t N_count;
-  int8_t *elem;
-};
-\end{lstlisting}
-\end{minipage} \\\hline
+\cc{} & Lowercase string enclosed in quotes. & The data type of {\it p} \\\hline
 
 
 \begin{minipage}{5cm}
@@ -83,7 +73,6 @@ struct{
 \begin{minipage}{5cm}
 \begin{verbatim}
 { 
- id uint16
  @valuelen uint16
  value n_of @valuelen uint8
  }
@@ -96,13 +85,10 @@ A 16-bit field, followed by a length field, followed by that many bytes.
 &
 \begin{minipage}{5cm}
 \begin{lstlisting}
-struct {
-  uint16_t id;
-  struct{ 
+struct{ struct{ 
     size_t N_count;
     uint8_t *elem;
-  } value;
-}
+} value;}
 \end{lstlisting}
 \end{minipage}
 \\\hline
@@ -114,21 +100,13 @@ data transform deflate(
 \end{verbatim}
 \end{minipage}
 &
-Decompresses data based on a dependent field. See
+Applies a programmer-specified function to create a new stream based on the current input stream and
+a dependent field. See
 Section~\ref{s:transforms}.&\lstinline+//none+ \\\hline
-\verb+apply $stream many uint8_t+ & Parse a stream as an array of bytes & 
-\begin{minipage}{5cm}
-\begin{lstlisting}
-struct {
-  size_t N_count;
-  uint8_t *elem;
-};
-\end{lstlisting}
-\end{minipage} \\
+\verb+apply $stream many +\textsl{p}\textit{/*parser*/}&  Parse $p$ from a different stream, then
+resume parsing the current stream& Data type of $p$ \\
 \bottomrule
 \end{tabular}
-\XXX[Put the lowercase string and the NUL terminated string into adjacent rows to show they share
-the same model!]
 \caption{Syntax of Nail parser declarations and the formats and data types they describe.}
 \label{fig:syntax}
 \end{figure*}
