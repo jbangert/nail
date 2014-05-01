@@ -348,32 +348,31 @@ not crash or trigger the stack or heap corruption detector.
 
 \subsection{Performance}
 
-To estimate the performance impact of using Nail grammars as opposed to hand-written grammars, we
-benchmarked our DNS server against BIND.
+To evaluate whether Nail-based parsers are compatible with good
+performance, we compare the performance of our DNS server to that of ISC
+BIND 9 release 9.9.5~\cite{bind9}, a mature and widely used DNS server.
+We simulate a load resembling that of an authoritative name server.
+First, we generate domain names consisting of one or two labels randomly
+selected from an English dictionary, and one label that is one of
+three popular top-level domains (\cc{com}, \cc{net}, and \cc{org}).
+Second, we randomly selected 90\% of these domains and created a zone
+file that mapped these domain names to \cc{127.0.0.1}.  Finally, we used
+the \cc{queryperf} tool provided with BIND to query each domain between
+zero and three times, using a DNS server running on the local machine.
+We used a single core of an Intel i7-3610QM system with 12GB of RAM.
+The benchmark tool kept at most 20 queries outstanding at once, and
+was configured to repeat the same randomized sequence of queries for
+one minute.  We repeated each test seven times with 50,000 domain names,
+restarting each daemon in between; we also repeated the tests with 1
+million domain names, and found similar results.  We also performed one
+initial dry run to warm the file system cache for the zone file.
+
+The results are shown in Figure~\ref{fig:perf-dns}, and demonstrate that
+our Nail-based DNS server can achieve higher performance and lower latency
+than BIND\@.  Although BIND is a much more sophisticated DNS server,
+and implements many features that are not present in our Nail-based DNS
+server, we believe our results demonstrate that Nail's parsers are not
+a barrier to achieving acceptable performance.
 
 \input{fig-perf-dns}
-
-We compare the performance of our DNS server to the release 9.9.5 of ISC BIND 9\cite{bind9}, one of
-the oldest and most popular DNS daemons, on a load that resembles the authoritative name server at a
-hosting company. First, we generated domain names consisting of one or
-two labels randomly selected from an English dictionary and one label that is one of three popular
-Top Level Domains: ``com'', ``net'' or ``org''. Second, we randomly selected 90\% of these domains and
-created a zone file that mapped these domain names to the local IP address. 
-
-Finally, we used the \cc{queryperf} tool provided with BIND to query each domain between zero
-and three times on a local instance of BIND or NailDNS. Both DNS servers were operating on a single, 
-core  of an Intel i7-3610QM with 12GB of RAM on an idle system, and the benchmark tool kept at most 20
-queries outstanding at once. The queryperf tool was configured to
-repeat the same, randomized sequence of queries for one minute and the average throughput and
-response latency were measured.  We repeated each test seven times  with 50.000
-domain names, restarting each daemon in between. We also performed one initial dry run to warm the
-file system cache for the zone file. We repeated the tests with 1 million domain names and found
-that the servers performed almost identically.
-
-Surprisingly, our simple Nail server outperforms the established BIND server that has seen decades
-of optimization by a factor of 3.  This demonstrates that even though Nail was
-not developed focusing on performance, applications built on Nail can compete with real-world
-hand-written parsers.
-
-
 

@@ -1,16 +1,17 @@
 \section{Conclusion}
 \label{s:concl}
 
-This paper presented the initial design and implementation of
-\textit{Nail}, an interface generator for data formats.  Nail helps
-programmers to avoid memory corruption and ambiguity vulnerabilities
-while reducing effort in parsing and generating real-world protocols
-and file formats.  Nail achieves this by reducing the expressive
-power of the grammar, maintaining a \emph{semantic bijection} between
-data formats and internal representations, and allowing programmers to
-specify \emph{structural dependencies} in the data format.  Preliminary
-experience with implementing a DNS server using Nail suggests that this
-is a promising approach.
+This paper presented the design and implementation of \textit{Nail},
+an interface generator for data formats.  Nail helps programmers avoid
+memory corruption and ambiguity vulnerabilities while reducing effort
+in parsing and generating real-world protocols and file formats.
+Nail achieves this by reducing the expressive power of the grammar,
+maintaining a \emph{semantic bijection} between data formats and internal
+representations.  Nail captures complex data formats by introducing
+\emph{dependent fields}, \emph{streams}, and \emph{transforms}.
+Using these techniques, Nail is able to support DNS packet and ZIP file
+formats, and enables applications to handle these data formats in many
+fewer lines of code.
 
 % The source code for our prototype of Nail is available at
 % \url{https://github.com/jbangert/nail}.
