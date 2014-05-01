@@ -340,7 +340,7 @@ We provide a transformation for handling offset fields, which is invoked as foll
 \cc{\$fragment transform offset\_u32(\$current, \cc{@}offset)}. 
 This transformation corresponds to two functions for parsing and
 generation, as shown in Figure~\ref{fig:xform-sig}. It defines a new stream \cc{\$fragment} that can
-be parsed as follows \cc{apply  \$fragment some_parser}.
+be used to parse data at the offset contained in \cc{@offset} as follows \cc{apply  \$fragment some_parser}.
 
 \begin{figure}[h]
 \smaller[0.5]
