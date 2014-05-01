@@ -122,14 +122,16 @@ contains a variable-length comment, so it has to be located by scanning
 backwards from the end of the file until a magic number and a valid
 length field is found. Many ZIP implementations disagree on how to find
 this header in confusing situations, such as when the comment contains
-the magic number~\cite{wolf:berlinsides-zip}.  This end-of-directory
+the magic number~\cite{wolf:berlinsides-zip}. 
+
+ This end-of-directory
 header contains the offset and size of the \emph{ZIP directory}, which
 is an array of \emph{directory entry headers}, one for every file
 in the archive.  Each entry stores file metadata, such as file name,
 compressed and uncompressed size, and a checksum, in addition to the
 offset of a \emph{local file header}. The local file header duplicates
-most information from the directory entry header and the compressed file
-contents follow it immediately.
+most information from the directory entry header. The compressed file
+contents follow the header immediately.
 
 \input{fig-zip}
 
