@@ -292,53 +292,54 @@ this pattern as:
 Other dependencies, such as offset fields or checksums, are not handled directly by combinators, but
 through  transformations, as we describe next.
 
-\subsection{Input streams and Transformations.}
+\subsection{Input streams and transformations}
 \label{s:transforms}
-Traditional parsers handle input one symbol at a time, beginning to end.
+
+Traditional parsers handle input one symbol at a time, from beginning to end.
 However, real-world formats often require non-linear parsing. Offset fields require a parser to move
 to a different position in the input, possibly backwards. Size fields require the parser to stop
-processing before the end of input has been reached and perhaps continue executing a parent parser.
-Other cases, such as compressed data require more complicated processing on parts of the input
+processing before the end of input has been reached, and perhaps resume executing a parent parser.
+Other cases, such as compressed data, require more complicated processing on parts of the input
 before it can be handled.
 
 Nail introduces two concepts to handle this, \emph{streams} and \emph{transformations}. 
 Streams represent a sequence of bytes that contain some external format. The parsers and generators
-Nail generates always operate on an implicit stream named \cc{\$current} that they process front to
+that Nail generates always operate on an implicit stream named \cc{\$current} that they process front to
 back, reading input or appending output.
-
 Grammars can use the \cc{apply} combinator to parse or generate external data on a different stream,
-inserting the result in the data model. Streams can be defined in two ways.
+inserting the result in the data model.
 
+Streams can be defined in two ways.
 First, a rule can require streams as arguments, which can be passed in by the program that invokes
-the generated parser.Every rule needs toe passed at least the implicit current stream.
+the generated parser. Every rule needs to be passed at least the implicit current stream.
 
-Second, the programmer can create temporary streams in the grammars with \emph{transformations},
-which are two arbitrary functions called during parsing and output generation.
-The parsing function  takes any number of stream arguments and dependent field values
+Second, the programmer can create temporary streams in the grammar with \emph{transformations},
+which are two arbitrary functions called during parsing and output generation respectively.
+The parsing function  takes any number of stream arguments and dependent field values,
 and produces any number of temporary streams. This function may reposition and read from the
 input streams and read the values of dependent fields, but not change their contents and values. 
-The generating function has to be an inverse of the parsing function. It takes the same number of temporary streams
-the parsing function produces and and writes the same number of streams and dependent field
-values the parsing function consumes.
+The generating function has to be an inverse of the parsing function. It takes the same number of
+temporary streams that the parsing function produces, and writes the same number of streams and
+dependent field values that the parsing function consumes.
 
-
-Typically, the top level of most grammars is a rule that only takes a single stream, which may then
+Typically, the top level of most grammars is a rule that takes only a single stream, which may then
 be broken up by various transformations and passed to sub-rules, which eventually parse various linear
 fragment streams. Upon parsing, these fragment streams are generated and then combined by the
 transforms.
 
 The programmer has to guarantee memory safety and unambiguity of the stream transformations. To
 reduce both programmer effort and the risk of unsafe operations, we provide implementations of
-transformations for many common features, such as checksums and size and offset fields. Furthermore,
+transformations for many common features, such as checksums, size, and offset fields. Furthermore,
 we provide library functions that can be used to safely operate on streams, such as splitting and
 concatenation. Nail implements streams as iterators, so they can share underlying buffers and can be
 efficiently duplicated and split.
 
 Transformations can handle a wide variety of patterns in data formats, including the following: 
 \paragraph{Offsets.}
-We provide a transformation for handling offset fields that is invoked as follows:
+We provide a transformation for handling offset fields, which is invoked as follows:
 \cc{\$fragment transform offset\_u32(\$file\_stream, \@offset)}. 
-They are implemented by two functions, as shown in Figure~\ref{fig:xform-sig}.
+This transformation corresponds to two functions for parsing and
+generation, as shown in Figure~\ref{fig:xform-sig}.
 
 \begin{figure}[h]
 \smaller[0.5]
@@ -356,7 +357,7 @@ position. When generating, it appends the fragment stream to the current stream 
 of the fragment to the dependent field.
 
 \paragraph{Compressed data.}
-Encoded, compressed or encrypted data can be handled transparently by writing a custom
+Encoded, compressed, or encrypted data can be handled transparently by writing a custom
 transformation that transforms a coded stream into one that can be parsed by a Nail grammar and vice
 versa. Usually, this involves calling an existing library.
 
@@ -364,12 +365,14 @@ versa. Usually, this involves calling an existing library.
 Checksums can be verified and computed in a transformation that takes a stream and a dependent
 field. In some cases, a checksum is calculated over a buffer that contains the checksum itself, with
 the checksum being set to some particular value. Because the functions implementing a transformation
-are passed a pointer to any dependent fields, the checksum function can set the checksums initial
+are passed a pointer to any dependent fields, the checksum function can set the checksum's initial
 value before calculating the checksum over the entire buffer, including the checksum.
 
 
-\noindent A real-world example with many different transforms is explained in Section~\ref{s:eval-format-zip}.
- 
+\paragraph{}
+A real-world example with many different transforms, used to support
+the Zip file format, is described in \S\ref{s:eval-format-zip}.
+
 
 % For example, we imagine the following grammar could be used to represent
 % a sequence of bytes \texttt{data} followed by its CRC32 checksum:
