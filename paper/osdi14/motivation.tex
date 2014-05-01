@@ -1,6 +1,53 @@
 \section{Motivation}
 \label{s:motivation}
 
+To motivate the need for Nail, this section presents a case study of
+vulnerabilities due to ad-hoc input parsing and output generation.
+
+The ZIP format has been associated with many vulnerabilities, and the
+PROTOS Genome project found numerous security vulnerabilities in most
+implementations of ZIP and other archive formats that are directly
+related to input handling.
+\XXX[what is the PROTOS Genome project?]
+
+Between May 2011 and May 2014, the CVE database~\cite{cve-database} lists
+83 vulnerabilities when searching for the string ``ZIP''. Of these, 42
+were completely unrelated to the archive format, for example reporting
+vulnerabilities revealing ZIP codes of other users. 26 vulnerabilities
+were related to ZIP archives, but not to input processing, such as
+trusting arbitrary update ZIP files sent to a server or vulnerabilities
+that can be accessed through manipulating files in a ZIP container. This
+includes several vulnerabilities allowing another files to replaced while
+they are extracted from ZIP files because insufficiently secure temporary
+directories are used. Of the 15 remaining vulnerabilities pertaining
+to ZIP files, 14 vulnerabilities were related to input processing. The
+other vulnerability, which falls outside of Nail's purview, concerns a
+ZIP packer choosing a weak legacy cryptosystem even when configured to
+use AES.
+
+Out of the 14 input processing vulnerabilities, ten are memory corruption
+attacks, that could also be avoided by using safer languages.  Most of
+the buffer overflows seem to result from inconsistent offset fields
+being manipulated without checking.
+
+The remaining four vulnerabilities do not involve memory corruption,
+but rather parser ambiguities.  Two of them relate to implementations
+mis-parsing ZIP files, particularly in virus scanners.  One other
+vulnerability is in a Python ZIP library, which uses both the size
+field in the file entry and in the header, without checking for their
+consistency.  This results in a denial-of-service through endless loops
+or incorrectly extracted ZIP files.
+
+A similar attack was used by the fourth vulnerability, the infamous
+Android master key bug~\cite{saurik-masterkey} that completely
+bypassed Android security through parser inconsistencies between the
+ZIP handler that checks signatures for privileged applications and the
+ZIP implementations that ultimately extract those files. Thus, valid
+application bundles could be modified to include malicious applications
+without breaking their signatures.
+
+
+
 \paragraph{Vulnerability mitigation.}
 
 Input processing vulnerabilities fall into two broad classes.  The first
@@ -56,16 +103,16 @@ logic errors and inconsistencies in parsing and output generation.
 % processed by the program until the invalid sections are encountered.
 
 
-Proper input recognition has been shown to be an excellent way of
-eliminating ambiguous inputs.  In one case, a PDF parser (implemented
-in Coq) was used to reject over $95\%$ of known malicious PDFs by checking
-whether they conform to the PDF format~\cite{Bogk-PDF}. The same project
-also produced a ``counter-example'' PDF that triggered numerous bugs
-in other PDF parsers. However, manually writing parser code and proving
-unambiguity does not scale to the number of file formats and protocols
-in existence and might result in parser code tied to one specific
-application. By supporting a wide range of real-world file formats,
-Nail helps programmers produce precise parsers for complex grammars.
+% Proper input recognition has been shown to be an excellent way of
+% eliminating ambiguous inputs.  In one case, a PDF parser (implemented
+% in Coq) was used to reject over $95\%$ of known malicious PDFs by checking
+% whether they conform to the PDF format~\cite{Bogk-PDF}. The same project
+% also produced a ``counter-example'' PDF that triggered numerous bugs
+% in other PDF parsers. However, manually writing parser code and proving
+% unambiguity does not scale to the number of file formats and protocols
+% in existence and might result in parser code tied to one specific
+% application. By supporting a wide range of real-world file formats,
+% Nail helps programmers produce precise parsers for complex grammars.
 
 %%This is supposed to go into design
 % While it is possible to express short transformations on the input
