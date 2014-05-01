@@ -5,10 +5,15 @@
 
 Generating parsers and generators from an executable specification is the
 core concept of interface generators, such as CORBA~\cite{omg:corba},
-XDR~\cite{rfc:1832}, or Protocol Buffers~\cite{varda2008}.  However,
-while interface generators work well for defining new protocols, they
-do not provide full control over the data format, and therefore cannot
-be used to implement existing protocols and data formats.
+XDR~\cite{rfc:1832}, and Protocol Buffers~\cite{varda2008}.  However,
+interface generators do not allow the programmer to specify the byte-level
+data format; instead, they define their own data encoding that is
+specific to a particular interface generator.  For instance, XDR-based
+protocols are incompatible with Protocol Buffers.  Moreover, this means
+that interface generators cannot be used to interact with existing protocols
+that were not defined using that interface generator in the first place.
+As a result, interface generators cannot be used to parse or generate
+widely used formats such as DNS or ZIP, which is a goal for Nail.
 
 Closely related work has been done at Bell Labs with the PacketTypes
 system~\cite{mccann2000packet}.  However, PacketTypes works only as a
@@ -50,7 +55,7 @@ arrays immediately preceded by their length.
 Parsifal~\cite{ANSSI:parsifal} is a parser framework that also supports
 generating output for OCaml.  Parsifal structures grammars as an OCaml
 type that holds an internal model and functions for parsing input and
-output.  However, their generator can produce parsers and generators
+output.  However, Parsifal can produce parsers and generators
 only for simple, fixed-size structures.  The programmer can then use
 these when implementing parsers and generators for more complicated
 formats, manually handling offsets, checksums, and the like, risking bugs.

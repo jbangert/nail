@@ -2,7 +2,10 @@
 
 \textit{Nail} is an interface generator that greatly reduces the
 programmer effort for safely parsing and generating protocols defined
-by a Parser-Expression based grammar.  Nail introduces several key
+by a Parser-Expression based grammar.
+\XXX[what is an interface generator?]
+\XXX[what is a Parser-Expression based grammar?]
+Nail introduces several key
 ideas to achieve its goal.  First, Nail uses the protocol grammar to
 define not just the data format, but also the internal object model
 of the data.  Second, Nail eliminates the notion of semantic actions,
@@ -16,6 +19,9 @@ and compressed data, which are impractical to express in existing
 protocol languages.  Using Nail, we implement a complete DNS server in
 C in under 300 lines of code and grammar, and a complete {\tt unzip}
 program in C in 220 lines of code and grammar, demonstrating that Nail
-makes it easy to parse complex real-world data formats.
+makes it easy to parse complex real-world data formats.  Performance
+experiments show that a Nail-based DNS server can outperform the widely
+used BIND DNS server, demonstrating that Nail parsers can achieve good
+performance.
 
 \end{abstract}

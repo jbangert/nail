@@ -19,10 +19,11 @@ generator, such as {\tt lex} and {\tt yacc}, to synthesize the input
 processing code.  Developers that use a parser generator do not need
 to write error-prone input processing code on their own, and as long
 as the parser generator is bug-free, the application will be safe from
-input processing vulnerabilities.  Unfortunately, applying this approach
-in practice, using state-of-the-art parser generators, still requires
-too much manual programmer effort, making it error-prone, as we describe
-next.
+input processing vulnerabilities.
+
+Unfortunately, applying this approach in practice, using state-of-the-art
+parser generators, still requires too much manual programmer effort,
+and is still error-prone, for four reasons:
 
 First, parser generators typically parse inputs into an abstract syntax
 tree (AST) that corresponds to the grammar.  In order to produce a data
@@ -31,7 +32,9 @@ application developers must write explicit {\em semantic actions} that
 update the application's internal representation of the data based on
 each AST node.  Writing these semantic actions by hand is error-prone,
 much like other input processing code, and mistakes can result in memory
-corruption bugs or misinterpreted inputs.  Writing these semantic actions
+corruption bugs or misinterpreted inputs.
+\XXX[do we have any evidence to cite for this claim?]
+Writing these semantic actions
 also requires the programmer to describe the structure of the input three
 times---once to describe the grammar, once to describe the internal data
 structure, and once again in the semantic actions that translate the
@@ -43,27 +46,35 @@ format as their input---for example, applications might both
 read and write files, or both receive and send network packets.
 Most parser generators focus on just parsing an input, rather
 than producing an output, thus requiring the programmer to manually
-construct outputs, which is error-prone.  Some parser generators, such as
+construct outputs, which is error-prone.
+\XXX[do we have any evidence to cite for this claim?]
+Some parser generators, such as
 Boost.Spirit~\cite{boost-spirit},
 allow reusing the grammar for generating output from the internal
 representation.  However, those generators require yet another set of
 semantic actions to be written, transforming the internal representation
 into an AST\@.
 
-Third, many data formats contain redundancies, such as repeating information in multiple structures.
-Applications usually do not explicitly check for consistency, and if different applications use
-different instances of the same value, an attacker can craft input that causes inconsistencies~\cite{cve-python-zip-maybe}.
-Furthermore, security vulnerabilities can occur when an application assumes two repetitions of the
-same data to be consistent, such as allocating a buffer based on the value of one size field and copying into
-that buffer based on the value of another~\cite{cve-some-example}.
+Third, many data formats contain redundancies, such as repeating
+information in multiple structures.  Applications usually do not
+explicitly check for consistency, and if different applications use
+different instances of the same value, an attacker can craft input that
+causes inconsistencies~\cite{cve-python-zip-maybe}.  Furthermore, security
+vulnerabilities can occur when an application assumes two repetitions
+of the same data to be consistent, such as allocating a buffer based on
+the value of one size field and copying into that buffer based on the
+value of another~\cite{cve-some-example}.
 
-Finally, real-world data formats, for example PNG or PDF,  are hard to represent with
-existing parser generators. Those parsers cannot directly deal with length or checksum fields
-directly, so the programmer has to either write potentially unsafe code to deal with such features,
-or build contrived grammar constructs, such as introducing one grammar rule for each possible value
-of a length field. Offset fields usually require the programmer to manipulate a parser's internal
-state to re-position its input. More complicated transformations, such as
-handling compressed data, cannot be represented at all.
+Finally, real-world data formats, for example PNG or PDF, are hard to
+represent with existing parser generators.  Those parsers cannot directly
+deal with length or checksum fields directly, so the programmer has to
+either write potentially unsafe code to deal with such features, or build
+contrived grammar constructs, such as introducing one grammar rule for
+each possible value of a length field.  Offset fields, which specify
+the position at which some data structure is located, usually require
+the programmer to manipulate a parser's internal state to re-position
+its input.  More complicated transformations, such as handling compressed
+data, cannot be represented at all.
 
 
 
@@ -97,11 +108,15 @@ without requiring the programmer to write additional code.
 % constants are only used for their intended purpose of representing syntax-only
 % features, the generated output will have the same semantics as the parsed input.
 
-Third, Nail introduces two abstractions, \emph{dependent fields} and \emph{transformations}, to
-elegantly handle problematic structures, such as offset fields or checksums. Dependent fields are
-fields in the protocol whose value depends in some way on the value or layout of other parts of the
-format. Transformations allow the programmer to escape the generated code to modify the raw data and
-interact with dependent fields in a controlled manner. 
+Third, Nail introduces two abstractions, \emph{dependent fields} and
+\emph{transformations}, to elegantly handle problematic structures,
+such as offset fields or checksums.  Dependent fields capture fields
+in a protocol whose value depends in some way on the value or layout
+of other parts of the format; for example, offset or length fields,
+which specify the position or length of another data structure, fall
+in this category.  Transformations allow the programmer to escape the
+generated code to modify the raw data and interact with dependent fields
+in a controlled manner.
 
 To evaluate whether Nail's design is effective at handling real-world
 data formats, we implemented a prototype of Nail for C\@.  Using our
@@ -112,7 +127,9 @@ functional DNS server in under 200 lines of C code, and an {\tt unzip}
 utility in about 50 lines of C code.  This suggests both that Nail is
 effective at handling complex real-world data formats, and that Nail
 makes it easy for application developers to parse and generate external
-data representations.
+data representations.  Performance results show that the Nail-based DNS
+server outperforms the widely used BIND DNS server, demonstrating that
+Nail-based parsers and generators can achieve good performance.
 
 The rest of this paper is organized as follows.  \S\ref{s:relwk}
 puts Nail in the context of related work.
