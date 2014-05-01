@@ -44,11 +44,11 @@ DNS packets & 48+64 & Label compression,\\
 ZIP archives & 92+78 & Checksums, offsets, \\ 
   & & variable length trailer, \\
   & & compression \\
-Ethernet & 16 & --- \\
-ARP & 10 & --- \\
-IP & 25 & Total length field, options \\
-UDP & 7 & Checksum, length field \\
-ICMP & 5 & Checksum \\
+Ethernet  & 16+0\phantom{0} & --- \\
+ARP       & 10+0\phantom{0} & --- \\
+IP        & 25+0\phantom{0} & Total length field, options \\
+UDP       &  7+0\phantom{0} & Checksum, length field \\
+ICMP      &  5+0\phantom{0} & Checksum \\
 \bottomrule
 \end{tabular}
 
