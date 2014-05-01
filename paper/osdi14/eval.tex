@@ -94,7 +94,7 @@ ZIP files are normally parsed end-to-beginning. At the end of each ZIP file is a
 header}. This header contains a variable length comment, so it has to be located by scanning
 backwards from the end of the file until a magic number and a valid length field is found. Many ZIP
 implementations disagree on how to find this header in confusing situations, such as when the
-comment contains the valid magic bytes\cite{wolf-berlinsides-zip}.
+comment contains the valid magic bytes\cite{wolf:berlinsides-zip}.
 This end-of-directory header contains the offset and size of the \emph{ZIP directory}, which is an
 array of one \emph{directory entry header} per file in the archive.
 Each entry stores file meta data, such as file name, compressed and uncompressed size and a checksum,
@@ -185,7 +185,7 @@ same grammar is used, together with 98 lines of C, to implement a minimal clone 
 \cc{host} command-line tool. Most of this code consists of a custom hashtable and system
 interface code, such as listening to sockets and reading the zonefile. 
 
-The Hammer parser framework\cite{hammer-dns} ships with a toy DNS server that responds to
+The Hammer parser framework\cite{hammer-parser} ships with a toy DNS server that responds to
 any valid DNS query with a CNAME record to the domain ``spargelze.it''. 
 The server consists of 683 lines of C, mostly custom validators, semantic actions,
 and data structure definitions, with only 52 lines of code defining the
@@ -270,7 +270,7 @@ the stack or heap corruption detector.
 To estimate the performance impact of using Nail grammars as opposed to hand-written grammars, we
 benchmarked our DNS server against BIND.
 
-We compare the performance of our DNS server to the release 9.9.5 of ISC BIND 9\cite{bind8}, one of
+We compare the performance of our DNS server to the release 9.9.5 of ISC BIND 9\cite{bind9}, one of
 the oldest and most popular DNS daemons, on a load that resembles the authoritative name server at a
 hosting company. First, we generated domain names consisting of one or
 two labels randomly selected from an English dictionary and one label that is one of three popular

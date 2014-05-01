@@ -2,13 +2,6 @@
 \label{s:relwk}
 
 
-
-
-
-\XXX[https://github.com/qualiancy/lotus also supports arbitrary formats,
-     but requires explicit encode/decode rules.  actually kind-of like
-     pack/unpack.]
-
 \XXX[Parsifal at langsec '14]
 \paragraph{Parsers}
 
@@ -49,6 +42,13 @@ Nail's structural dependencies and transformations allow it to work with protoco
 protocols with offset fields or length fields (Hammer has extremely limited support for length
 fields: it can parse arrays immediately preceded by their length).
 
+Parsifal~\cite{ANSSI:parsifal} is a parser framework that also supports generating output for Ocaml.
+Parsifal structures grammars as an Ocaml type that holds an internal model and functions for parsing
+input and output.
+However, their generator can only produce parsers and generators for simple, fixed-size structures.
+The programmer can then use these when implementing parsers and generators for more
+complicated formats, manually handling offsets, checksums and the like, risking bugs. Nail can
+handle more complicated constructs without the programmer writing code to support them.
 
 \paragraph{Application use of parsers.}
 Generated parsers have long been used to parse human input, such as programming languages and
