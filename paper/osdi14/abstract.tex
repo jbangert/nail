@@ -4,12 +4,12 @@
 programmer effort for safely parsing and generating protocols defined
 by a Parser-Expression based grammar.  Nail introduces several key
 ideas to achieve its goal.  First, Nail uses the protocol grammar to
-define not just the data format, but also the internal representation
+define not just the data format, but also the internal object model
 of the data.  Second, Nail eliminates the notion of semantic actions,
 used by existing parser generators, which reduces the expressive power
 but allows Nail to both {\em parse} data formats and {\em generate}
-them from internal representations, by maintaining a {\em semantic
-bijection} between data formats and internal representation.  Third,
+them from the internal object model, by maintaining a {\em semantic
+bijection} between the data format and the object model.  Third,
 Nail introduces {\em dependency fields} and {\em stream transforms} to
 capture protocol features such as size and offset fields, checksums,
 and compressed data, which are impractical to express in existing

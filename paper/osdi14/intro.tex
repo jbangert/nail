@@ -59,11 +59,11 @@ that buffer based on the value of another.
 
 Finally, real-world data formats, for example PNG or PDF,  are hard to represent with
 existing parser generators. Those parsers cannot directly deal with length or checksum fields
-directly, so either the programmer has to write potentially unsafe code to deal with such features
+directly, so the programmer has to either write potentially unsafe code to deal with such features,
 or build contrived grammar constructs, such as introducing one grammar rule for each possible value
-of a length fields. Offset fields usually require the programmer to manipulate a parser's internal
-state to re-position its input. More complicated transformations on the external format, such as
-compressed data, cannot be implemented at all.
+of a length field. Offset fields usually require the programmer to manipulate a parser's internal
+state to re-position its input. More complicated transformations, such as
+handling compressed data, cannot be implemented at all.
 
 
 
@@ -73,12 +73,12 @@ several key ideas, as follows.
 
 First, Nail grammars define both a format's external representation and an internal object model.
 This removes the semantic actions and type declarations that programmers have to write with existing
-parser generator. While this somewhat reduces the flexibility of the internal model, it forces the programmer
+parser generators. While this somewhat reduces the flexibility of the internal model, it forces the programmer
 to clearly separate syntactic validation and semantic processing.
 
 Second, this well-defined internal representation allows Nail to
 maintain a {\em semantic bijection} between data formats and their
-internal representation.  As a result, this enables Nail to not just
+internal object model.  As a result, this enables Nail to not just
 parse input but also generate output from the internal representation,
 without requiring the programmer to write additional code.
 
@@ -111,7 +111,8 @@ of grammar.  On top of these grammars, we were able to build a fully
 functional DNS server in under 200 lines of C code, and an {\tt unzip}
 utility in about 50 lines of C code.  This suggests both that Nail is
 effective at handling complex real-world data formats, and that Nail
-makes it easy for application developers to handle external data formats.
+makes it easy for application developers to parse and generate external
+data representations.
 
 The rest of this paper is organized as follows.  \S\ref{s:relwk}
 puts Nail in the context of related work.  \S\ref{s:design} describes
