@@ -200,17 +200,14 @@ to the layout or metadata of the file.
 %2821 lines
 
 To evaluate how much programmer effort is required to build an
-application that uses Nail, we implemented three applications---a
-DNS server, a replacement for the \cc{host} DNS client tool, and an
+application that uses Nail, we implemented two applications---a
+DNS server, and an
 \cc{unzip} program---based on the above grammars, and compared code
 size with comparable applications that process data manually, using
-SlocCount~\cite{sloccount}.  We also compare the code size of our
+\cc{sloccount}~\cite{sloccount}.  We also compare the code size of our
 DNS server to a DNS server written using the Hammer parsing framework,
 although it does not fully support DNS (e.g., it lacks label compression,
 among other things).  Figure~\ref{fig:effort} summarizes the results.
-
-\XXX[nz][should we kill \cc{host}, since our replacement is nowhere
-near as full-featured as the real \cc{host} or \cc{dig}?]
 
 \begin{figure}[tb]
 \centering
@@ -229,11 +226,6 @@ DNS server
   & 10,000
   & (DJBDNS) \\
 
-DNS client
-  & 210
-  & 4,615
-  & (host) \\
-
 \cc{unzip}
   & 220
   & 1600
@@ -247,38 +239,29 @@ DNS client
 
 \paragraph{DNS.}
 
-Our DNS grammar, which is partly reproduced in Figure~\ref{fig:dns-full},
-consists of a 48 line Nail grammar and 64 lines of C
-implementing DNS label compression, whose signatures are shown in
-Figure~\ref{fig:dns-xform}.  The grammar describes both the structure
-of DNS packets (36 lines) and of a simple zone-file format (16 lines)
-supporting A, NS, MX and CNAME records.
-
-  
-With this grammar, we built a simple authoritative DNS server, which parses a zone file, listens to incoming DNS
-requests, parses them and generates appropriate responses, is implemented in 183 lines of C. The
-same grammar is used, together with 98 lines of C, to implement a minimal clone of the
-\cc{host} command-line tool. Most of this code consists of a custom hashtable and system
-interface code, such as listening to sockets and reading the zonefile. 
-
-The Hammer parser framework\cite{hammer-parser} ships with a toy DNS server that responds to
-any valid DNS query with a CNAME record to the domain ``spargelze.it''. 
-The server consists of 683 lines of C, mostly custom validators, semantic actions,
-and data structure definitions, with only 52 lines of code defining the
-grammar with Hammer's combinators.
+Our DNS server parses a zone file, listens to incoming DNS requests,
+parses them, and generates appropriate responses.  The DNS server is
+implemented in 183 lines of C, together with 48 lines of Nail grammar
+and 64 lines of C code implementing stream transforms for DNS label
+compression.  In comparison, Hammer~\cite{hammer-parser} ships with a toy
+DNS server that responds to any valid DNS query with a CNAME record to the
+domain ``spargelze.it''.  Their server consists of 683 lines of C, mostly
+custom validators, semantic actions, and data structure definitions, with
+only 52 lines of code defining the grammar with Hammer's combinators.
+Their DNS server does not implement label compression, zone files, etc.
+From this, we conclude that Nail leads to much more compact code for
+dealing with DNS packet formats.
 
 It is hard to compare the programming effort required to implement
-our DNS server to that of a real world DNS server, since we implement less functionality.
- In particular, we do not send the additional glue records real-world DNS servers send and
-we did not implement any configuration options.
-
-However, the closest in functionality and intent is Dan Bernstein's
-djbdns,\footnote{\url{http://cr.yp.to/djbdns.html}} which aims to be a minimalist, highly secure,
-authoritative-only DNS server. The latest release of djbdns, including various support tools, is
-about 10,000 lines of C as measured by \cc{sloccount}. DJ
+our DNS server to that of a real world DNS server, since we implement
+less functionality: we do not send the additional glue records and
+we did not implement any configuration options.  However, the closest
+in functionality and intent is Dan Bernstein's djbdns~\cite{djbdns},
+which aims to be a minimalist, highly secure, authoritative-only DNS
+server. The latest release of djbdns, including various support tools,
+is about 10,000 lines of C\@.  \XXX[nz][so what does this mean?]
 
 \paragraph{ZIP.}
-
 
 We wrote a grammar for ZIP, which consists of 92 lines of Nail and 78 lines of C implementing two
 stream transforms, one for the DEFLATE compression algorithm with the help of the zlib library and
