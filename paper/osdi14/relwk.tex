@@ -1,27 +1,30 @@
 \section{Related work}
 \label{s:relwk}
 
-
 \XXX[Parsifal at langsec '14]
-\paragraph{Parsers}
 
-Generating parsers and generators from an executable specification
-is the core concept of Interface Generators, e.g. in CORBA or more
-recently~\cite{varda2008}. However, while interface generators work
-very well for existing grammars, they do not allow full control over the
-format of the output, so cannot be used to implement legacy protocols.
-Very related work has been done at Bell Labs with the PacketTypes
-system~\cite{mccann2000packet}, however PacketTypes works only as a
-parser, not as an output generator and does not support the expressive
+\paragraph{Parsers.}
+
+Generating parsers and generators from an executable specification is the
+core concept of interface generators, such as CORBA~\cite{omg:corba},
+XDR~\cite{rfc:1832}, or Protocol Buffers~\cite{varda2008}.  However,
+while interface generators work well for defining new protocols, they
+do not provide full control over the data format, and therefore cannot
+be used to implement existing protocols and data formats.
+
+Closely related work has been done at Bell Labs with the PacketTypes
+system~\cite{mccann2000packet}.  However, PacketTypes works only as a
+parser, not as an output generator, and does not support the expressive
 power of parsing expression grammars (PEGs), but rather implements a
-C-like structure model enhanced with  length fields and
-constraints. PacketTypes cannot handle complicated encodings such as  compressed data.
+C-like structure model enhanced with length fields and constraints.
+PacketTypes also cannot handle complicated encodings such as compressed
+data, which are supported by Nail's stream transforms.
 
 Parser generators for binary protocols were first introduced by the
 Hammer~\cite{hammer-parser} parser.
 While previous parser generators could also be used to write grammars
 for binary protocols,\footnote{Theoretically speaking, the alphabet
-over which a grammar is an  abstract set, so most algorithms work
+over which a grammar is an abstract set, so most algorithms work
 just as well on an alphabet of $\{0,1\}$.} doing so is practically
 inconvenient. Hammer allows the programmer to specify a grammar in
 terms of bits and bytes instead of characters. Common concerns, such as
