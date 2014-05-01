@@ -1,111 +1,101 @@
 \begin{figure*}
-\begin{tabular}{@{}p{5cm}p{6cm}p{5cm}@{}}
+\centering
+\begin{tabular}{@{~}p{4.5cm}p{6cm}p{5cm}@{~}}
 \toprule
-\bf Nail grammar & \bf External format & \bf Internal data type in C\\
+\bf Nail grammar & \bf External format & \bf Internal data type in C \\
 \midrule
-\cc{uint4} & 4-bit unsigned integer.& \lstinline$uint8_t$ \\\hline
-\cc{int32 | [1,5..255,512]} & Signed 32 bit integer $x \in \{ 1, 512 \} \vee 5\leq x\leq 255$ &
-\lstinline$int32_t$ \\\hline
 
-\cc{uint8=0}& 8-bit constant with value 0.& \lstinline$//Empty$\\\hline
+\cc{uint4}
+  & 4-bit unsigned integer
+  & \cc{uint8_t} \\
 
-\cc{optional int8|16..} & 8-bit integer $\geq 16$ or nothing & \lstinline$int8_t *$\\\hline
+\midrule
+\cc{int32 | [1,5..255,512]}
+  & Signed 32 bit integer $x \in \{ 1, 5..255, 512 \}$
+  & \cc{int32_t} \\
 
-\cc{many int8 | ![0]} & A NULL-terminated string. & 
-\begin{minipage}{5cm}
-\begin{lstlisting}
-struct {
-  size_t N_count;
-  int8_t *elem;
-};
-\end{lstlisting}
-\end{minipage}\\\hline
+\midrule
+\cc{uint8 = 0}
+  & 8-bit constant with value 0
+  & \cc{/* empty */} \\
 
-\begin{minipage}{5cm}
-\begin{verbatim}
-{ 
- hours uint8
- minutes uint8
-}
-\end{verbatim}
-\end{minipage}
-& Structure with two fields. &
-\begin{minipage}{5cm}
-\begin{lstlisting}
-struct {
-  uint8_t hours; 
-  uint8_t minutes;
-};
-\end{lstlisting}
-\end{minipage}
-\\\hline
+\midrule
+\cc{optional int8 | 16..}
+  & 8-bit integer $\geq 16$ or nothing
+  & \cc{int8_t *} \\
 
-\begin{minipage}{5cm}
-\verb+<int8 = '"'+\\
-A parser definition \textit{p}\\
-\verb+int8='"'>+
-\end{minipage}
-\cc{} & A value described by $p$ enclosed in quotes. & The data type of {\it p} \\\hline
+\midrule
+\cc{many int8 | ![0]}
+  & A NULL-terminated string
+  & \cc{struct \{} \\
+& & \cc{~~size_t N_count;} \\
+& & \cc{~~int_t *elem;} \\
+& & \cc{\};} \\
 
+\midrule
+\cc{\{}
+  & Structure with two fields
+  & \cc{struct \{} \\
+\cc{~~hours uint8}
+& & \cc{~~uint8_t hours;} \\
+\cc{~~minutes uint8}
+& & \cc{~~uint8_t minutes;} \\
+\cc{\}}
+& & \cc{\};} \\
 
-\begin{minipage}{5cm}
-\begin{verbatim}
-choose {
-  A = uint8 | 1..8
-  B = uint16 | 256..
-}
-\end{verbatim}
-\end{minipage}
-&\begin{minipage}{6cm} Either an 8-bit integer between 1 and 8 or a 16-bit integer larger than $256$.
-  \end{minipage}&
-\begin{minipage}{5cm}
-\begin{lstlisting}
-struct{
-  enum {A,B} N_type;
-  union {
-    uint8_t a;
-    uint16_t b;
-  };
-};
-\end{lstlisting}
-\end{minipage}\\\hline
+\midrule
+\cc{<int8='"'; \emph{p}; int8='"'>}
+  & A value described by parser $p$, in quotes
+  & The data type of \emph{p} \\
 
-\begin{minipage}{5cm}
-\begin{verbatim}
- @valuelen uint16
- value n_of @valuelen uint8
-\end{verbatim}
-\end{minipage}
-&
-\begin{minipage}{6cm}
-A 16-bit field, followed by a length field, followed by that many bytes.
-\end{minipage}
-&
-\begin{minipage}{5cm}
-\begin{lstlisting}
-struct{ 
-    size_t N_count;
-    uint8_t *elem;
-} value;
-\end{lstlisting}
-\end{minipage}
-\\\hline
-\begin{minipage}{5cm}
-\vspace{0.5em}
-\begin{verbatim}
-data transform deflate(
-    $current @method)
-\end{verbatim}
-\end{minipage}
-&
-Applies a programmer-specified function to create a new stream based on the current input stream and
-a dependent field. See
-Section~\ref{s:transforms}.&\lstinline+//none+ \\\hline
-\verb+apply $stream many +\textsl{p}\textit{/*parser*/}&  Parse $p$ from a different stream, then
-resume parsing the current stream.& The data type of $p$ \\\hline
-\verb+foo=/*parser p*/+ & Define a rule \textit{foo} that can be used in place of the parser $p$. & 
-\lstinline+typedef /*type of p*/ foo;+\\\hline
-\verb+* foo+ & Same syntax as \texttt{foo} & \lstinline+foo *+\\\hline
+\midrule
+\cc{choose \{}
+  & Either an 8-bit integer between 1 and 8,
+  & \cc{struct \{} \\
+\cc{~~A = uint8 | 1..8}
+  & \qquad or a 16-bit integer larger than 256
+  & \cc{~~enum \{A, B\} N_type;} \\
+\cc{~~B = uint16 | 256..}
+& & \cc{~~union \{} \\
+\cc{\}}
+& & \cc{~~~~uint8_t a;} \\
+& & \cc{~~~~uint16_t b;} \\
+& & \cc{~~\};} \\
+& & \cc{\};} \\
+
+\midrule
+\cc{@valuelen uint16}
+  & A 16-bit length field, followed by
+  & \cc{struct \{} \\
+\cc{value n_of @valuelen uint8}
+  & \qquad that many bytes
+  & \cc{~~size_t N_count;} \\
+& & \cc{~~uint8_t *elem;} \\
+& & \cc{\};} \\
+
+\midrule
+\cc{data transform}
+  & Applies programmer-specified function to
+  & \cc{/* empty */} \\
+\cc{~~deflate(\$current @method)}
+  & \qquad create new stream (\S\ref{s:transforms})
+  & \\
+
+\midrule
+\cc{apply \$stream many \emph{p}}
+  & Parse parser \emph{p} from stream \cc{\$stream} (\S\ref{s:transforms})
+  & The data type of \emph{p} \\
+
+\midrule
+\cc{foo = \emph{p}}
+  & Define rule \cc{foo} as parser \emph{p}
+  & \cc{typedef /* type of \emph{p} */ foo;} \\
+
+\midrule
+\cc{* p}
+  & Parse parser \emph{p}
+  & Pointer to the data type of \emph{p} \\
+
 \bottomrule
 \end{tabular}
 
