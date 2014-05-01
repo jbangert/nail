@@ -291,18 +291,20 @@ fuzz-testing our DNS server.
 
 \paragraph{ZIP analysis.}
 
-XXX refer back to \S\ref{s:motivation}.
+In \S\ref{s:motivation}, we found 14 input handling vulnerabilities related to ZIP files.
 
-Nail parsers are immune by design to vulnerabilities like these 14.
+Ten of these vulnerabilities involved memory corruption during input handling.
 Because Nail's generated code checks offsets before reading and does not
-expose any untrusted pointers to the application, it protects against
+expose any untrusted pointers to the application, it is immune against
 memory corruption attacks by design.
 
-Nail also protects against parser ambiguity vulnerabilities.
-
-Instead of both components containing
-an ad-hoc archive implementation, a single Nail grammar would be reusable
-across both implementations.
+Nail also protects against parsing ambiguity vulnerabilities like the four others we studied. First,
+Nail grammars explicitly encode duplicated information such as the redundant length fields in ZIP
+that caused a vulnerability in the Python ZIP library. Second, the other three vulnerabilities exist
+because multiple implementations of the same protocol disagree on some inputs. Hand-written protocol
+parsers are not very reuseable, as they build application specific data structures and are tightly
+coupled to the rest of the code. Nail grammars, however, can be re-used between applications,
+avoiding protocol misunderstandings.
 
 \paragraph{DNS fuzzing.}
 

@@ -5,10 +5,9 @@ To motivate the need for Nail, this section presents a case study of
 vulnerabilities due to ad-hoc input parsing and output generation.
 
 The ZIP format has been associated with many vulnerabilities, and the
-PROTOS Genome project found numerous security vulnerabilities in most
+PROTOS Genome project~\cite{protoc-c10-archive} found numerous security vulnerabilities in most
 implementations of ZIP and other archive formats that are directly
 related to input handling.
-\XXX[what is the PROTOS Genome project?]
 
 Between May 2011 and May 2014, the CVE database~\cite{cve-database} lists
 83 vulnerabilities when searching for the string ``ZIP''. Of these, 42
@@ -48,7 +47,7 @@ without breaking their signatures.
 
 
 
-\paragraph{Vulnerability mitigation.}
+\paragraph{Vulnerability classes.}
 
 Input processing vulnerabilities fall into two broad classes.  The first
 class is memory safety bugs, such as buffer overflows, which allow an
@@ -68,7 +67,8 @@ consequences when two systems disagree on the meaning of a network
 packet or a signed message.  For example, the XNU kernel in iOS and the
 user-mode code-signing verifier interpret executable metadata differently,
 so the code signature sees different bytes at a virtual address than the
-executable that runs~\cite{evaders6}.  Android's code signing system also
+executable that runs~\cite{evaders6}. 
+Android's code signing system also
 had a vulnerability due to parsing ambiguities~\cite{saurik-masterkey},
 and parsing ambiguities even contributed to attacks on the X.509 protocol
 underlying SSL~\cite{DBLP:conf/fc/KaminskyPS10}.  Logic errors can also
