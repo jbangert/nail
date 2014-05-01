@@ -1,6 +1,6 @@
 \begin{figure}
 \smaller[0.5]
-\begin{verbatim}
+\begin{Verbatim}[numbers=left]
 zip_file = { 
   $file, $header transform 
     zip_end_of_directory ($current)
@@ -58,7 +58,7 @@ file (@crc32 uint32, @method uint16,
   transform u16_depend (@method_lcl @method)
   // ...
 }
-\end{verbatim}
+\end{Verbatim}
 \caption{Nail grammar for ZIP files. Various fields have been cut for brevity.}
 \label{fig:zip-extract}
 \end{figure}

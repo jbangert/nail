@@ -1,26 +1,6 @@
 \begin{figure}
 \smaller[0.5]
-\begin{verbatim}
-labels = <many { @length uint8 | 1..64
-                 label n_of @length uint8 }
-          uint8 = 0>
-compressed_labels = {
-  $decompressed transform dnscompress ($current)
-  labels apply $decompressed labels
-}
-question = {
-  labels compressed_labels
-  qtype uint16 | 1..16
-  qclass uint16 | [1,255]
-}
-answer = {
-  labels compressed_labels
-  rtype uint16 | 1..16
-  class uint16 | [1]
-  ttl uint32
-  @rlength uint16
-  rdata n_of @rlength uint8
-}
+\begin{Verbatim}[numbers=left]
 dnspacket = {
   id uint16
   qr uint1
@@ -40,7 +20,27 @@ dnspacket = {
   authority n_of @ns answer
   additional n_of @ar answer
 }
-\end{verbatim}
+question = {
+  labels compressed_labels
+  qtype uint16 | 1..16
+  qclass uint16 | [1,255]
+}
+answer = {
+  labels compressed_labels
+  rtype uint16 | 1..16
+  class uint16 | [1]
+  ttl uint32
+  @rlength uint16
+  rdata n_of @rlength uint8
+}
+compressed_labels = {
+  $decompressed transform dnscompress ($current)
+  labels apply $decompressed labels
+}
+label = { @length uint8 | 1..64
+           label n_of @length uint8 }
+labels = <many label; uint8 = 0>
+\end{Verbatim}
 \caption{Nail grammar for DNS packets, used by our prototype DNS server.}
 \label{fig:dns-full}
 \end{figure}

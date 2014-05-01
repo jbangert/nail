@@ -100,16 +100,25 @@ format. Parsers are constructed by combinators over simpler parsers, an approach
 framework~\cite{LeijenMeijer:parsec}. We provide the most common combinators familiar from other parser
  combinator libraries, such as Parsec and Hammer~\cite{hammer-parser} and extend them so they also
  describe a data type. 
-Figure~\ref{fig:syntax} shows the elements of Nail grammars, which we describe in more detail below.
 
+We present both a systematic overview of Nail's syntax with short examples in
+Figure~\ref{fig:syntax} shows the elements of Nail grammars and explain our design in more detail
+below, using a grammar for the well-known DNS protocol as a guiding example. 
+
+\input{fig-dnsfull}
+\paragraph{Rules.}
+A Nail grammar consists of rules that assign a parser to a name. Rules are written as assignments,
+such as \cc{ints = /*parser definition*/}, which defines a rule called \cc{ints}. As we will
+describe later in \S\ref{s:dependent} and \S\ref{s:transforms}, rules can optionally consume parameters.
+Rules can be invoked in a Nail grammar anywhere a parser can appear. Rule invocations act as though
+the body of the rule had been substituted in the code. If parameters appear, they are passed by
+reference.
 \paragraph{Integers and constraints.}
 
 Nail's fundamental parsers represent signed or unsigned
 integers with arbitrary lengths up to 64 bits.
-Note that is possible to define parsers for sub-byte lengths, e.g.,
-to parse the 4-bit
-data offset within the TCP header.  The internal representation rounds up to the nearest integer
-type; for example, a 24-bit unsigned integer will be stored in an unsigned 32-bit integer.
+Note that is possible to define parsers for sub-byte lengths, for example, the flag bits in the DNS
+message header, in lines 4 through 8.
 
 The grammar can also constrain the values of an integer.  Nail expresses
 constraints as a set of permissible values or value ranges. Extending the Nail language and
@@ -121,8 +130,10 @@ concisely.
 \paragraph{Repetition.}
 
 The \emph{many} combinator takes a parser and applies it repeatedly
-until it fails, returning an array of the inner parser's results. The
-\emph{sepBy} combinator
+until it fails, returning an array of the inner parser's results. In line 39 of the DNS grammar, a
+sequence of labels is parsed by parsing as many labels as possible, that is, until an invalid length
+field is encountered.
+The \emph{sepBy} combinator
 additionally takes a constant parser, which it applies in between parsing
 two values, but not before parsing the first value or after parsing the
 last.  This is useful for parsing an array of items delimited by a separator.
@@ -132,51 +143,13 @@ last.  This is useful for parsing an array of items delimited by a separator.
 
 \paragraph{Structures.}
 
-% \begin{figure}[tb]
-% \smaller[0.5]
-% \begin{minipage}{0.45\columnwidth}
-% \begin{verbatim}
-% dns_header = {
-%   id uint16
-%   qr uint1
-%   opcode uint4
-%   aa uint1 
-%   tc uint1
-%   rd uint1
-%   ra uint1
-%   uint3 = 0
-%   rcode uint4
-% }
-% \end{verbatim} 
-% \end{minipage}
-% ~
-% \begin{minipage}{0.45\columnwidth}
-% \begin{verbatim}
-% struct dns_header {
-%   uint16_t id;
-%   uint8_t qr;
-%   uint8_t opcode;
-%   uint8_t aa;
-%   uint8_t tc;
-%   uint8_t rd;
-%   uint8_t ra;
-%   uint8_t rcode;
-% };
-% \end{verbatim} 
-% \end{minipage}
-
-% \caption{Nail grammar (left) and data model (right) for a part of the
-% grammar for DNS packets.  The \cc{uint3 = 0} grammar represents
-% 3 bits of padding (filled with zeroes).}
-% \label{fig:dns-struct}
-% \end{figure}
-
-
 Nail provides a structure combinator with semantic labels instead of the sequence combinator that
 other parser combinator libraries use to capture structures in data formats. 
 The structure combinator consists of a sequence of fields, typically consisting of a label and a
-parser that describes the contents of that field. Other field types will be described below.
- The syntax of the structure combinator is inspired by the Go language~\cite{golang}, with field names preceding their definition.
+parser that describes the contents of that field, surrounded by curly braces. Other field types will be described below.
+ The syntax of the structure combinator is inspired by the Go language~\cite{golang}, with field
+ names preceding their definition.
+
 
 % A sample grammar for a DNS header and the corresponding C data type the Nail parser produces, are
 % shown in Figure~\ref{fig:dns-struct}.
@@ -186,7 +159,8 @@ In some cases, not all bytes in a structure actually contain information, such a
 reserved fields. Those fields can be represented in Nail grammars by constant fields in structures.
 Constant fields do not correspond to a field in the internal model, but they are validated during
 parsing and generated during output.  Constants can either have integer values, such as
-\cc{uint3 = 0} or string values for text-based protocols, e.g. \cc{many uint8 = ``Foo''}.
+in line 9 of the DNS grammar, or string values for text-based protocols, e.g. \cc{many uint8 = ``Foo''}.
+
 
 In some protocols, there might be many ways to represent the same constant field
 and there is no semantic difference between the different syntactic representations.
@@ -205,12 +179,12 @@ structures that consist of many constants and only one named field. This pattern
 common in binary protocols which use fixed headers to denote the type of data
 structure to be parsed.  In order to keep the internal representation cleaner,
 we introduced the wrap combinator, which takes a sequence of parsers containing
-exactly one non-constant parser. The parser and generator act as though the wrap
-combinator was a sequence of parsers, but the data model does not wrap the
-single value in another structure, making the application-visible representation
+exactly one non-constant parser. The external format is defined as though the wrap combinator were a
+structure, but the data model does not introduce a structure with just one element, making the application-visible representation
 (and thus application code) more concise.
-For example, \cc{<uint8='"'; many int8 | 'a'..'z'; uint8='"'>} parses a quoted
-lowercase word into an array.
+Line 39 of the DNS grammar uses the wrap combinator to hide the terminating NUL-byte of a sequence
+of labels.
+
 
 \paragraph{Choices.}
 Our choice combinator takes multiple labeled parsers and tries each of them in turn, backtracking
@@ -231,13 +205,6 @@ equivalent to a choice between the parser and an empty structure, but in the int
 more concisely represented as a reference that is null when the parser fails.
 For example, the grammar for  Ethernet headers uses \cc{optional vlan\_header} to parse the VLAN
 header that only appears in Ethernet packets transmitted to a non-default VLAN.
-\paragraph{Rules.}
-A Nail grammar consists of rules that assign a parser to a name. Rules are written as
-assignments, such as \cc{ints = many uint8}, which defines a rule called \cc{ints} with the
-body \cc{many uint8}.  As we will describe in \S\ref{s:dependent}
-and \S\ref{s:transforms}, rules can optionally consume parameters. 
-Rules can be invoked in a Nail grammar anywhere a parser can appear. Rule invocations act as though
-the body of the rule had been substituted in the code. If parameters appear, they are passed by reference.
 
 \paragraph{References.}
 Rules allow for recursive grammars. To support recursive data types, we allow introduce the
