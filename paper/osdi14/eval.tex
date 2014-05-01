@@ -283,51 +283,68 @@ ZIP file format.
 
 \subsection{Security} 
 
-We use a twofold approach to evaluate the security of applications implemented with Nail. First, we
-analyze a list of CVE's related to the ZIP file format and argue how our ZIP tools based on Nail are
-immune against those vulnerability classes. Second, we present the results of fuzz-testing our DNS
-server.
+We use a twofold approach to evaluate the security of applications
+implemented with Nail. First, we analyze a list of CVE's related to the
+ZIP file format and argue how our ZIP tools based on Nail are immune
+against those vulnerability classes. Second, we present the results of
+fuzz-testing our DNS server.
 
-The ZIP format has been associated with many vulnerabilities, and the PROTOS Genome project found numerous
-security vulnerabilities in most implementations of ZIP and other archive formats that are directly
+\paragraph{ZIP analysis.}
+
+The ZIP format has been associated with many vulnerabilities, and the
+PROTOS Genome project found numerous security vulnerabilities in most
+implementations of ZIP and other archive formats that are directly
 related to input handling.
 
-Between May 2011 and May 2014, the CVE database\cite{cve-database} lists 83 vulnerabilities when searching for the
-string ``ZIP''. Of these, 42 were completely unrelated to the archive format, for example reporting
-vulnerabilities revealing Zip codes of other users. 26 vulnerabilities were related to ZIP archives,
-but not to input processing, such as trusting arbitrary update ZIP files sent to a server or
-vulnerabilities that can be accessed through manipulating files in a ZIP container. This includes
-several vulnerabilities allowing another files to replaced while they are extracted from ZIP
-files because insufficiently secure temporary directories are used. Of the 15 remaining
-vulnerabilities pertaining to ZIP files, 14 vulnerabilities were related to input processing. The
- other vulnerability, which falls outside of Nails purview, concerns a ZIP packer choosing a weak
- legacy cryptosystem even when configured to use AES.
+Between May 2011 and May 2014, the CVE database~\cite{cve-database} lists
+83 vulnerabilities when searching for the string ``ZIP''. Of these, 42
+were completely unrelated to the archive format, for example reporting
+vulnerabilities revealing ZIP codes of other users. 26 vulnerabilities
+were related to ZIP archives, but not to input processing, such as
+trusting arbitrary update ZIP files sent to a server or vulnerabilities
+that can be accessed through manipulating files in a ZIP container. This
+includes several vulnerabilities allowing another files to replaced while
+they are extracted from ZIP files because insufficiently secure temporary
+directories are used. Of the 15 remaining vulnerabilities pertaining
+to ZIP files, 14 vulnerabilities were related to input processing. The
+other vulnerability, which falls outside of Nail's purview, concerns a
+ZIP packer choosing a weak legacy cryptosystem even when configured to
+use AES.
 
- Nail parsers are immune by design to vulnerabilities like these 14. Ten of those vulnerabilities
- are memory corruption attacks, that could also be avoided by using safer languages or better
- verification tools. Most of the buffer overflows seem to result from inconsistent offset fields
- being manipulated without checking. Because Nail's generated code checks offsets before reading and
- does not expose any untrusted pointers to the application, it protects against memory corruption
- attacks by design.
+Nail parsers are immune by design to vulnerabilities like these 14.
+Ten of those vulnerabilities are memory corruption attacks, that could
+also be avoided by using safer languages.  Most of the buffer overflows
+seem to result from inconsistent offset fields being manipulated
+without checking.  Because Nail's generated code checks offsets before
+reading and does not expose any untrusted pointers to the application,
+it protects against memory corruption attacks by design.
 
-The remaining four vulnerabilities do not involve memory corruption, but rather parser ambiguities.
-Two of them relate to implementations mis-parsing ZIP files, particularly in virus scanners. One
-other vulnerability is in a Python ZIP library, which uses both the size field in the file entry and
-in the header, without checking for their consistency. This results in a denial-of-service through
-endless loops or incorrectly extracted ZIP files.
+The remaining four vulnerabilities do not involve memory corruption,
+but rather parser ambiguities.  Two of them relate to implementations
+mis-parsing ZIP files, particularly in virus scanners. One other
+vulnerability is in a Python ZIP library, which uses both the size
+field in the file entry and in the header, without checking for their
+consistency.  This results in a denial-of-service through endless loops
+or incorrectly extracted ZIP files.
 
-A similar attack was used by the fourth vulnerability, the infamous Android master key bug
-\cite{saurik-masterkey}, that completely by-passed Android security multiple times through parser
-differentials between the ZIP handler that checks signatures for privileged applications and the ZIP
-implementations that ultimately extracts those files. Thus, valid  application bundles could be
-modified to include malicious applications without breaking their signatures. Instead of both
-components containing an ad-hoc archive implementation, a single Nail grammar would be reusable
-across both implementations. 
+A similar attack was used by the fourth vulnerability, the infamous
+Android master key bug~\cite{saurik-masterkey} that completely
+bypassed Android security through parser inconsistencies between the
+ZIP handler that checks signatures for privileged applications and the
+ZIP implementations that ultimately extract those files. Thus, valid
+application bundles could be modified to include malicious applications
+without breaking their signatures. Instead of both components containing
+an ad-hoc archive implementation, a single Nail grammar would be reusable
+across both implementations.
 
-To provide additional assurance that Nail parsers are free of memory corruption attacks, we ran the
-DNS fuzzer provided with the Metasploit\cite{mspframework} framework on our server, which sent
-randomly corrupted DNS queries to our server for 4 hours, during which it did not crash or trigger
-the stack or heap corruption detector.
+\paragraph{DNS fuzzing.}
+
+To provide additional assurance that Nail parsers are free of memory
+corruption attacks, we ran the DNS fuzzer provided with the Metasploit
+framework~\cite{mspframework} on our DNS server, which sent randomly
+corrupted DNS queries to our server for 4 hours, during which it did
+not crash or trigger the stack or heap corruption detector.
+
 
 \subsection{Performance}
 
