@@ -3,7 +3,7 @@
 
 \input{fig-ethernet}
 
-In our evaluation of Nail, we try to answer four questions:
+In our evaluation of Nail, we answer four questions:
 
 \begin{itemize}
 
@@ -22,33 +22,43 @@ In our evaluation of Nail, we try to answer four questions:
 
 \subsection{Data formats}
 \label{s:eval-formats}
-To answer the first question, we implemented grammars for four protocols with particularly
-challenging features and show that Nail is a good fit for these data formats and some aspects of
-these formats would be very hard to parse with other parser generators.
-Figure~\ref{fig:eval-protocols} lists various example protocols we have implemented.
+
+To answer the first question, we used Nail to implement grammars
+for seven protocols with a range of challenging features.
+Figure~\ref{fig:eval-protocols} summarizes these protocols, the lines
+of code for their Nail grammars, and the challenging features that make
+the protocols difficult to parse with state-of-the-art parser generators.
+We find that despite the challenging aspects of these protocols, Nail is
+able to capture the protocols, by relying on its novel features: dependent
+fields, streams, and transforms.  In contrast, state-of-the-art parser
+generators would be unable to fully handle 5 out of the 7 data formats.
 
 \begin{figure}[tb]
-\label{fig:eval-protocols}
-\begin{tabular}{@{}lll@{}}
+\centering
+\begin{tabular}{lrl}
 \toprule
-\textbf{Protocol} & \textbf{LoC} & \textbf{Problematic features} \\ 
+\textbf{Protocol} & \textbf{LoC} & \textbf{Challenging features} \\ 
 \midrule
-DNS messages &  48+64 & Label compression\\
-& & Count fields \\
-ZIP archives & 92 + 78 & Checksums, \\ 
-& & compression, offsets, \\
-& &  variable length trailer\\ 
-Ethernet frames & 16 & \\
-ARP &  10  & \\
-IP &  25 & Total Length field, options \\
-UDP & 7 & Checksum, Length field \\
+DNS packets & 48+64 & Label compression,\\
+  & & count fields \\
+ZIP archives & 92+78 & Checksums, offsets, \\ 
+  & & variable length trailer, \\
+  & & compression \\
+Ethernet & 16 & --- \\
+ARP & 10 & --- \\
+IP & 25 & Total length field, options \\
+UDP & 7 & Checksum, length field \\
 ICMP & 5 & Checksum \\
 \bottomrule
-
 \end{tabular}
-\caption{Example Nail grammars, their code size of the grammar plus  the transformations they use
-  and protocol features that cannot be expressed in existing grammar languages. }
+
+\caption{Protocols, sizes of their Nail grammars, and challenging aspects
+of the protocol that cannot be expressed in existing grammar languages.
+A + symbol counts lines of Nail grammar code (before the +) and lines of
+C code for protocol-specific transforms (after the +).}
+\label{fig:eval-protocols}
 \end{figure}
+
 \subsubsection{DNS.}
 
 \input{fig-dnsfull}
