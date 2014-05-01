@@ -106,7 +106,6 @@ implementation to support richer constraints languages would be relatively trivi
 found that the current syntax covers permissible values within existing protocols correctly and
 concisely.
 
-Figure~\ref{fig:range} shows several examples.
 
 \paragraph{Repetition.}
 
@@ -202,7 +201,7 @@ single value in another structure, making the application-visible representation
 (and thus application code) more concise.
 
 
-For example, \cc{word=<uint8='"'; many int8 | 'a'..'z'; uint8='"'>} parses a quoted
+For example, \cc{<uint8='"'; many int8 | 'a'..'z'; uint8='"'>} parses a quoted
 lowercase word into an array.
 
 \paragraph{Choices.}
@@ -216,7 +215,7 @@ option is not necessarily understood identically by the parser. However, actual 
 usually not ambiguous in this sense.
 
 
-Nail also includes an \cc{optional} combinator, which attempts to recognise a value, but succeeds
+\paragraph{Optional.}Nail also includes an \cc{optional} combinator, which attempts to recognise a value, but succeeds
 without consuming input when it cannot recognise that value. Syntactically, \cc{optional} is
 equivalent to a choice between the parser and an empty structure, but in the internal model it is
 more concisely represented as a reference that is null when the parser fails.
@@ -229,15 +228,15 @@ and~\ref{s:transforms}, rules can optionally consume parameters.
 Rules can be invoked in a Nail grammar anywhere a parser can appear. Rule invocations act as though
 the body of the rule had been substituted in the code. If parameters appear, they are passed by reference.
 
-Rules allow for recursive grammars. To support recursive data types, we allow introduce the
+\paragraph{References.}Rules allow for recursive grammars. To support recursive data types, we allow introduce the
 reference combinator \cc{*}  that does not change the syntax of the external format described, but
 introduces a layer of indirection, such as a reference or pointer, to the model data type.
 
+For example example,   balanced parentheses could be parsed as follows: \cc{paren = < uint8 ="("; optional *paren;uint8=")">}
+
 % To support recursive structures, we include a reference combinator \cc{*}, which
 %   is syntactically equivalent to directly including the parser, but in the internal model adds a
-%   level of indirection to the value. This allows recursive structures to be parsed, for example,
-%   balanced parentheses could be parsed as follows: \cc{paren = < uint8 ="("; optional *paren
-%     ;uint8=")">}
+%   level of indirection to the value. This allows recursive structures to be parsed, f
 
 
 
