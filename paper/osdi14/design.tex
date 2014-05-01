@@ -247,6 +247,9 @@ reference combinator \cc{*}  that does not change the syntax of the external for
 introduces a layer of indirection, such as a reference or pointer, to the model data type.
 For example example,   balanced parentheses could be parsed as follows: \cc{paren = < uint8="("; optional *paren; uint8=")" >}.
 
+\XXX[nz][Do you need \cc{*} here?  It seems like \cc{optional paren} would
+already have a C representation of \cc{paren*} according to our big figure.]
+
 % To support recursive structures, we include a reference combinator \cc{*}, which
 %   is syntactically equivalent to directly including the parser, but in the internal model adds a
 %   level of indirection to the value. This allows recursive structures to be parsed, f
