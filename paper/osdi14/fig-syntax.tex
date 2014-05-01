@@ -1,0 +1,134 @@
+\begin{figure*}[thb]
+\begin{tabular}{@{}p{5cm}p{6cm}p{5cm}@{}}
+\toprule
+\bf Nail grammar & \bf External format & \bf Internal data type in C\\
+\midrule
+\cc{uint4} & 4-bit unsigned integer.& \lstinline$uint8_t$ \\\hline
+\cc{int32 | [1,5..255,512]} & Signed 32 bit integer $x \in \{ 1, 512 \} \vee 5\leq x\leq 255$ &
+\lstinline$int32_t$ \\\hline
+
+\cc{uint8=0}& 8-bit constant with value 0.& \lstinline$//Empty$\\\hline
+
+\cc{optional int8|16..} & 8-bit integer $\geq 16$ or nothing & \lstinline$int8_t *$\\\hline
+
+\cc{many int8 | ![0]} & A NUL-terminated string. & 
+\begin{minipage}{5cm}
+\begin{lstlisting}
+struct {
+  size_t N_count;
+  int8_t *elem;
+};
+\end{lstlisting}
+\end{minipage}\\\hline
+
+\begin{minipage}{5cm}
+\begin{verbatim}
+{ 
+ hours uint8
+ minutes uint8
+}
+\end{verbatim}
+\end{minipage}
+& Structure with two fields. &
+\begin{minipage}{5cm}
+\begin{lstlisting}
+struct {
+  uint8_t hours; 
+  uint8_t minutes;
+};
+\end{lstlisting}
+\end{minipage}
+\\\hline
+
+\begin{minipage}{5cm}
+\begin{verbatim}
+<int8 = '"'
+ many int8 | ['a'..'z', ' ']
+ int8='"'>
+\end{verbatim}
+\end{minipage}
+\cc{} & Lowercase string enclosed in quotes. & 
+\begin{minipage}{5cm}
+\begin{lstlisting}
+struct {
+  size_t N_count;
+  int8_t *elem;
+};
+\end{lstlisting}
+\end{minipage} \\\hline
+
+
+\begin{minipage}{5cm}
+\begin{verbatim}
+choose {
+  A = uint8 | 1..8
+  B = uint16 | 256..
+}
+\end{verbatim}
+\end{minipage}
+&\begin{minipage}{6cm} Either an 8-bit integer between 1 and 8 or a 16-bit integer larger than $256$.
+  \end{minipage}&
+\begin{minipage}{5cm}
+\begin{lstlisting}
+struct{
+  enum {A,B} N_type;
+  union {
+    uint8_t a;
+    uint16_t b;
+  };
+};
+\end{lstlisting}
+\end{minipage}\\\hline
+
+\begin{minipage}{5cm}
+\begin{verbatim}
+{ 
+ id uint16
+ @valuelen uint16
+ value n_of @valuelen uint8
+ }
+\end{verbatim}
+\end{minipage}
+&
+\begin{minipage}{6cm}
+A 16-bit field, followed by a length field, followed by that many bytes.
+\end{minipage}
+&
+\begin{minipage}{5cm}
+\begin{lstlisting}
+struct {
+  uint16_t id;
+  struct{ 
+    size_t N_count;
+    uint8_t *elem;
+  } value;
+}
+\end{lstlisting}
+\end{minipage}
+\\\hline
+\begin{minipage}{5cm}
+\vspace{0.5em}
+\begin{verbatim}
+data transform deflate(
+    $current @method)
+\end{verbatim}
+\end{minipage}
+&
+Decompresses data based on a dependent field. See
+Section~\ref{s:transforms}.&\lstinline+//none+ \\\hline
+\verb+apply $stream many uint8_t+ & Parse a stream as an array of bytes & 
+\begin{minipage}{5cm}
+\begin{lstlisting}
+struct {
+  size_t N_count;
+  uint8_t *elem;
+};
+\end{lstlisting}
+\end{minipage} \\
+\bottomrule
+\end{tabular}
+\XXX[Put the lowercase string and the NUL terminated string into adjacent rows to show they share
+the same model!]
+\caption{Syntax of Nail parser declarations and the formats and data types they describe.}
+\label{fig:syntax}
+\end{figure*}
