@@ -41,7 +41,7 @@ of bugs and inconsistencies.
 Second,  applications often need to produce output in the same
 format as their input---for example, applications might both
 read and write files, or both receive and send network packets.
-Most parser generators just focus on parsing an input, rather
+Most parser generators focus on just parsing an input, rather
 than producing an output, thus requiring the programmer to manually
 construct outputs, which is error-prone.  Some parser generators, such as
 Boost.Spirit~\cite{boost-spirit},
@@ -53,7 +53,7 @@ into an AST\@.
 Third, many data formats contain redundancies, such as repeating information in multiple structures.
 Applications usually do not explicitly check for consistency, and if different applications use
 different instances of the same value, an attacker can craft input that causes inconsistencies.
-Furthermore, security vulnerability can occur when an application assumes two repetitions of the
+Furthermore, security vulnerabilities can occur when an application assumes two repetitions of the
 same data to be consistent, such as allocating a buffer based on the value of one size field and copying into
 that buffer based on the value of another.
 
@@ -69,15 +69,18 @@ compressed data, cannot be implemented at all.
 
 This paper presents the design and implementation of Nail, a parser generator that greatly reduces
 the programmer effort required to use grammars. Nail addresses the above four challenges with
-several key ideas.
+several key ideas, as follows.
 
 First, Nail grammars define both a format's external representation and an internal object model.
 This removes the semantic actions and type declarations that programmers have to write with existing
 parser generator. While this somewhat reduces the flexibility of the internal model, it forces the programmer
 to clearly separate syntactic validation and semantic processing.
 
-Second, this well-defined internal representation allows Nail to generate output from
-the internal representation, without requiring the programmer to write additional code.
+Second, this well-defined internal representation allows Nail to
+maintain a {\em semantic bijection} between data formats and their
+internal representation.  As a result, this enables Nail to not just
+parse input but also generate output from the internal representation,
+without requiring the programmer to write additional code.
 
 % \XXX[Currently, Nail always makes a default choice when
 % there are multiple options to express a constant, however Nail could be extended
@@ -100,10 +103,15 @@ fields in the protocol whose value depends in some way on the value or layout of
 format. Transformations allow the programmer to escape the generated code to modify the raw data and
 interact with dependent fields in a controlled manner. 
 
-We have implemented a prototype of Nail for C\@.  Our experience
-so far suggests that it is a promising approach: we were able to construct
-a succinct grammar for a set of common file formats and protocols that demonstrate Nail's ability to
-handle tricky constructs and build a series of sample applications with these grammars. 
+To evaluate whether Nail's design is effective at handling real-world
+data formats, we implemented a prototype of Nail for C\@.  Using our
+prototype, we implemented succinct grammars for parts of an IP network
+stack, for DNS packets, and for Zip files, each in about a hundred lines
+of grammar.  On top of these grammars, we were able to build a fully
+functional DNS server in under 200 lines of C code, and an {\tt unzip}
+utility in about 50 lines of C code.  This suggests both that Nail is
+effective at handling complex real-world data formats, and that Nail
+makes it easy for application developers to handle external data formats.
 
 The rest of this paper is organized as follows.  \S\ref{s:relwk}
 puts Nail in the context of related work.  \S\ref{s:design} describes
