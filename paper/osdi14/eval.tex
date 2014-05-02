@@ -158,7 +158,7 @@ file grammar.  The ZIP grammar is a good example of how transformations
 capture complicated syntax in a real-world file format; existing parser
 languages cannot handle a file format of this complexity.
 
-The \cc{zip\_file} grammarfirst splits the entire file stream into two
+The \cc{zip\_file} grammar first splits the entire file stream into two
 streams based on the \cc{zip\_end\_of\_directory} transform in line 2
 %(whose two C function signatures are shown in Figure~\ref{fig:zip-eod-xform}). 
 \cc{zip\_end\_of\_directory_parse}
