@@ -201,6 +201,7 @@ unions.  The programmer has to be careful when options overlap, because if the p
 generate output for a choice, but the external representation is also valid for an earlier,
 higher-priority option, the parser will interpret it as such. However, real data formats normally do
 not have this overlap and we did not encounter it in the grammars we wrote.
+An example is provided in Figure~\ref{fig:grammar-arith}.
 
 % If two options the same string could be parsed by two options, generated output for the latter
 % option is not necessarily understood identically by the parser. However, actual data formats are
@@ -221,9 +222,9 @@ Rules allow for recursive grammars. To support recursive data types, we allow in
 reference combinator \cc{*}  that does not change the syntax of the external format described, but
 introduces a layer of indirection, such as a reference or pointer, to the model data type.
 The reference combinator does not need to used when another combinator, such as \cc{optional} or
-\cc{many} already introduces indirection in the data type.
-For example example,   arithmetic expressions consisting of sums and products can be parsed as follows:
+\cc{many} already introduces indirection in the data type. An example is shown in Figure~\ref{fig:grammar-arith}.
 
+\begin{figure}
 \begin{verbatim}
 expr = choose {
   PAREN = <uint8='('; *expr; uint8=')'>
@@ -232,8 +233,9 @@ expr = choose {
   INTEGER = many1 uint8 | '0' .. '9'
 }
 \end{verbatim} \cc{paren = < uint8="("; optional *paren; uint8=")" >}.
-
-
+\label{fig:grammar-arith}
+\caption{Grammar for sums and products of integers.}
+\end{figure}
 % To support recursive structures, we include a reference combinator \cc{*}, which
 %   is syntactically equivalent to directly including the parser, but in the internal model adds a
 %   level of indirection to the value. This allows recursive structures to be parsed, f
@@ -252,30 +254,19 @@ Dependent fields are defined within a structure like normal fields, but their na
 A dependent field is in scope and can be referred to by the definition of all subsequent fields in
 the same structure. Dependent fields can be passed to rule invocations as parameters.
 
-Dependent fields are parsed just like other fields in the external format, but they are not stored
-in the internal data type. Instead, the parser stores the value in a
-temporary location, so that the field can be referenced by subsequent parsers.
-
+Dependent fields are handled like other fields when parsing input, but their values are not stored
+in the internal data type. Instead the value can be referenced by subsequent parsers and it
+discarded when the field goes out of scope.
 When generating output, Nail visits a dependent field twice. First, while generating the other fields of a
 structure, the generator reserves space for the dependent field in the output. Once
 the dependent field goes out of scope, the generator  writes the
 dependent field's value to this space.
 
-Nail provides only one built-in combinator that uses dependent fields, \cc{n_of}, which is used
-for count fields. For example, DNS labels are encoded as Pascal-style strings: a length followed by
-the value of the label. The Nail grammar for DNS labels can represent
-this pattern as:
-
-{
-\smaller[0.5]
-\begin{verbatim}
-  {
-    @length uint8 | 1..64
-    label n_of @length uint8
-  }
-\end{verbatim}
-}
-
+Nail provides only one built-in combinator that uses dependent fields, \cc{n_of}, which acts like
+the \cc{many} combinator, except it represents an exact number, specified in the dependent field, of
+repetitions, as opposed as many repetitions as possible. For example, DNS labels, which
+are encoded as a length followed by
+a value are described in line 38 of the DNS grammar.
 Other dependencies, such as offset fields or checksums, are not handled directly by combinators, but
 through  transformations, as we describe next.
 
