@@ -215,7 +215,7 @@ without consuming input when it cannot recognize that value. Syntactically, \cc{
 equivalent to a choice between the parser and an empty structure, but in the internal model it is
 more concisely represented as a reference that is null when the parser fails.
 For example, the grammar for  Ethernet headers uses \cc{optional vlan\_header} to parse the VLAN
-header that only appears in Ethernet packets transmitted to a non-default VLAN.
+header that only appears in Ethernet packets transmitted to a non-default VLAN\@.
 
 \paragraph{References.}
 Rules allow for recursive grammars. To support recursive data types, we allow introduce the

@@ -1,4 +1,4 @@
-personal_ws-1.1 en 200 
+personal_ws-1.1 en 227 
 ACM
 AES
 ARP
@@ -22,6 +22,7 @@ Coq
 DARPA
 Daan
 Danielsson
+Evasi
 Frans
 GitHub
 HD
@@ -29,6 +30,7 @@ HITB
 Hartmut
 Haskell
 Hirsch
+Hotz
 ICMP
 IEEE
 IP
@@ -43,25 +45,32 @@ Levillain
 LoC
 MITRE
 MX
+MaXX
+Marlinspike
 McCann
 Meijer
-Metasploit
+Mockapetris
 NOP
+NUL
+NailArena
 NailDNS
 NailStream
 Nickolai
 Nils
 OCaml
+Oulu
 PDF
 PDFs
 PEGs
 PKI
 PKWARE
 PNG
-PROTOS
 PacketTypes
 Packrat
+Patteron
+Protos
 Pseudocode
+ROP
 Ragel
 Rebecca
 SIGCOMM
@@ -71,6 +80,7 @@ STL
 Sassaman
 Satish
 Sergey
+Shmoocon
 Shubina
 SlocCount
 Srinivasan
@@ -82,6 +92,7 @@ UU
 Universiteit
 Usenix
 Varda
+Vudo
 XDR
 XNU
 Zeldovich
@@ -95,6 +106,7 @@ bool
 boxplot
 bytecode
 checksum
+checksum's
 checksums
 combinator
 combinator's
@@ -117,6 +129,8 @@ encodings
 endianness
 enum
 et
+evasi
+expr
 extensibility
 filename
 filestream
@@ -125,8 +139,12 @@ hashtable
 hoc
 iOS
 inproceedings
+interquartile
 ints
 isomorphism
+jailbreakers
+jailbroken
+jp
 langsec
 lbls
 lcl
@@ -134,8 +152,11 @@ len
 lex
 libpng
 lll
+lllr
 locasto
 login
+lrl
+lrr
 malloc
 mdate
 memoize
@@ -144,8 +165,11 @@ metasploit
 mis
 monadic
 mtime
+nf
 ns
 opcode
+outlier
+outliers
 paren
 parser's
 parsers
@@ -186,13 +210,16 @@ validators
 valuelen
 verifier
 versa
+vlan
 whitespace
+writeup
 xD
 xDBFF
 xDC
 xDFFF
 xFFFF
 xlabel
+xleftmargin
 xmin
 xxxcolor
 yacc
