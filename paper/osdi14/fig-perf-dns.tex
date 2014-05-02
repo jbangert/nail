@@ -10,6 +10,7 @@
 ]
 \addplot+[boxplot]
   table[row sep=\\,y index=0] {
+data\\
  140950.177719\\
  137100.337896\\
  140575.256869\\
@@ -20,6 +21,7 @@
  };
 \addplot+[boxplot]
   table[row sep=\\,y index=0] {
+data\\
 50713.068173\\
 45230.492090\\
 47824.395302\\
@@ -41,6 +43,7 @@
 ]
 \addplot+[boxplot]
   table[row sep=\\,y index=0] {
+data\\
 0.000137\\
 0.000141\\
 0.000138\\
@@ -51,6 +54,7 @@
  };
 \addplot+[boxplot]
   table[row sep=\\,y index=0] {
+data\\
 0.000388\\
 0.000434\\
 0.000411\\
@@ -62,9 +66,9 @@
 \end{axis}
 \end{tikzpicture}
 
-\caption{Performance of the Nail-based DNS server compared to
-  BIND 9.5.5 on 50,000 domains.  The boxes show XXX something XXX
-  and the dots show outliers.}
+\caption{A box plot comparing the performance of the Nail-based DNS server compared to
+  BIND 9.5.5 on 50,000 domains.  The boxes show the interquartile range, with the middle showing the
+  median result. The dots show outliers.}
 \label{fig:perf-dns}
 
 \end{figure}

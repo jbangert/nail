@@ -1,0 +1,20 @@
+
+\begin{figure}
+\begin{tabular}{@{}llll @{}}
+ \bf Classification & \bf Example CVE & \bf Example description & \bf Count\\
+  Memory corruption\footnote{We classified the following vulnerabilities as memory corruption
+    attacks based on their description: 2013-5660, - 0742, -0138, 2012-4987, -1163,-1162, 2011-2265,
+    2010-4535, -1657, -1336, -1218} & 2013-5660 & Buffer overflow & 11\\
+  Parser ambiguities & 2013-1462 & Multiple virus scanners interpret ZIP files incorrectly.& 4\\
+  Semantic misunderstanding & 2014-2319 & Compressor uses weak cryptography, even if the user
+  selects AES & 1\\
+  \multicolumn{3}{l}{\bf Total vulnerabilities related .zip processing }& \bf 16  \\  
+  Mishandling archive contents &  2012-4389 & A web application overwrites .htaccess files and
+  executable files by extracting uploaded .ZIP files to a publicly accessible folder  & 25\\
+   Unrelated to .zip &2011-3371& Vulnerability leaking postal Zip codes & 42\\
+  \multicolumn{3}{l}{\bf Total vulnerabilities} & \bf 83\\ 
+  
+\end{tabular}
+\caption{Classification of known vulnerabilities in the CVE database between 2010 and 2014 related to the search term ``ZIP''}
+\label{fig:motivation} 
+\end{figure}

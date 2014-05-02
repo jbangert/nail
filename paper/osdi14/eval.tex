@@ -242,8 +242,7 @@ DNS server
   & (Info-Zip) \\
 \bottomrule
 \end{tabular}
-\caption{Comparison of code size for three applications written in Nail,
-         and several existing alternative implementations.}
+\caption{Comparison of code size for three applications written in Nail,and several existing alternative implementations.}
 \label{fig:effort}
 \end{figure}
 
@@ -257,7 +256,7 @@ compression.  In comparison, Hammer~\cite{hammer-parser} ships with a toy
 DNS server that responds to any valid DNS query with a CNAME record to the
 domain ``spargelze.it''.  Their server consists of 683 lines of C, mostly
 custom validators, semantic actions, and data structure definitions, with
-only 52 lines of code defining the grammar with Hammer's combinators.
+ 52 lines of code defining the grammar with Hammer's combinators.
 Their DNS server does not implement label compression, zone files, etc.
 From this, we conclude that Nail leads to much more compact code for
 dealing with DNS packet formats.
