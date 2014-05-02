@@ -71,7 +71,7 @@ the meaning of a network packet or a signed message, as shown by the vulnerabili
 before. CVE-2013-0211 shows that logic errors can be the underlying cause of memory corruption, when
 one part of a parser interprets a size field as a signed integer and another interprets it as an
 unsigned integer. CVE-2013-7338 is a logic error that allows an attacker to craft ZIP files that are
-incorrectly extracted or result in applications hangs with applications using a Python ZIP library,
+incorrectly extracted or result in application hangs with applications using a Python ZIP library,
 because this library does not check that two fields that contain the size of a file contain the same value.
 
 These mistakes are highly application-specific, and
@@ -79,8 +79,6 @@ are difficult to mitigate using existing techniques, and these mistakes
 can occur even in high-level languages that guarantee memory safety. By
 allowing developers to specify their data format just once, Nail avoids
 logic errors and inconsistencies in parsing and output generation.
-e through endless loops
-or incorrectly extracted ZIP files.
 
 
 
