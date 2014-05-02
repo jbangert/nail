@@ -31,11 +31,11 @@ over which a grammar is an abstract set, so most algorithms work
 just as well on an alphabet of $\{0,1\}$.} doing so is practically
 inconvenient. Hammer allows the programmer to specify a grammar in
 terms of bits and bytes instead of characters. Common concerns, such as
-endianness and bit-packing are handled transparently. 
+endianness and bit-packing, are handled transparently. 
 
 Hammer implements grammars as language-integrated parser combinators, an approach popularized by
 Parsec for Haskell~\cite{LeijenMeijer:parsec}. The parser combinator style (to our knowledge, first
-described by Burge~\cite{burge1975recursive}) is a natural way of concisely e               xpressing top-down
+described by Burge~\cite{burge1975recursive}) is a natural way of concisely expressing top-down
 grammars~\cite{Danielsson:2010:TPC:1863543.1863585}
 by composing them from one or multiple sub-parsers.\footnote{For more
 background on the history of expressing grammars, see Bryan Ford's
@@ -74,7 +74,7 @@ design discussion or evaluation.
 
 Generated parsers have long been used to parse human input, such
 as programming languages and configuration files. Frequently, such
-languages are often specified with a formal grammar in an executable
+languages are specified with a formal grammar in an executable
 form. Unfortunately, parser frameworks are seldom used to recognize
 machine-created input; as we demonstrate in \S\ref{s:eval},
 state-of-the-art parser generators are not suitable for parsing or
