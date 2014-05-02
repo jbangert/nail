@@ -57,11 +57,11 @@ Third, many data formats contain redundancies, such as repeating
 information in multiple structures.  Applications usually do not
 explicitly check for consistency, and if different applications use
 different instances of the same value, an attacker can craft input that
-causes inconsistencies~\cite{cve-python-zip-maybe}.  Furthermore, security
+causes inconsistencies~\cite{evaders6}.  Furthermore, security
 vulnerabilities can occur when an application assumes two repetitions
 of the same data to be consistent, such as allocating a buffer based on
 the value of one size field and copying into that buffer based on the
-value of another~\cite{cve-some-example}.
+value of another~\cite{cve-2012-7338}.
 
 Finally, real-world data formats, for example PNG or PDF, are hard to
 represent with existing parser generators.  Those parsers cannot directly
