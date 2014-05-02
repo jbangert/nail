@@ -1,25 +1,29 @@
 \section{Design}
 \label{s:design}
 
-Nail's goals are to reduce programmer effort required to safely interact
-with data formats.  In particular, this means:
+Nail's goals are to reduce programmer effort required to safely interact with data formats and
+prevent vulnerabilities like those described in \S\ref{s:motivation}. In particular, this means:
 
 \begin{itemize}
 
-\item Using the grammar to define both the \emph{external format}
-      and the \emph{internal representation}.
+
+\item Using the grammar to define both the \emph{external format} and the \emph{internal
+    representation}, allowing the same grammar to be re-used in multiple applications, avoiding
+  vulnerabilities like the Android Master Key.
 
 \item Both parsing inputs into internal representations, as well as
       generating outputs from internal representations, without
-      requiring the programmer to write any semantic actions.
+      requiring the programmer to write any semantic actions. This prevents
+      vulnerabilities such as the XNU bug, where format recognition and data processing
+      are mixed and interact in unexpected ways.
 
 \item Eliminating redundancy in internal representations, such as
       storing both an explicit length field and an implicit length
       of a container data structure, to provide programmers
-      an unambiguous view of the data.
+      an unambiguous view of the data, to avoid bugs such as in the Python ZIP library.
 
 \item Allow programmers to define grammars for complex real-world
-      data formats through well-defined extensibility mechanisms.
+      data formats through well-defined extensibility mechanisms. 
 
 \end{itemize}
 
