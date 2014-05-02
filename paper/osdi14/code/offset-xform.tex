@@ -1,0 +1,17 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8}]
+\PY{k+kt}{int} \PY{n+nf}{offset\PYZus{}u32\PYZus{}parse}\PY{p}{(}\PY{n}{NailArena} \PY{o}{*}\PY{n}{tmp}\PY{p}{,}
+                 \PY{n}{NailStream} \PY{o}{*}\PY{n}{out\PYZus{}str}\PY{p}{,}
+                 \PY{n}{NailStream} \PY{o}{*}\PY{n}{in\PYZus{}current}\PY{p}{,}
+                 \PY{k}{const} \PY{k+kt}{uint32\PYZus{}t} \PY{o}{*}\PY{n}{off}\PY{p}{)}\PY{p}{\PYZob{}}
+  \PY{c+cm}{/* out\PYZus{}str = suffix of in\PYZus{}current}
+\PY{c+cm}{               at offset *off */}
+\PY{p}{\PYZcb{}}
+
+\PY{k+kt}{int} \PY{n+nf}{offset\PYZus{}u32\PYZus{}generate}\PY{p}{(}\PY{n}{NailArena} \PY{o}{*}\PY{n}{tmp}\PY{p}{,}
+                    \PY{n}{NailStream} \PY{o}{*}\PY{n}{in\PYZus{}fragment}\PY{p}{,}
+                    \PY{n}{NailStream} \PY{o}{*}\PY{n}{out\PYZus{}current}\PY{p}{,}
+                    \PY{k+kt}{uint32\PYZus{}t} \PY{o}{*}\PY{n}{off}\PY{p}{)}\PY{p}{\PYZob{}}
+  \PY{c+cm}{/* *off = position of out\PYZus{}current */}
+  \PY{c+cm}{/* append in\PYZus{}fragment to out\PYZus{}current */}
+\PY{p}{\PYZcb{}}
+\end{Verbatim}
