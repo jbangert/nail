@@ -23,11 +23,11 @@ processing of the input data is still mixed, the jailbreakers could set a flag t
 the ambiguity after the check, but before signatures are verified~\cite{geohot-evasion}, which
 allowed iOS 7 to be jailbroken.
 
-Implementations of the X.509 format for SSL certificates were also shown to parse various ASN.1
-structures, such as length fields, strings containing invalid characters and repeated fields with
-conflicting values different~\cite{DBLP:conf/fc/KaminskyPS10}. For example, certificates could be
-crafted where the X.509 parsers used certificate authorities and web browsers disagree on the
-subject of the certificate, allowing an attacker to get certificates for domains they do not control.
+Similarly, vulnerabilities in X.509 parsers for SSL certificates allowed attackers to get
+certificates for domains they do not control. First, Moxie Marlinspike discovered that the X.509
+parsers in popular browsers handle NUL-bytes in certificates incorrectly~\cite{Marlinspike:SSL}. After this
+vulnerability was fixed, Dan Kaminsky discovered~\cite{DBLP:conf/fc/KaminskyPS10} that other
+structures, such as length fields and duplicated data, were also handled incorrectly.
 
 Similarly, the infamous Android master key bug~\cite{saurik-masterkey} completely bypassed Android
 security exploited parser inconsistencies
