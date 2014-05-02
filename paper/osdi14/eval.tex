@@ -159,7 +159,7 @@ capture complicated syntax in a real-world file format; existing parser
 languages cannot handle a file format of this complexity.
 
 The \cc{zip\_file} grammar first splits the entire file stream into two
-streams based on the \cc{zip\_end\_of\_directory} transform in line 2
+streams based on the \cc{zip\_end\_of\_directory} transform on line 2.
 %(whose two C function signatures are shown in Figure~\ref{fig:zip-eod-xform}). 
 \cc{zip\_end\_of\_directory_parse}
 finds the end-of-directory header as described above, by scanning the
@@ -179,7 +179,8 @@ entries in line 17.
 Each directory entry in turn points to a local file header, which is
 similarly extracted and parsed with the \cc{file} rule.
 
-The \cc{file} rule starting at line 41, describing a ZIP file entry takes dependent field
+The \cc{file} rule starting at line 41, describing a ZIP file entry,
+takes dependent field
 parameters containing file metadata information from the directory
 header. However, this same information is duplicated in the file
 entry, so the grammar uses the Nail-supplied \cc{u16\_depend}
@@ -301,9 +302,10 @@ fuzz-testing our DNS server.
 
 \paragraph{ZIP analysis.}
 
-In \S\ref{s:motivation}, we found 14 input handling vulnerabilities related to ZIP files.
+In \S\ref{s:motivation}, we found 15 input handling vulnerabilities
+related to ZIP files.
 
-Ten of these vulnerabilities involved memory corruption during input handling.
+11 of these vulnerabilities involved memory corruption during input handling.
 Because Nail's generated code checks offsets before reading and does not
 expose any untrusted pointers to the application, it is immune against
 memory corruption attacks by design.
