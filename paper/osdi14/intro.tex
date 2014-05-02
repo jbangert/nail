@@ -43,9 +43,8 @@ Second,  applications often need to produce output in the same
 format as their input---for example, applications might both
 read and write files, or both receive and send network packets.
 Most parser generators focus on just parsing an input, rather
-than producing an output, thus requiring the programmer to manually
-construct outputs, which is error-prone.
-\XXX[do we have any evidence to cite for this claim?]
+than producing also an output, thus requiring the programmer to manually
+construct outputs, which is work-intensive and more code that could contain errors.
 Some parser generators, such as
 Boost.Spirit~\cite{boost-spirit},
 allow reusing the grammar for generating output from the internal
