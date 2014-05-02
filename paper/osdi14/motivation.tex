@@ -57,7 +57,9 @@ ZIP files.  Figure~\ref{fig:motivation} summarizes the 16 ZIP-related
 vulnerabilities.
 
 These input processing vulnerabilities fall into two broad classes.  The first
-class, which occurred 11 times, is memory safety bugs, such as buffer overflows, which allow an
+class, which occurred 11 times\footnote{We classified the following vulnerabilities as memory corruption
+    attacks based on their description: 2013-5660, - 0742, -0138, 2012-4987, -1163,-1162, 2011-2265,
+    2010-4535, -1657, -1336, -1218}, is memory safety bugs, such as buffer overflows, which allow an
 adversary to corrupt the application's memory using specially crafted
 inputs.  These mistakes arise in lower-level languages that do not
 provide memory safety guarantees, such as C, and can be partially
