@@ -30,41 +30,45 @@ vulnerability was fixed, Dan Kaminsky discovered~\cite{DBLP:conf/fc/KaminskyPS10
 structures, such as length fields and duplicated data, were also handled incorrectly.
 
 Similarly, the infamous Android master key bug~\cite{saurik-masterkey} completely bypassed Android
-security exploited parser inconsistencies
+security by exploiting parser inconsistencies
 between the ZIP handler that checks signatures for privileged applications and the ZIP
-implementation that ultimately extract those files. Thus, privileged application bundles could be
+implementation that ultimately extracts those files. Thus, privileged application bundles could be
 modified to include malicious code without breaking their signatures. Google quickly fixed this
 particular parser inconsistency, but another vulnerability, based on a different inconsistency
 between the parsers, was quickly disclosed~\cite{saurik-masterkey2}.
 
 \paragraph{Case study: ZIP file handling.}
 
-Android application bundles are based on ZIP files, so we decided to conduct a systematic studies of
-vulnerabilities related to ZIP parsing.  
+To understand the impact of parsing mistakes in real-world software,
+we conducted a systematic study of
+vulnerabilities related to ZIP file parsing.  
 The ZIP format has been associated with many vulnerabilities, and the
 PROTOS Genome project~\cite{protos-c10-archive} found numerous security vulnerabilities in most
 implementations of ZIP and other archive formats that are directly
 related to input handling. We extend this study by looking at the CVE database.
 
 \input{fig-motivation}
-Figure~\ref{fig:motivation} shows  the 83 vulnerabilities the CVE database~\cite{cve-database} lists
- for the search string ``ZIP''. 16 of these vulnerabilities are related to processing .ZIP archives
- themselves; the rest are either totally unrelated to .ZIP archives or involve applications insecurely using
- the contents of untrusted ZIP files.
 
+We found 83 vulnerabilities in the CVE database~\cite{cve-database} that
+that mention the search string ``ZIP.''  Just 16 of these vulnerabilities
+were related to processing ZIP archives; the rest were unrelated to ZIP
+archives or involved applications insecurely using the contents of untrusted
+ZIP files.  Figure~\ref{fig:motivation} summarizes the 16 ZIP-related
+vulnerabilities.
 
 These input processing vulnerabilities fall into two broad classes.  The first
 class, which occurred 11 times, is memory safety bugs, such as buffer overflows, which allow an
 adversary to corrupt the application's memory using specially crafted
 inputs.  These mistakes arise in lower-level languages that do not
-provide memory safety guarantees such as C, and can be partially
+provide memory safety guarantees, such as C, and can be partially
 mitigated by a wide range of techniques, for example static analysis,
 dynamic instrumentation, and address space layout randomization, that
 make it more difficult for an adversary to exploit these bugs.
-Nail helps developers of lower-level languages avoid these bugs
+Nail helps developers using lower-level languages to avoid these bugs
 in the first place.
 
-The second class, which occurred four times in our study is logic errors, where application code
+The second class, which occurred four times in our study,
+is logic errors, where application code
 misinterprets input data. Safe languages and exploit mitigation technologies do not help against
 such vulnerabilities. This can lead to serious security consequences when two systems disagree on
 the meaning of a network packet or a signed message, as shown by the vulnerabilities we described
@@ -73,6 +77,8 @@ one part of a parser interprets a size field as a signed integer and another int
 unsigned integer. CVE-2013-7338 is a logic error that allows an attacker to craft ZIP files that are
 incorrectly extracted or result in application hangs with applications using a Python ZIP library,
 because this library does not check that two fields that contain the size of a file contain the same value.
+The Android ZIP file signature verification bug that we described
+earlier was also among these 4 vulnerabilities.
 
 These mistakes are highly application-specific, and
 are difficult to mitigate using existing techniques, and these mistakes
