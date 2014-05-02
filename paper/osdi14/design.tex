@@ -233,8 +233,8 @@ expr = choose {
   INTEGER = many1 uint8 | '0' .. '9'
 }
 \end{verbatim} \cc{paren = < uint8="("; optional *paren; uint8=")" >}.
-\label{fig:grammar-arith}
 \caption{Grammar for sums and products of integers.}
+\label{fig:grammar-arith}
 \end{figure}
 % To support recursive structures, we include a reference combinator \cc{*}, which
 %   is syntactically equivalent to directly including the parser, but in the internal model adds a
