@@ -28,7 +28,7 @@ Security exploits often rely on raw inputs being present in memory, for example 
 shell-code or crafted stack frames for ROP-attacks in padding fields\cite{shotgun-parser} or the
 application executing a controlled sequence of heap allocations and de-allocations to place
 specific data at predictable addresses\cite{jp-advanced, vudo-malloc}. Because the rest of the
-application or even Nail's generated code may contain memory corruption bug, Nail
+application or even Nail's generated code may contain memory corruption bugs, Nail
 carefully handles memory allocations as defense-in-depth to make exploiting such vulnerabilities harder.
 
 When parsing input, Nail uses two separate memory arenas. These arenas allocate memory from the
