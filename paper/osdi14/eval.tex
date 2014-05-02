@@ -144,7 +144,7 @@ the length in the central directory is used to allocate memory and the
 length in the local directory is used to extract without checking that
 they are equal first, as was the case in the Python ZIP
 library~\cite{cve-2012-7338}.
-
+\begin{comment}
 \begin{figure}[tb]
 \smaller[0.5]
 \input{code/zip-eod-xform}
@@ -152,7 +152,7 @@ library~\cite{cve-2012-7338}.
 end-to-beginning structure of ZIP files.}
 \label{fig:zip-eod-xform}
 \end{figure}
-
+\end{comment}
 Figure~\ref{fig:zip-extract} shows an abbreviated version of our ZIP
 file grammar.  The ZIP grammar is a good example of how transformations
 capture complicated syntax in a real-world file format; existing parser
@@ -160,8 +160,8 @@ languages cannot handle a file format of this complexity.
 
 The \cc{zip\_file} grammarfirst splits the entire file stream into two
 streams based on the \cc{zip\_end\_of\_directory} transform in line 2
-(whose two C function signatures are shown in
-Figure~\ref{fig:zip-eod-xform}). \cc{zip\_end\_of\_directory_parse}
+%(whose two C function signatures are shown in Figure~\ref{fig:zip-eod-xform}). 
+\cc{zip\_end\_of\_directory_parse}
 finds the end-of-directory header as described above, by scanning the
 file backwards, and splits the file into two streams, one containing
 the end-of-directory header and one containing the file contents. The
