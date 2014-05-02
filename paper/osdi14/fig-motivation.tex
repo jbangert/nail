@@ -1,23 +1,20 @@
-
 \begin{figure*}
-\begin{tabular}{@{}llll @{}}
+\centering
+\begin{tabular}{llll}
+\toprule
  \bf Classification & \bf Example CVE & \bf Example description & \bf Count\\
+\midrule
   Memory corruption\footnote{We classified the following vulnerabilities as memory corruption
     attacks based on their description: 2013-5660, - 0742, -0138, 2012-4987, -1163,-1162, 2011-2265,
     2010-4535, -1657, -1336, -1218} & 2013-5660 & Buffer overflow & 11\\
   Parser ambiguities & 2013-1462 & Multiple virus scanners interpret ZIP files incorrectly.& 4\\
-  Semantic misunderstanding & 2014-2319 & Compressor uses weak cryptography, even if the user
-  selects AES & 1\\
-  \multicolumn{3}{l}{\bf Total vulnerabilities related to .zip processing }& \bf 16  \\  
-  Mishandling archive contents &  2012-4389 & 
-\begin{minipage}{7cm}
-A web application overwrites .htaccess files and
-  executable files by extracting uploaded .ZIP files to a publicly accessible folder  
-\end{minipage}& 25\\
-   Unrelated to .zip &2011-3371& Vulnerability leaking postal Zip codes & 42\\
-  \multicolumn{3}{l}{\bf Total vulnerabilities} & \bf 83\\ 
+  Semantic misunderstanding & 2014-2319 & Weak cryptography used even if user selects AES & 1\\
+  \multicolumn{3}{l}{\bf Total vulnerabilities related to .zip processing }& \bf 16  \\
+\bottomrule
   
 \end{tabular}
-\caption{Classification of known vulnerabilities in the CVE database between 2010 and 2014 related to the search term ``ZIP''}
+\caption{Classification of known vulnerabilities in the CVE database
+between 2010 and 2014 related to the search term ``ZIP'' and involving
+the ZIP file format.}
 \label{fig:motivation} 
 \end{figure*}

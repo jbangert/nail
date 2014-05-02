@@ -3,11 +3,17 @@
 
 To motivate the need for Nail, this section presents a case study of
 vulnerabilities due to ad-hoc input parsing and output generation.
+Broadly speaking, parsing vulnerabilities can lead to two kinds of
+problems---memory corruption and logic errors---and as we show, both
+are prevalent in software and lead to significant security problems.
 
-\paragraph{Parsing bugs} Two recent high profile security vulnerabilities in mobile operating systems are due to improper
-input recognition, without using any memory corruption. In both cases, when the vulnerabilities were
-fixed, a similar flaw was exposed immediately afterwards, showing the need for a different approach
-to input handling that eliminates those vulnerabilities by design.
+\paragraph{Widely exploited parsing errors.}
+
+Three recent high profile security vulnerabilities are due to logic
+errors in input processing.  In all cases, when the vulnerabilities were
+fixed, a similar flaw was exposed immediately afterwards, showing the
+need for a different approach to input handling that eliminates those
+vulnerabilities by design.
 
 The Evasi0n jailbreak for iOS 6~\cite{evaders6} relies on the XNU kernel and
 user-mode code-signing verifier interpreting executable metadata differently, so the code signature
@@ -19,7 +25,7 @@ allowed iOS 7 to be jailbroken.
 
 Implementations of the X.509 format for SSL certificates were also shown to parse various ASN.1
 structures, such as length fields, strings containing invalid characters and repeated fields with
-conflicting values different ~\cite{DBLP:conf/fc/KaminskyPS10}. For example, certificates could be
+conflicting values different~\cite{DBLP:conf/fc/KaminskyPS10}. For example, certificates could be
 crafted where the X.509 parsers used certificate authorities and web browsers disagree on the
 subject of the certificate, allowing an attacker to get certificates for domains they do not control.
 
@@ -31,6 +37,7 @@ modified to include malicious code without breaking their signatures. Google qui
 particular parser inconsistency, but another vulnerability, based on a different inconsistency
 between the parsers, was quickly disclosed~\cite{saurik-masterkey2}.
 
+\paragraph{Case study: ZIP file handling.}
 
 Android application bundles are based on ZIP files, so we decided to conduct a systematic studies of
 vulnerabilities related to ZIP parsing.  
@@ -67,17 +74,13 @@ unsigned integer. CVE-2013-7338 is a logic error that allows an attacker to craf
 incorrectly extracted or result in applications hangs with applications using a Python ZIP library,
 because this library does not check that two fields that contain the size of a file contain the same value.
 
- These mistakes are highly application-specific, and
+These mistakes are highly application-specific, and
 are difficult to mitigate using existing techniques, and these mistakes
 can occur even in high-level languages that guarantee memory safety. By
 allowing developers to specify their data format just once, Nail avoids
 logic errors and inconsistencies in parsing and output generation.
 e through endless loops
 or incorrectly extracted ZIP files.
-
-The fourth vulnerability (CVE-\XXX) is the Android master key bug mentioned above, which results
-from one parser interpreting a size field as an unsigned integer, another interpreting the same
-field as a signed integer.
 
 
 
