@@ -192,15 +192,20 @@ of labels.
 
 
 \paragraph{Choices.}
-Our choice combinator takes multiple labeled parsers and tries each of them in turn, backtracking
-to the initial position if an option fails. This behavior for the choice combinator, the defining
-feature of Parser Expression Grammars~\cite{ford2002packrat}, resolves any ambiguities explicitly.
-Internally, the choice combinator represents choices as tagged unions. 
+If multiple structures can appear at a given position in a format, the programmer lists the options
+along with a label for each in the \cc{choose} combinator. 
+During parsing, Nail remembers the current input position and attempts each option in the order they
+appear in the grammar. If an option fails, the parser backtracks to the initial position. If no
+options succeed, the entire combinator fails. In the data model, choices are represented as tagged
+unions.  The programmer has to be careful when options overlap, because if the programmer meant to
+generate output for a choice, but the external representation is also valid for an earlier,
+higher-priority option, the parser will interpret it as such. However, real data formats normally do
+not have this overlap and we did not encounter it in the grammars we wrote.
 
-If two options the same string could be parser by two options, generated output for the latter
-option is not necessarily understood identically by the parser. However, actual data formats are
-usually not ambiguous in this sense.
-\XXX[nz][I don't understand this paragraph (esp the first sentence).]
+% If two options the same string could be parsed by two options, generated output for the latter
+% option is not necessarily understood identically by the parser. However, actual data formats are
+% usually not ambiguous in this sense.
+% \XXX[nz][I don't understand this paragraph (esp the first sentence).]
 
 
 \paragraph{Optional.}
@@ -228,8 +233,6 @@ expr = choose {
 }
 \end{verbatim} \cc{paren = < uint8="("; optional *paren; uint8=")" >}.
 
-\XXX[nz][Do you need \cc{*} here?  It seems like \cc{optional paren} would
-already have a C representation of \cc{paren*} according to our big figure.]
 
 % To support recursive structures, we include a reference combinator \cc{*}, which
 %   is syntactically equivalent to directly including the parser, but in the internal model adds a
