@@ -8,13 +8,13 @@ prevent vulnerabilities like those described in \S\ref{s:motivation}. In particu
 
 
 \item Using the grammar to define both the \emph{external format} and the \emph{internal
-    representation}, allowing the same grammar to be re-used in multiple applications, avoiding
+    representation}, allowing the same grammar to be re-used in multiple programs, avoiding
   vulnerabilities like the Android Master Key.
 
 \item Both parsing inputs into internal representations, as well as
       generating outputs from internal representations, without
       requiring the programmer to write any semantic actions. This prevents
-      vulnerabilities such as the XNU bug, where format recognition and data processing
+      vulnerabilities such as the XNU bug, where format recognition and semantics
       are mixed and interact in unexpected ways.
 
 \item Eliminating redundancy in internal representations, such as
