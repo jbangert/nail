@@ -1,0 +1,202 @@
+#+Title: Nail - Data formats without hitting your fingers
+#+Author: Julian Bangert, Nickolai Zeldovich
+#+Email: julian,nickolai <@> mit.edu
+#+REVEAL_ROOT: http://cdn.jsdelivr.net/reveal.js/2.5.0/
+#+OPTIONS: reveal_center:t reveal_progress:t reveal_history:nil reveal_control:t
+#+OPTIONS: reveal_mathjax:t reveal_rolling_links:t reveal_keyboard:t reveal_overview:t num:nil
+#+OPTIONS: reveal_width:1200 reveal_height:800
+#+OPTIONS: toc:0
+#+REVEAL_MARGIN: 0.1
+#+REVEAL_MIN_SCALE: 0.5
+#+REVEAL_MAX_SCALE: 2.5
+#+REVEAL_TRANS: cube
+#+REVEAL_THEME: moon
+#+REVEAL_HLEVEL: 1
+
+* Problem
+  - Difficult to handle data formats  
+    - Hand-written parsers are error prone
+    - One-off parsers interpret data differently
+  - Many security vulnerabilities 
+* State of the art 
+  - Parser generators such as Hammer
+  - Diagram here, showing input-> parser ->AST -> semantic actions -> data structure -> output
+    generation -> output
+  - Shortcomings: 
+    + Cannot handle sophisticated formats (ZIP, DNS with compression)
+    + Semantic actions and data types written by hand
+    + Output generation by hand
+* Nail
+  - Diagram here
+  - Improvements
+    - Bijection between external format and internal representation 
+      - No semantic actions 
+      - Generates output
+    - Handles Sophisticated formats with Streams
+* Rest of the talk
+  - Case study of input handling vulnerabilities
+  - Nail's approach to them
+* Input Handling vulnerabilities
+  - PKI Layer Cake in X.509: 
+    - NUL bytes in strings with length fields
+    - Fields repeated
+    - Integer representations confused
+  - Android Master Key:
+    - Integer signedness different in two parsers
+  - iOS evasi0n:
+    - Executable metadata parsing differs between userspace and kernel
+
+* Systematic study
+   - In the last 3 years, 16 bugs related to ZIP file processing in the CVE database 
+   - 11 memory corruption bugs
+   - 4 parser ambiguities
+   - 1 crypto bug
+
+* Problematic features of data formats
+  - Many features cannot be expressed with state-of-the-art grammars:
+    - Length and Offset fields
+    - Redundant information
+    - Checksums
+    - Variable-length End-Of-File header
+    - Other formats have similar unique quirks
+  - *Nail will introduce Streams to capture these features*
+
+* Design
+  - Bijection
+  - Streams
+
+* Bijection
+- Define internal types to represent the data
+- No Semantic Actions. 
+- Generate output. 
+
+** Structures
+- DNS labels
+- Diagram here
+#+REVEAL_HTML: <center><table>  <tr>
+#+REVEAL_HTML: <td width="40%">
+#+BEGIN_SRC c
+
+dns_label_header={
+uint2 = 0
+length uint6 
+}
+#+END_SRC
+#+REVEAL_HTML: </td> <td  width="40%">
+#+BEGIN_SRC
+struct dns_label_header {
+  uint8_t length;
+};
+#+END_SRC
+
+** Semantic bijection
+- Sometimes, bijection is tricky
+#+REVEAL_HTML: <center>
+#+BEGIN_SRC c
+
+padded_string={
+  contents many uint8 | ![0]
+  many (uint8=0)
+}
+#+END_SRC
+#+REVEAL_HTML:</center>
+
+- Semantic bijection
+  - parser(generator(x)) = x
+  - generator(parser(x)) need not be x
+  - Semantics are preserved, syntax not necessarily
+
+* Streams
+- Existing parsers: Implicit input stream, consumed front to end.
+- Nail allows this input stream to be transformed into multiple streams.
+#+BEGIN_EXAMPLE
+end_of_directory ($file) = {
+@directory_size uint32
+$dirstr1 transform offset_u32 ($filestream @directory_start)
+files apply $directory_stream directory($file)
+}
+#+END_EXAMPLE
+- @-sign: Dependent fields
+- $-sign: Streams
+- transform invokes external functions
+- apply applies a different Nail grammar to a stream. Parsing resumes at this location.
+** Transformations
+- Transformations are a pair of functions the programmer can write to modify streams.
+- Example: offset transform
+- Parsing function extracts a substream starting at an offset from a stream
+#+BEGIN_EXAMPLE
+int offset_u32_parse(NailArena *tmp, NailStream *out_fragment, NailStream *in_whole, 
+                      const uint32_t *offset);
+#+END_EXAMPLE
+
+- Generating function appends a substream to a stream and records its offset
+#+BEGIN_EXAMPLE
+int offset_u32_generate(NailArena *tmp, NailStream *in_fragment, NailStream *out_whole,
+                      const uint32_t *offset);
+#+END_EXAMPLE
+
+- Common transformations are provided.
+- Programmers can write their own, for example to find the ZIP directory.
+** Dependency Fields
+- Fields that depend on layout or values of other fields
+ - Length
+ - Offsets
+ - Checksums
+
+#+BEGIN_SRC c
+@questioncount uint16
+@answercount uint16
+//...
+questions n_of @questioncount question
+responses n_of @answercount answer
+#+END_SRC
+
+- Nail never exposes them to the programmer
+  - Programmer might forget to update length field when adding answers to a DNS packet
+  - Programmer should not have to find the right bytes in the format to compute a checksum over
+
+
+
+* Implementation
+- Current implementation for C programs
+- Implemented in 1800 lines of C++
+- Self-hosting: Parses Nail grammars with Nail
+
+
+* Evaluation
+ - Can Nail implement real protocols?
+   - Are Streams and Dependency Fields necessary?
+ - Does Nail reduce programmer effort?
+ - Are applications built with Nail performant?
+
+* Protocols implemented
+ - UDP Network stack: 
+   - Checksums
+   - Lengths 
+ - DNS: 
+   - Transformations for label compression
+   - Count fields in the packet header 
+ - ZIP:
+   - Multiple structures referred to by offset and size
+   - Compression
+   - Checksums
+
+* Programmer effort
+#+REVEAL_HTML: <center>
+| LoC/ w Nail | Application | LoC w/o Nail |
+|         295 | DNS server  | 683(Hammer)  |
+|         220 | Unzip       | 1600(Info-Zip) |
+#+REVEAL_HTML: </center>
+
+- Nail's bijection reduces programmer effort to implement parsers
+
+* Performance
+- We benchmarked our Nail server against BIND 9, which has more functionality
+#+CAPTION: NailDNS and BIND 9 throughput and latency, single core, 20 parallel queries, 50.000 domains
+[[./DNSbench.png]]
+
+* Conclusion
+- Using grammars can eliminate input handling vulnerabilities
+- Grammar-defined datatypes and a semantic bijection reduce programmer effort
+- Streams and Dependency fields allow complicated, real-world formats
+

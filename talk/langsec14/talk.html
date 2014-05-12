@@ -1,0 +1,452 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Nail - Data formats without hitting your fingers</title>
+<meta name="author" content="(Julian Bangert, Nickolai Zeldovich)"/>
+<link rel="stylesheet" href="http://cdn.jsdelivr.net/reveal.js/2.5.0/css/reveal.min.css"/>
+<link rel="stylesheet" href="http://cdn.jsdelivr.net/reveal.js/2.5.0/css/theme/moon.css" id="theme"/>
+
+<!-- If the query includes 'print-pdf', include the PDF print sheet -->
+<script>
+    if( window.location.search.match( /print-pdf/gi ) ) {
+        var link = document.createElement( 'link' );
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = 'http://cdn.jsdelivr.net/reveal.js/2.5.0/css/print/pdf.css';
+        document.getElementsByTagName( 'head' )[0].appendChild( link );
+    }
+</script>
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+<section>
+<h1>Nail - Data formats without hitting your fingers</h1>
+<h2>Julian Bangert, Nickolai Zeldovich</h2>
+<h2><a href="mailto:julian">julian</a>, <a href="mailto:nickolai <@> mit.edu">nickolai <@> mit.edu</a></h2>
+<h2></h2></section>
+
+<section>
+<section id="sec-1" >
+
+<h2>Input handling</h2>
+<ul class="org-ul">
+<li>Mitigations exist against <b>Memory Corruption</b> (PaX, safer languages)
+</li>
+<li>Attackers now exploit <b>Parser Differentials</b>
+</li>
+</ul>
+</section>
+<section id="sec-1-1" >
+
+<h3>Parser Differentials</h3>
+<ul class="org-ul">
+<li>Input handling (Parsing) is done with hand-written code.
+</li>
+<li>Error-prone.
+</li>
+<li>Multiple components interpret the same input differently.
+</li>
+<li>Many high profile attacks, including SSL and both major mobile platforms
+</li>
+</ul>
+
+</section>
+<section id="sec-1-2" >
+
+<h3>X.509 parsing</h3>
+<ul class="org-ul">
+<li>Kaminsky,  Patterson, Sassaman: PKI Layer Cake
+</li>
+<li>NUL-bytes or Length field?
+</li>
+<li>Multiple Name fields?
+</li>
+<li>Last and least: ASN.1 
+</li>
+</ul>
+
+</section>
+<section id="sec-1-3" >
+
+<h3>Android Master Key</h3>
+<ul class="org-ul">
+<li>Android Security relies on controlling what applications (.ZIP files) are installed
+</li>
+<li>Two ZIP parsers, one written in Java that checks signatures, one written in C that extracts
+files
+</li>
+<li>Verifier and Extractor pick different entries in the ZIP file
+</li>
+<li>Android Master Key was fixed
+</li>
+<li>Java gets signedness of a count field wrong
+</li>
+</ul>
+
+</section>
+<section id="sec-1-4" >
+
+<h3>Evasi0n</h3>
+<ul class="org-ul">
+<li>Executable metadata is parsed differently
+</li>
+<li>Code signing bypass
+</li>
+<li>Kernel and Userspace parser see metadata differently
+</li>
+<li>Parser fixed in iOS 7
+</li>
+<li>Attackers set a flag that changes data halfway through parsing
+</li>
+</ul>
+
+</section>
+<section id="sec-1-5" >
+
+<h3>ZIP files</h3>
+<ul class="org-ul">
+<li>ZIP has many problematic features.
+</li>
+<li>In the last 3 years, 16 bugs related to ZIP file processing in the CVE database 
+</li>
+<li>11 memory corruption bugs
+</li>
+<li>4 parser ambiguities
+</li>
+<li>1 crypto bug
+</li>
+</ul>
+</section>
+</section>
+<section>
+<section id="sec-2" >
+
+<h2>Hitting the Nail on the head</h2>
+<ul class="org-ul">
+<li>Solution: Have one grammar describing a format.
+</li>
+<li>Previous systems: Hammer  and PacketTypes
+</li>
+<li>Nail can express more formats
+</li>
+<li>Less effort to use
+</li>
+</ul>
+</section>
+</section>
+<section>
+<section id="sec-3" >
+
+<h2>Crucial improvements</h2>
+<ul class="org-ul">
+<li>Define internal types to represent the data
+</li>
+<li>New abstractions to capture real-world formats
+<ul class="org-ul">
+<li>Dependency Fields 
+</li>
+<li>Streams 
+</li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="sec-3-1" >
+
+<h3>Define both external format and internal model.</h3>
+<ul class="org-ul">
+<li>No Semantic Actions. 
+</li>
+<li>Generate output. 
+</li>
+<li>Compact.
+<ul class="org-ul">
+<li>Nail: 295 lines for functional DNS server in C
+</li>
+<li>Hammer: 683 lines for a demo server that always returns the same response.
+</li>
+</ul>
+</li>
+</ul>
+
+</section>
+<section id="sec-3-2" >
+
+<h3>Nail grammar</h3>
+<ul class="org-ul">
+<li>A grammar consists of rules that assign a parser to a name
+</li>
+<li>Structures contain <b>fields</b> and <b>constants</b>
+</li>
+</ul>
+<center><table>  <tr>
+<td width="40%">
+
+<div class="org-src-container">
+
+<pre  class="src src-c">dnspacket = {
+   id uint16
+   qr uint1
+   opcode uint4
+   aa uint1 
+   tc uint1
+   rd uint1
+   ra uint1
+   uint3 = 0
+   rcode uint4
+//...
+            }
+</pre>
+</div>
+</td> <td  width="40%">
+<pre  class="example">
+struct dnspacket {
+  uint16_t id;
+  uint8_t qr;
+  uint8_t opcode;
+  uint8_t aa;
+  uint8_t tc;
+  uint8_t rd;
+  uint8_t ra;
+  // Constants are omitted
+  uint8_t rcode;
+};
+</pre>
+
+</td></tr></table></center>
+
+
+<table>  <tr>
+<td width="40%">
+
+</section>
+<section id="sec-3-3" >
+
+<h3>Choices</h3>
+<ul class="org-ul">
+<li>Integer fields can be <b>constrained</b>.
+</li>
+<li>Nail represents choices as tagged unions.
+</li>
+</ul>
+<pre  class="example">
+option = choose {
+   A = uint8 | 1..8
+   B = uint16 | [9,256..]
+}
+</pre>
+</td> <td  width="40%">
+<pre  class="example">
+struct option {
+ enum {A,B} N_type;
+ union{ 
+   uint8_t a;
+   uint16_t b;
+ };
+};
+</pre>
+
+</td></tr></table>
+
+</section>
+<section id="sec-3-4" >
+
+<h3>Dependency Fields</h3>
+<ul class="org-ul">
+<li>Fields that depend on layout or values of other fields
+<ul class="org-ul">
+<li>Length
+</li>
+<li>Offsets
+</li>
+<li>Checksums
+</li>
+<li>&#x2026;
+</li>
+</ul>
+</li>
+<li>Nail never exposes them to the programmer
+</li>
+</ul>
+
+<div class="org-src-container">
+
+<pre  class="src src-c">@questioncount uint16
+@answercount uint16
+//...
+questions n_of @questioncount question
+responses n_of @answercount answer
+</pre>
+</div>
+</section>
+<section id="sec-3-5" >
+
+<h3>Stream transformations</h3>
+<ul class="org-ul">
+<li>Existing parser handle input linearly, beginning to end
+</li>
+<li>Many data formats need to be parsed differently
+</li>
+<li>Length fields: Stop parsing
+</li>
+<li>Offset fields: Re-position in the input
+</li>
+<li>Other problems: Data compression. Checksums (visit twice).
+</li>
+<li>Allow the programmer to hand-write code for the tricky bits, use parsers for the rest
+</li>
+</ul>
+</section>
+<section id="sec-3-5-1" >
+
+<h4>Stream transforms</h4>
+<ul class="org-ul">
+<li><b>Stream</b>: A sequence of input bytes is parsed linearly
+</li>
+<li><b>Transformation</b>: Pair of functions that consume and produce streams.
+</li>
+<li>Transformations can also involve dependencies.
+</li>
+<li>Example:
+</li>
+</ul>
+<pre class="example">
+end_of_directory ($file) = {
+// ...
+@directory_size uint32
+@directory_start uint32
+$dirstr1 transform offset_u32 ($filestream @directory_start)
+$directory_stream transform size_u32 ($dirstr1 @directory_size)
+files apply $directory_stream directory($file)
+}
+</pre>
+
+<pre class="example">
+int offset_u32_parse(NailArena *tmp, NailStream *out_fragment, NailStream *in_whole, 
+                      const uint32_t *offset);
+int offset_u32_generate(NailArena *tmp, NailStream *in_fragment, NailStream *out_whole,
+                      const uint32_t *offset);
+</pre>
+
+</section>
+<section id="sec-3-5-2" >
+
+<h4>Transformations</h4>
+<ul class="org-ul">
+<li>We provide a standard transformations for offsets, lengths and common checksums
+</li>
+<li>Programmer can implement their own, i.e. finding the ZIP end of file header.
+</li>
+<li>Trusted, need to be bug-free.
+</li>
+</ul>
+</section>
+<section id="sec-3-6" >
+
+<h3>Results</h3>
+<ul class="org-ul">
+<li>We implement a DNS server, a userspace UDP stack and a ZIP file parser
+</li>
+</ul>
+<center>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="right" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="right">LoC/ w Nail</td>
+<td class="left">Application</td>
+<td class="left">LoC w/o Nail</td>
+</tr>
+
+<tr>
+<td class="right">295</td>
+<td class="left">DNS server</td>
+<td class="left">683(Hammer)</td>
+</tr>
+
+<tr>
+<td class="right">220</td>
+<td class="left">Unzip</td>
+<td class="left">1600(Info-Zip)</td>
+</tr>
+</tbody>
+</table>
+</center>
+
+</section>
+<section>
+<ul class="org-ul">
+<li>We benchmarked our Nail server against BIND 9, which has more functionality
+</li>
+</ul>
+<img src="./DNSbench.png" alt="DNSbench.png" />
+</section>
+</section>
+<section>
+<section id="sec-4" >
+
+<h2>Conclusion</h2>
+<ul class="org-ul">
+<li>Nail can safely parse and generate data formats 
+</li>
+<li>Reduces programmer effort
+</li>
+</ul>
+</section>
+</section>
+</div>
+</div>
+<script src="http://cdn.jsdelivr.net/reveal.js/2.5.0/lib/js/head.min.js"></script>
+<script src="http://cdn.jsdelivr.net/reveal.js/2.5.0/js/reveal.min.js"></script>
+<script>
+
+        		// Full list of configuration options available here:
+        		// https://github.com/hakimel/reveal.js#configuration
+        		Reveal.initialize({
+        			controls: true,
+        			progress: true,
+        			history: false,
+        			center: true,
+                                slideNumber: true,
+        			rollingLinks: true,
+        			keyboard: true,
+        			overview: true,
+        			width: 1200, // slide width
+        			height: 800, // slide height
+        			margin: 0.10, // slide margin
+        			minScale: 0.50, // slide minimum scaling factor
+        			maxScale: 2.50, // slide maximum scaling factor
+
+
+        			theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+        			transition: Reveal.getQueryHash().transition || 'cube', // default/cube/page/concave/zoom/linear/fade/none
+        			transitionSpeed: 'default',
+
+        			// Optional libraries used to extend on reveal.js
+        			dependencies: [
+        				{ src: 'http://cdn.jsdelivr.net/reveal.js/2.5.0/lib/js/classList.js', condition: function() { return !document.body.classList; } }
+        				,{ src: 'http://cdn.jsdelivr.net/reveal.js/2.5.0/plugin/markdown/showdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } }
+        				,{ src: 'http://cdn.jsdelivr.net/reveal.js/2.5.0/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } }
+        				,{ src: 'http://cdn.jsdelivr.net/reveal.js/2.5.0/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+        				,{ src: 'http://cdn.jsdelivr.net/reveal.js/2.5.0/plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } }
+        				,{ src: 'http://cdn.jsdelivr.net/reveal.js/2.5.0/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+        				// { src: 'http://cdn.jsdelivr.net/reveal.js/2.5.0/plugin/search/search.js', async: true, condition: function() { return !!document.body.classList; } }
+        				// { src: 'http://cdn.jsdelivr.net/reveal.js/2.5.0/plugin/remotes/remotes.js', async: true, condition: function() { return !!document.body.classList; } }
+         				
+        			]
+        		});
+</script>
+</body>
+</html>
