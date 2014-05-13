@@ -1,4 +1,7 @@
-#+Title: Nail - Data formats without hitting your fingers
+#+DATE: <2014-05-13 Tue>
+#+OPTIONS: texht:t
+#+Title: Nail
+#+Subtitle: Data formats without hitting your fingers
 #+Author: Julian Bangert, Nickolai Zeldovich
 #+Email: julian,nickolai <@> mit.edu
 #+REVEAL_ROOT: http://cdn.jsdelivr.net/reveal.js/2.5.0/
@@ -6,92 +9,139 @@
 #+OPTIONS: reveal_mathjax:t reveal_rolling_links:t reveal_keyboard:t reveal_overview:t num:nil
 #+OPTIONS: reveal_width:1200 reveal_height:800
 #+OPTIONS: toc:0
+#+startup: beamer
+#+LATEX_CLASS: beamer
+#+LATEX_CLASS_OPTIONS: [bigger]
 #+REVEAL_MARGIN: 0.1
 #+REVEAL_MIN_SCALE: 0.5
 #+REVEAL_MAX_SCALE: 2.5
 #+REVEAL_TRANS: cube
-#+REVEAL_THEME: moon
+#+REVEAL_THEME: simple
 #+REVEAL_HLEVEL: 1
 
 * Problem
-  - Difficult to handle data formats  
+  - Difficult to handle data formats securely:
     - Hand-written parsers are error prone
     - One-off parsers interpret data differently
   - Many security vulnerabilities 
 * State of the art 
-  - Parser generators such as Hammer
-  - Diagram here, showing input-> parser ->AST -> semantic actions -> data structure -> output
-    generation -> output
+[[./StateOfTheArt.png]]
+  - Grammar-based parsers such as [Hammer]
+    + Reusable across applications
   - Shortcomings: 
-    + Cannot handle sophisticated formats (ZIP, DNS with compression)
+    + Cannot handle complex formats
     + Semantic actions and data types written by hand
     + Output generation by hand
 * Nail
-  - Diagram here
-  - Improvements
-    - Bijection between external format and internal representation 
-      - No semantic actions 
-      - Generates output
-    - Handles Sophisticated formats with Streams
+[[./Nail.png]]
+  - Goals:
+    - Grammar describes format *and* data type
+    - Handle real-world formats
+* Overview 
+  - Based on Parser Expression Grammars
+  - Semantic Combinators
+    - Structure instead of sequence 
+    - Labelled options 
+  - Dependency fields
+    - Hide structural elements
+  - Streams
+    - Capture non-linear formats 
+    - Encodings 
 * Rest of the talk
-  - Case study of input handling vulnerabilities
-  - Nail's approach to them
-* Input Handling vulnerabilities
-  - PKI Layer Cake in X.509: 
-    - NUL bytes in strings with length fields
-    - Fields repeated
-    - Integer representations confused
-  - Android Master Key:
-    - Integer signedness different in two parsers
-  - iOS evasi0n:
-    - Executable metadata parsing differs between userspace and kernel
+  - Parsing bug case study
+  - Nail's Design
+  - Implementation
+  - Evaluation
+* Recent high profile vulnerabilities
+    - PKI Layer Cake in X.509 
+    - iOS evasi0n jailbreaks
+    - Android Master Key
 
-* Systematic study
-   - In the last 3 years, 16 bugs related to ZIP file processing in the CVE database 
-   - 11 memory corruption bugs
-   - 4 parser ambiguities
-   - 1 crypto bug
-
-* Problematic features of data formats
-  - Many features cannot be expressed with state-of-the-art grammars:
-    - Length and Offset fields
-    - Redundant information
+** Case Study
+   - 15 .ZIP CVE's in the last 3 years
+     - 11 memory corruption bugs
+       - Risky pointer manipulation
+       - Mitigation: ASLR, safer languages, ...
+     - 4 parser ambiguities
+       - Same data interpreted differently
+         - Master Key: Java and C ZIP parser
+   - *Hand-written parsers fail*
+** Existing Tools cannot represent real formats
+#+REVEAL_HTML:<table><tr><td width="70%">
+  - ZIP
+    - References by offset and size
+    - Duplicated information
     - Checksums
     - Variable-length End-Of-File header
-    - Other formats have similar unique quirks
-  - *Nail will introduce Streams to capture these features*
-
+     
+#+REVEAL_HTML:</td><td>
+[[./Zipfile.png]]
+#+REVEAL_HTML:</td></tr></table>
 * Design
   - Bijection
   - Streams
 
-* Bijection
+** Bijection
 - Define internal types to represent the data
 - No Semantic Actions. 
 - Generate output. 
 
-** Structures
-- DNS labels
-- Diagram here
+*** Structures
+# - Diagram here
 #+REVEAL_HTML: <center><table>  <tr>
 #+REVEAL_HTML: <td width="40%">
 #+BEGIN_SRC c
-
-dns_label_header={
-uint2 = 0
-length uint6 
+dns_header={
+   id uint16
+   qr uint1
+   opcode uint4
+   aa uint1 
+   tc uint1
+   rd uint1
+   ra uint1
+   uint3 = 0
 }
 #+END_SRC
 #+REVEAL_HTML: </td> <td  width="40%">
-#+BEGIN_SRC
-struct dns_label_header {
-  uint8_t length;
+#+BEGIN_SRC c
+struct dns_header {
+    uint16_t id;
+    uint8_t qr;
+    uint8_t opcode;
+    uint8_t aa;
+    uint8_t tc;
+    uint8_t rd;
+    uint8_t ra;
 };
 #+END_SRC
+#+REVEAL_HTML: </td></tr>
+#+REVEAL_HTML: <tr> <td>
 
-** Semantic bijection
+#+BEGIN_EXAMPLE
+payload choose { 
+   ICMP = <uint16= 1; icmp>   
+   ARP = <uint16= 0x0806; arpfour> 
+   IPFOUR = <uint16= 0x0800; ipfour>
+}          
+#+END_EXAMPLE
+#+REVEAL_HTML: </td> <td>
+
+#+BEGIN_EXAMPLE
+struct payload{
+    enum {ICMP,ARPFOUR,IPFOURE} N_type;
+    union {
+        icmp icmp;
+        arpfour arp;
+        ipfour ipfour;
+    };
+} 
+#+END_EXAMPLE
+
+#+REVEAL_HTML: </td></tr>
+#+REVEAL_HTML: </table></center>
+*** Semantic bijection
 - Sometimes, bijection is tricky
-#+REVEAL_HTML: <center>
+
 #+BEGIN_SRC c
 
 padded_string={
@@ -99,29 +149,37 @@ padded_string={
   many (uint8=0)
 }
 #+END_SRC
-#+REVEAL_HTML:</center>
+
 
 - Semantic bijection
   - parser(generator(x)) = x
   - generator(parser(x)) need not be x
   - Semantics are preserved, syntax not necessarily
 
-* Streams
-- Existing parsers: Implicit input stream, consumed front to end.
-- Nail allows this input stream to be transformed into multiple streams.
-#+BEGIN_EXAMPLE
-end_of_directory ($file) = {
-@directory_size uint32
-$dirstr1 transform offset_u32 ($filestream @directory_start)
-files apply $directory_stream directory($file)
-}
-#+END_EXAMPLE
-- @-sign: Dependent fields
-- $-sign: Streams
-- transform invokes external functions
-- apply applies a different Nail grammar to a stream. Parsing resumes at this location.
-** Transformations
-- Transformations are a pair of functions the programmer can write to modify streams.
+** Streams
+#+REVEAL_HTML:<table><tr><td width="70%">
+
+- Existing parsers consume a single, implicit input stream
+- Nail introduces multiple streams 
+- Allows grammars to move between them
+- We introduce transformations to create new streams
+
+#+REVEAL_HTML:</td><td>
+[[./Zipfile.png]]
+#+REVEAL_HTML:</td></tr></table>
+
+*** Dependency Fields
+- Fields that depend on data layout or values of other fields
+ - Length
+ - Offsets
+ - Checksums
+- Nail never exposes them to the programmer
+  - Programmer might forget to update length field when adding answers to a DNS packet
+  - Programmer should not have to find the right bytes in the format to compute a checksum over
+
+*** Transformations
+
+- Transformations are a pair of functions that modify streams.
 - Example: offset transform
 - Parsing function extracts a substream starting at an offset from a stream
 #+BEGIN_EXAMPLE
@@ -137,11 +195,25 @@ int offset_u32_generate(NailArena *tmp, NailStream *in_fragment, NailStream *out
 
 - Common transformations are provided.
 - Programmers can write their own, for example to find the ZIP directory.
-** Dependency Fields
-- Fields that depend on layout or values of other fields
- - Length
- - Offsets
- - Checksums
+
+
+*** Nail Syntax
+#+BEGIN_EXAMPLE
+end_of_directory ($file) = {
+@directory_size uint32
+$dirstr1 transform offset_u32 ($filestream @directory_start)
+files apply $directory_stream directory($file)
+}
+zip_file = { 
+ $filestream, $end_directory transform zip_end_of_directory ($current)
+ contents apply $end_directory end_of_directory($filestream)
+}
+#+END_EXAMPLE
+- @-sign: Dependent fields
+- $-sign: Streams
+- transform invokes external functions
+- apply applies a different Nail grammar to a stream. Parsing resumes at this location.
+
 
 #+BEGIN_SRC c
 @questioncount uint16
@@ -151,13 +223,10 @@ questions n_of @questioncount question
 responses n_of @answercount answer
 #+END_SRC
 
-- Nail never exposes them to the programmer
-  - Programmer might forget to update length field when adding answers to a DNS packet
-  - Programmer should not have to find the right bytes in the format to compute a checksum over
-
 
 
 * Implementation
+[[./NailTool.png]]
 - Current implementation for C programs
 - Implemented in 1800 lines of C++
 - Self-hosting: Parses Nail grammars with Nail
@@ -169,7 +238,7 @@ responses n_of @answercount answer
  - Does Nail reduce programmer effort?
  - Are applications built with Nail performant?
 
-* Protocols implemented
+** Protocols implemented
  - UDP Network stack: 
    - Checksums
    - Lengths 
@@ -181,16 +250,18 @@ responses n_of @answercount answer
    - Compression
    - Checksums
 
-* Programmer effort
+** Programmer effort
 #+REVEAL_HTML: <center>
-| LoC/ w Nail | Application | LoC w/o Nail |
-|         295 | DNS server  | 683(Hammer)  |
-|         220 | Unzip       | 1600(Info-Zip) |
+| Application | LoC | Lo Transformations | Lo Grammar | LoC w/o Nail   |
+| DNS server  | 183 |                 64 |         92 | 683(Hammer)    |
+| DNS client  |  97 |                    |            | (In Libc)      |
+| Unzip       |  49 |                 78 |         48 | 1600(Info-Zip) |
 #+REVEAL_HTML: </center>
 
+- Break out grammar vs application
 - Nail's bijection reduces programmer effort to implement parsers
 
-* Performance
+** Performance
 - We benchmarked our Nail server against BIND 9, which has more functionality
 #+CAPTION: NailDNS and BIND 9 throughput and latency, single core, 20 parallel queries, 50.000 domains
 [[./DNSbench.png]]

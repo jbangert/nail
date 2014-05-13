@@ -3,10 +3,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>Nail - Data formats without hitting your fingers</title>
+<title>Nail</title>
 <meta name="author" content="(Julian Bangert, Nickolai Zeldovich)"/>
 <link rel="stylesheet" href="http://cdn.jsdelivr.net/reveal.js/2.5.0/css/reveal.min.css"/>
-<link rel="stylesheet" href="http://cdn.jsdelivr.net/reveal.js/2.5.0/css/theme/moon.css" id="theme"/>
+<link rel="stylesheet" href="http://cdn.jsdelivr.net/reveal.js/2.5.0/css/theme/simple.css" id="theme"/>
 
 <!-- If the query includes 'print-pdf', include the PDF print sheet -->
 <script>
@@ -24,7 +24,7 @@
 <div class="reveal">
 <div class="slides">
 <section>
-<h1>Nail - Data formats without hitting your fingers</h1>
+<h1>Nail</h1>
 <h2>Julian Bangert, Nickolai Zeldovich</h2>
 <h2><a href="mailto:julian">julian</a>, <a href="mailto:nickolai <@> mit.edu">nickolai <@> mit.edu</a></h2>
 <h2></h2></section>
@@ -32,163 +32,219 @@
 <section>
 <section id="sec-1" >
 
-<h2>Input handling</h2>
+<h2>Problem</h2>
 <ul class="org-ul">
-<li>Mitigations exist against <b>Memory Corruption</b> (PaX, safer languages)
+<li>Difficult to handle data formats securely:
+<ul class="org-ul">
+<li>Hand-written parsers are error prone
 </li>
-<li>Attackers now exploit <b>Parser Differentials</b>
+<li>One-off parsers interpret data differently
+</li>
+</ul>
+</li>
+<li>Many security vulnerabilities 
 </li>
 </ul>
 </section>
-<section id="sec-1-1" >
 
-<h3>Parser Differentials</h3>
-<ul class="org-ul">
-<li>Input handling (Parsing) is done with hand-written code.
-</li>
-<li>Error-prone.
-</li>
-<li>Multiple components interpret the same input differently.
-</li>
-<li>Many high profile attacks, including SSL and both major mobile platforms
-</li>
-</ul>
-
-</section>
-<section id="sec-1-2" >
-
-<h3>X.509 parsing</h3>
-<ul class="org-ul">
-<li>Kaminsky,  Patterson, Sassaman: PKI Layer Cake
-</li>
-<li>NUL-bytes or Length field?
-</li>
-<li>Multiple Name fields?
-</li>
-<li>Last and least: ASN.1 
-</li>
-</ul>
-
-</section>
-<section id="sec-1-3" >
-
-<h3>Android Master Key</h3>
-<ul class="org-ul">
-<li>Android Security relies on controlling what applications (.ZIP files) are installed
-</li>
-<li>Two ZIP parsers, one written in Java that checks signatures, one written in C that extracts
-files
-</li>
-<li>Verifier and Extractor pick different entries in the ZIP file
-</li>
-<li>Android Master Key was fixed
-</li>
-<li>Java gets signedness of a count field wrong
-</li>
-</ul>
-
-</section>
-<section id="sec-1-4" >
-
-<h3>Evasi0n</h3>
-<ul class="org-ul">
-<li>Executable metadata is parsed differently
-</li>
-<li>Code signing bypass
-</li>
-<li>Kernel and Userspace parser see metadata differently
-</li>
-<li>Parser fixed in iOS 7
-</li>
-<li>Attackers set a flag that changes data halfway through parsing
-</li>
-</ul>
-
-</section>
-<section id="sec-1-5" >
-
-<h3>ZIP files</h3>
-<ul class="org-ul">
-<li>ZIP has many problematic features.
-</li>
-<li>In the last 3 years, 16 bugs related to ZIP file processing in the CVE database 
-</li>
-<li>11 memory corruption bugs
-</li>
-<li>4 parser ambiguities
-</li>
-<li>1 crypto bug
-</li>
-</ul>
-</section>
 </section>
 <section>
 <section id="sec-2" >
 
-<h2>Hitting the Nail on the head</h2>
+<h2>State of the art</h2>
+<img src="./StateOfTheArt.png" alt="StateOfTheArt.png" />
 <ul class="org-ul">
-<li>Solution: Have one grammar describing a format.
+<li>Grammar-based parsers such as [Hammer]
+<ul class="org-ul">
+<li>Reusable across applications
 </li>
-<li>Previous systems: Hammer  and PacketTypes
+</ul>
 </li>
-<li>Nail can express more formats
+<li>Shortcomings: 
+<ul class="org-ul">
+<li>Cannot handle complex formats
 </li>
-<li>Less effort to use
+<li>Semantic actions and data types written by hand
+</li>
+<li>Output generation by hand
+</li>
+</ul>
 </li>
 </ul>
 </section>
+
 </section>
 <section>
 <section id="sec-3" >
 
-<h2>Crucial improvements</h2>
+<h2>Nail</h2>
+<img src="./Nail.png" alt="Nail.png" />
 <ul class="org-ul">
-<li>Define internal types to represent the data
-</li>
-<li>New abstractions to capture real-world formats
+<li>Goals:
 <ul class="org-ul">
-<li>Dependency Fields 
+<li>Grammar describes format <b>and</b> data type
 </li>
-<li>Streams 
+<li>Handle real-world formats
 </li>
 </ul>
 </li>
 </ul>
 </section>
-<section id="sec-3-1" >
 
-<h3>Define both external format and internal model.</h3>
+</section>
+<section>
+<section id="sec-4" >
+
+<h2>Overview</h2>
 <ul class="org-ul">
+<li>Based on Parser Expression Grammars
+</li>
+<li>Semantic Combinators
+<ul class="org-ul">
+<li>Structure instead of sequence 
+</li>
+<li>Labelled options 
+</li>
+</ul>
+</li>
+<li>Dependency fields
+<ul class="org-ul">
+<li>Hide structural elements
+</li>
+</ul>
+</li>
+<li>Streams
+<ul class="org-ul">
+<li>Capture non-linear formats 
+</li>
+<li>Encodings 
+</li>
+</ul>
+</li>
+</ul>
+</section>
+
+</section>
+<section>
+<section id="sec-5" >
+
+<h2>Rest of the talk</h2>
+<ul class="org-ul">
+<li>Parsing bug case study
+</li>
+<li>Nail's Design
+</li>
+<li>Implementation
+</li>
+<li>Evaluation
+</li>
+</ul>
+</section>
+
+</section>
+<section>
+<section id="sec-6" >
+
+<h2>Recent high profile vulnerabilities</h2>
+<ul class="org-ul">
+<li>PKI Layer Cake in X.509 
+</li>
+<li>iOS evasi0n jailbreaks
+</li>
+<li>Android Master Key
+</li>
+</ul>
+
+</section>
+<section id="sec-6-1" >
+
+<h3>Case Study</h3>
+<ul class="org-ul">
+<li>15 .ZIP CVE's in the last 3 years
+<ul class="org-ul">
+<li>11 memory corruption bugs
+<ul class="org-ul">
+<li>Risky pointer manipulation
+</li>
+<li>Mitigation: ASLR, safer languages, &#x2026;
+</li>
+</ul>
+</li>
+<li>4 parser ambiguities
+<ul class="org-ul">
+<li>Same data interpreted differently
+<ul class="org-ul">
+<li>Master Key: Java and C ZIP parser
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><b>Hand-written parsers fail</b>
+</li>
+</ul>
+
+</section>
+<section id="sec-6-2" >
+
+<h3>Existing Tools cannot represent real formats</h3>
+<table><tr><td width="70%">
+<ul class="org-ul">
+<li>ZIP
+<ul class="org-ul">
+<li>References by offset and size
+</li>
+<li>Duplicated information
+</li>
+<li>Checksums
+</li>
+<li>Variable-length End-Of-File header
+</li>
+</ul>
+</li>
+</ul>
+
+</td><td>
+<img src="./Zipfile.002.png" alt="Zipfile.002.png" />
+</td></tr></table>
+</section>
+
+</section>
+<section>
+<section id="sec-7" >
+
+<h2>Design</h2>
+<ul class="org-ul">
+<li>Bijection
+</li>
+<li>Streams
+</li>
+</ul>
+
+</section>
+<section id="sec-7-1" >
+
+<h3>Bijection</h3>
+<ul class="org-ul">
+<li>Define internal types to represent the data
+</li>
 <li>No Semantic Actions. 
 </li>
 <li>Generate output. 
 </li>
-<li>Compact.
-<ul class="org-ul">
-<li>Nail: 295 lines for functional DNS server in C
-</li>
-<li>Hammer: 683 lines for a demo server that always returns the same response.
-</li>
-</ul>
-</li>
 </ul>
 
 </section>
-<section id="sec-3-2" >
+<section id="sec-7-1-1" >
 
-<h3>Nail grammar</h3>
-<ul class="org-ul">
-<li>A grammar consists of rules that assign a parser to a name
-</li>
-<li>Structures contain <b>fields</b> and <b>constants</b>
-</li>
-</ul>
+<h4>Structures</h4>
 <center><table>  <tr>
 <td width="40%">
-
 <div class="org-src-container">
 
-<pre  class="src src-c">dnspacket = {
+<pre  class="src src-c">dns_header={
    id uint16
    qr uint1
    opcode uint4
@@ -197,67 +253,107 @@ files
    rd uint1
    ra uint1
    uint3 = 0
-   rcode uint4
-//...
-            }
+}
 </pre>
 </div>
 </td> <td  width="40%">
-<pre  class="example">
-struct dnspacket {
-  uint16_t id;
-  uint8_t qr;
-  uint8_t opcode;
-  uint8_t aa;
-  uint8_t tc;
-  uint8_t rd;
-  uint8_t ra;
-  // Constants are omitted
-  uint8_t rcode;
+<div class="org-src-container">
+
+<pre  class="src src-c">struct dns_header {
+    uint16_t id;
+    uint8_t qr;
+    uint8_t opcode;
+    uint8_t aa;
+    uint8_t tc;
+    uint8_t rd;
+    uint8_t ra;
 };
 </pre>
+</div>
+</td></tr>
+<tr> <td>
 
-</td></tr></table></center>
-
-
-<table>  <tr>
-<td width="40%">
-
-</section>
-<section id="sec-3-3" >
-
-<h3>Choices</h3>
-<ul class="org-ul">
-<li>Integer fields can be <b>constrained</b>.
-</li>
-<li>Nail represents choices as tagged unions.
-</li>
-</ul>
-<pre  class="example">
-option = choose {
-   A = uint8 | 1..8
-   B = uint16 | [9,256..]
+<pre class="example">
+payload choose { 
+   ICMP = &lt;uint16= 1; icmp&gt;   
+   ARP = &lt;uint16= 0x0806; arpfour&gt; 
+   IPFOUR = &lt;uint16= 0x0800; ipfour&gt;
 }
 </pre>
-</td> <td  width="40%">
-<pre  class="example">
-struct option {
- enum {A,B} N_type;
- union{ 
-   uint8_t a;
-   uint16_t b;
- };
-};
+</td> <td>
+
+<pre class="example">
+struct payload{
+    enum {ICMP,ARPFOUR,IPFOURE} N_type;
+    union {
+        icmp icmp;
+        arpfour arp;
+        ipfour ipfour;
+    };
+}
 </pre>
 
+</td></tr>
+</table></center>
+
+</section>
+<section id="sec-7-1-2" >
+
+<h4>Semantic bijection</h4>
+<ul class="org-ul">
+<li>Sometimes, bijection is tricky
+</li>
+</ul>
+
+<div class="org-src-container">
+
+<pre  class="src src-c">padded_string={
+  contents many uint8 | ![0]
+  many (uint8=0)
+}
+</pre>
+</div>
+
+
+<ul class="org-ul">
+<li>Semantic bijection
+<ul class="org-ul">
+<li>parser(generator(x)) = x
+</li>
+<li>generator(parser(x)) need not be x
+</li>
+<li>Semantics are preserved, syntax not necessarily
+</li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="sec-7-2" >
+
+<h3>Streams</h3>
+<table><tr><td width="70%">
+
+<ul class="org-ul">
+<li>Existing parsers consume a single, implicit input stream
+</li>
+<li>Nail introduces multiple streams 
+</li>
+<li>Allows grammars to move between them
+</li>
+<li>We introduce transformations to create new streams
+</li>
+</ul>
+
+</td><td>
+<img src="./Zipfile.002.png" alt="Zipfile.002.png" />
 </td></tr></table>
 
 </section>
-<section id="sec-3-4" >
+<section id="sec-7-2-1" >
 
-<h3>Dependency Fields</h3>
+<h4>Dependency Fields</h4>
 <ul class="org-ul">
-<li>Fields that depend on layout or values of other fields
+<li>Fields that depend on data layout or values of other fields
 <ul class="org-ul">
 <li>Length
 </li>
@@ -265,13 +361,76 @@ struct option {
 </li>
 <li>Checksums
 </li>
-<li>&#x2026;
-</li>
 </ul>
 </li>
 <li>Nail never exposes them to the programmer
+<ul class="org-ul">
+<li>Programmer might forget to update length field when adding answers to a DNS packet
+</li>
+<li>Programmer should not have to find the right bytes in the format to compute a checksum over
 </li>
 </ul>
+</li>
+</ul>
+</section>
+<section id="sec-7-2-2" >
+
+<h4>Transformations</h4>
+<ul class="org-ul">
+<li>Transformations are a pair of functions that modify streams.
+</li>
+<li>Example: offset transform
+</li>
+<li>Parsing function extracts a substream starting at an offset from a stream
+</li>
+</ul>
+<pre class="example">
+int offset_u32_parse(NailArena *tmp, NailStream *out_fragment, NailStream *in_whole, 
+                      const uint32_t *offset);
+</pre>
+
+<ul class="org-ul">
+<li>Generating function appends a substream to a stream and records its offset
+</li>
+</ul>
+<pre class="example">
+int offset_u32_generate(NailArena *tmp, NailStream *in_fragment, NailStream *out_whole,
+                      const uint32_t *offset);
+</pre>
+
+<ul class="org-ul">
+<li>Common transformations are provided.
+</li>
+<li>Programmers can write their own, for example to find the ZIP directory.
+</li>
+</ul>
+
+</section>
+<section id="sec-7-2-3" >
+
+<h4>Nail Syntax</h4>
+<pre class="example">
+end_of_directory ($file) = {
+@directory_size uint32
+$dirstr1 transform offset_u32 ($filestream @directory_start)
+files apply $directory_stream directory($file)
+}
+zip_file = { 
+ $filestream, $end_directory transform zip_end_of_directory ($current)
+ contents apply $end_directory end_of_directory($filestream)
+}
+</pre>
+<ul class="org-ul">
+<li>@-sign: Dependent fields
+</li>
+<li>$-sign: Streams
+</li>
+<li>transform invokes external functions
+</li>
+<li>apply applies a different Nail grammar to a stream. Parsing resumes at this location.
+</li>
+</ul>
+
 
 <div class="org-src-container">
 
@@ -283,110 +442,139 @@ responses n_of @answercount answer
 </pre>
 </div>
 </section>
-<section id="sec-3-5" >
 
-<h3>Stream transformations</h3>
+
+</section>
+<section>
+<section id="sec-8" >
+
+<h2>Implementation</h2>
+<img src="./NailTool.png" alt="NailTool.png" />
 <ul class="org-ul">
-<li>Existing parser handle input linearly, beginning to end
+<li>Current implementation for C programs
 </li>
-<li>Many data formats need to be parsed differently
+<li>Implemented in 1800 lines of C++
 </li>
-<li>Length fields: Stop parsing
-</li>
-<li>Offset fields: Re-position in the input
-</li>
-<li>Other problems: Data compression. Checksums (visit twice).
-</li>
-<li>Allow the programmer to hand-write code for the tricky bits, use parsers for the rest
+<li>Self-hosting: Parses Nail grammars with Nail
 </li>
 </ul>
 </section>
-<section id="sec-3-5-1" >
-
-<h4>Stream transforms</h4>
-<ul class="org-ul">
-<li><b>Stream</b>: A sequence of input bytes is parsed linearly
-</li>
-<li><b>Transformation</b>: Pair of functions that consume and produce streams.
-</li>
-<li>Transformations can also involve dependencies.
-</li>
-<li>Example:
-</li>
-</ul>
-<pre class="example">
-end_of_directory ($file) = {
-// ...
-@directory_size uint32
-@directory_start uint32
-$dirstr1 transform offset_u32 ($filestream @directory_start)
-$directory_stream transform size_u32 ($dirstr1 @directory_size)
-files apply $directory_stream directory($file)
-}
-</pre>
-
-<pre class="example">
-int offset_u32_parse(NailArena *tmp, NailStream *out_fragment, NailStream *in_whole, 
-                      const uint32_t *offset);
-int offset_u32_generate(NailArena *tmp, NailStream *in_fragment, NailStream *out_whole,
-                      const uint32_t *offset);
-</pre>
 
 </section>
-<section id="sec-3-5-2" >
+<section>
+<section id="sec-9" >
 
-<h4>Transformations</h4>
+<h2>Evaluation</h2>
 <ul class="org-ul">
-<li>We provide a standard transformations for offsets, lengths and common checksums
+<li>Can Nail implement real protocols?
+<ul class="org-ul">
+<li>Are Streams and Dependency Fields necessary?
 </li>
-<li>Programmer can implement their own, i.e. finding the ZIP end of file header.
+</ul>
 </li>
-<li>Trusted, need to be bug-free.
+<li>Does Nail reduce programmer effort?
+</li>
+<li>Are applications built with Nail performant?
+</li>
+</ul>
+
+</section>
+<section id="sec-9-1" >
+
+<h3>Protocols implemented</h3>
+<ul class="org-ul">
+<li>UDP Network stack: 
+<ul class="org-ul">
+<li>Checksums
+</li>
+<li>Lengths 
+</li>
+</ul>
+</li>
+<li>DNS: 
+<ul class="org-ul">
+<li>Transformations for label compression
+</li>
+<li>Count fields in the packet header 
+</li>
+</ul>
+</li>
+<li>ZIP:
+<ul class="org-ul">
+<li>Multiple structures referred to by offset and size
+</li>
+<li>Compression
+</li>
+<li>Checksums
+</li>
+</ul>
 </li>
 </ul>
 </section>
-<section id="sec-3-6" >
+<section id="sec-9-2" >
 
-<h3>Results</h3>
-<ul class="org-ul">
-<li>We implement a DNS server, a userspace UDP stack and a ZIP file parser
-</li>
-</ul>
+<h3>Programmer effort</h3>
 <center>
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 
 
 <colgroup>
+<col  class="left" />
+
 <col  class="right" />
 
-<col  class="left" />
+<col  class="right" />
+
+<col  class="right" />
 
 <col  class="left" />
 </colgroup>
 <tbody>
 <tr>
-<td class="right">LoC/ w Nail</td>
 <td class="left">Application</td>
+<td class="right">LoC</td>
+<td class="right">Lo Transformations</td>
+<td class="right">Lo Grammar</td>
 <td class="left">LoC w/o Nail</td>
 </tr>
 
 <tr>
-<td class="right">295</td>
 <td class="left">DNS server</td>
+<td class="right">183</td>
+<td class="right">64</td>
+<td class="right">92</td>
 <td class="left">683(Hammer)</td>
 </tr>
 
 <tr>
-<td class="right">220</td>
+<td class="left">DNS client</td>
+<td class="right">97</td>
+<td class="right">&#xa0;</td>
+<td class="right">&#xa0;</td>
+<td class="left">(In Libc)</td>
+</tr>
+
+<tr>
 <td class="left">Unzip</td>
+<td class="right">49</td>
+<td class="right">78</td>
+<td class="right">48</td>
 <td class="left">1600(Info-Zip)</td>
 </tr>
 </tbody>
 </table>
 </center>
 
+<ul class="org-ul">
+<li>Break out grammar vs application
+</li>
+<li>Nail's bijection reduces programmer effort to implement parsers
+</li>
+</ul>
 </section>
-<section>
+<section id="sec-9-3" >
+
+<h3>Performance</h3>
 <ul class="org-ul">
 <li>We benchmarked our Nail server against BIND 9, which has more functionality
 </li>
@@ -395,13 +583,15 @@ int offset_u32_generate(NailArena *tmp, NailStream *in_fragment, NailStream *out
 </section>
 </section>
 <section>
-<section id="sec-4" >
+<section id="sec-10" >
 
 <h2>Conclusion</h2>
 <ul class="org-ul">
-<li>Nail can safely parse and generate data formats 
+<li>Using grammars can eliminate input handling vulnerabilities
 </li>
-<li>Reduces programmer effort
+<li>Grammar-defined datatypes and a semantic bijection reduce programmer effort
+</li>
+<li>Streams and Dependency fields allow complicated, real-world formats
 </li>
 </ul>
 </section>
