@@ -6,23 +6,32 @@
 
 * Do transformations compromise the security guarantees of the parser?
 
- Transformations are security critical, but we believe they are lessen the risk of vulnerabilities
- besides just reducing the amount of trusted code.
+  Transformations are security critical, but we believe it's much better
+  than trusting an entire hand-written parser, for three reasons:
 
- First, a transformation accesses ranges of bytes in the input stream through an interface that
- checks against buffer overrun.
+  1. Transformations are much smaller than an entire hand-written parser.
+     For example, our Zip transformations are 78 lines of code, compared
+     to 1600 lines of code for an entire parser.
 
-Second, dependent variables are parsed and checked by the Nail grammar, so transformations do not
- have to perform their own meta-data parsing. For example, to decompress ZIP file contents, the
- transformation function is passed the ZIP compression method which was extracted by the parser and
- can directly invoke the decompression algorithm instead of having to find the correct field in the
- ZIP header.
+  2. There are many common transformations that can be shared between
+     grammars, and that come with Nail in a standard library.  For
+     example, the entire UDP stack, which uses checksum and length
+     field transformations, does not use any custom-written transformations
+     of its own; the checksum and length transforms are part of Nail's
+     standard transform library (which is used by DNS and ZIP as well).
 
- Finally, many convenient transformations are provided in a standard library (which is implemented as
-carefully, and should therefore be trusted as much as, Nail itself). For example, our entire UDP
-stack, which includes checksums and length fields which previous parsers could not handle, is
-implemented with just the standard library of transformations(that is also used in ZIP and DNS).
+  3. The code for transformations involves fewer tricky aspects than
+     writing a parser, in the following ways:
 
+     a. Nail provides convenient and safe interfaces for accessing streams,
+        safely allocating memory, etc.
+
+     b. If the transformation requires dependent variables (e.g., a length
+        field or the ZIP compression method), Nail parses and validates
+        those fields, and passes the result to the transformation function.
+
+     As a result, writing transformation functions is less error-prone
+     than writing a parser.
 
 * How can Nail be integrated into deployed software?
 
