@@ -1,0 +1,47 @@
+* Why this is a systems paper. 
+* Do practical grammars require transformations? 
+  Not all protocols require transformations. We used the Ethernet stack as an example of a protocol
+  that is commonly not specified with a grammar, but can be handled with Nail without
+  transformations. 
+
+* Do transformations compromise the security guarantees of the parser?
+
+ Transformations are security critical, but we believe they are lessen the risk of vulnerabilities
+ besides just reducing the amount of trusted code.
+
+ First, a transformation accesses ranges of bytes in the input stream through an interface that
+ checks against buffer overrun.
+
+Second, dependent variables are parsed and checked by the Nail grammar, so transformations do not
+ have to perform their own meta-data parsing. For example, to decompress ZIP file contents, the
+ transformation function is passed the ZIP compression method which was extracted by the parser and
+ can directly invoke the decompression algorithm instead of having to find the correct field in the
+ ZIP header.
+
+ Finally, many convenient transformations are provided in a standard library (which is implemented as
+carefully, and should therefore be trusted as much as, Nail itself). For example, our entire UDP
+stack, which includes checksums and length fields which previous parsers could not handle, is
+implemented with just the standard library of transformations(that is also used in ZIP and DNS).
+
+
+* How can Nail be integrated into deployed software?
+
+Nail and all examples have been released as open source a while ago. We did not provide a link to
+maintain reviewer blindness. We are talking with the Tor developers to replace their hand-written
+protocol implementation with Nail-generated code. Furthermore, our example DNS server implements
+enough features to work as a typical authoritative name server (the glue records omitted
+are only necessary to avoid circular dependencies when delegating name servers in certain
+conditions. A typical website domain does not need them).
+
+* How does the user program interact with Nail?
+
+ The programmer can either provide a pointer to an in-memory buffer or provide a stream
+ implementation (methods for reading, writing and repositioning). Nail then provides functions that
+ turn a stream into an object and vice versa. Our benchmarks use memory buffers for network
+ protocols and memory-mapped files for the ZIP archiver. For debugging, an error message mode can be
+ turned on in which Nail will report which rules failed or succeeded apply at what position in the
+ stream. However, in production code, all error handling is explicitly disabled and Nail returns
+ either a valid object or nothing at all, so that programs do not partially process invalid inputs.
+ A detailed argument for this approach can be found in [4].
+ 
+
