@@ -1,4 +1,4 @@
-* Why this is a systems paper. 
+
 * Do practical grammars require transformations? 
   Not all protocols require transformations. We used the Ethernet stack as an example of a protocol
   that is commonly not specified with a grammar, but can be handled with Nail without
@@ -28,7 +28,7 @@ implemented with just the standard library of transformations(that is also used 
 
 Nail and all examples have been released as open source a while ago. We did not provide a link to
 maintain reviewer blindness. We are talking with the Tor developers to replace their hand-written
-protocol implementation with Nail-generated code. Furthermore, our example DNS server implements
+Protocol implementation with Nail-generated code. Furthermore, our example DNS server implements
 enough features to work as a typical authoritative name server (the glue records omitted
 are only necessary to avoid circular dependencies when delegating name servers in certain
 conditions. A typical website domain does not need them).
@@ -45,3 +45,7 @@ conditions. A typical website domain does not need them).
  A detailed argument for this approach can be found in [4].
  
 
+* Is Nail systems research?
+We believe Nail provides interesting systems insights, such as transformations, which provide a
+pragmatic way of side-stepping the limited language our parsing algorithm understands. Related work
+has appeared at systems conferences, e.g. PacketTypes at SIGCOMM. 
