@@ -1,8 +1,7 @@
 
 * Do practical grammars require transformations? 
-  Not all protocols require transformations. We used the Ethernet stack as an example of a protocol
-  that is commonly not specified with a grammar, but can be handled with Nail without
-  transformations. 
+Not all protocols require transformations. Our Ethernet implementation is an example of a protocol
+  that is commonly not specified with a grammar, but can be handled by Nail without transformations.
 
 * Do transformations compromise the security guarantees of the parser?
 
@@ -46,13 +45,22 @@ conditions. A typical website domain does not need them).
 
  The programmer can either provide a pointer to an in-memory buffer or provide a stream
  implementation (methods for reading, writing and repositioning). Nail then provides functions that
- turn a stream into an object and vice versa. Our benchmarks use memory buffers for network
- protocols and memory-mapped files for the ZIP archiver. For debugging, an error message mode can be
+ turn a stream into an object and vice versa. For example, our DNS grammar exposes two functions: 
+
+int gen_dnspacket(NailArena *tmp_arena,NailStream *out,dnspacket * val);
+dnspacket* parse_dnspacket(NailArena *arena, const uint8_t *data, size_t size);
+
+
+ Our benchmarks use memory buffers for network protocols and memory-mapped files for the ZIP archiver. For debugging, an error message mode can be
  turned on in which Nail will report which rules failed or succeeded apply at what position in the
  stream. However, in production code, all error handling is explicitly disabled and Nail returns
  either a valid object or nothing at all, so that programs do not partially process invalid inputs.
  A detailed argument for this approach can be found in [4].
  
+Figure 5 shows the interface for implementing a custom transformation, in this case the offset
+transformation provided by Nail's standard library. ZIP compression and decompression is implemented
+in a transformation like this, although we did not implement support for various legacy compression
+schemes supported by the ZIP file format.
 
 * Is Nail systems research?
 We believe Nail provides interesting systems insights, such as transformations, which provide a
