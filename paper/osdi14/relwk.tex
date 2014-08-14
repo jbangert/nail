@@ -17,10 +17,12 @@ widely used formats such as DNS or ZIP, which is a goal for Nail.
 
 Closely related work has been done in the field of data description languages, for example
 PacketTypes~\cite{mccann2000packet} and DataScript~\cite{DataScript}. However, PacketTypes works
-only as a parser, not as an output generator. Data description languages typically are not as
-expressive as parsing expression grammars (PEGs), but rather implement a C-like structure model
-enhanced with length fields and constraints. These systems also cannot handle complicated encodings
-such as compressed data, which are supported by Nail's stream transforms.
+only as a parser, not as an output generator and implement a C-like structure model enhanced with
+length fields and constraints. DataScript adds output generation and built-in support for offset
+fields. However, these systems cannot handle complicated encodings such as compressed data, which
+are supported by Nail's stream transforms. Many built-in features of these date description
+languages, such as the various ways of encoding array size or length and offsets, can be expressed
+by Nail transformations, keeping the core language itself smaller and increasing flexibility.
 
 Parser generators for binary protocols were first introduced by the
 Hammer~\cite{hammer-parser} parser.
