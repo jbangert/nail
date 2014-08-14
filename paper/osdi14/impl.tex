@@ -10,8 +10,8 @@ And option for C++ STL data models  is in development. In
 this section, we will discuss some particular features of our parser
 implementation.
 
-% The source code of our implementation, together with the examples described in
-% \S\ref{s:eval} are available on GitHub at \url{https://github.com/jbangert/nail}.
+The source code of our implementation, together with the examples described in
+\S\ref{s:eval} are available on GitHub at \url{https://github.com/jbangert/nail}.
 
 
 \paragraph{Parsing.}
@@ -22,10 +22,11 @@ model. Currently the parser uses a straightforward top-down algorithm, which can
 grammars that backtrack heavily. However, preparations have been made to add Packrat
 parsing~\cite{packrat-parsing:icfp02} that achieve linear time even in the worst case.
 
+\XXX[Add API here]
 \paragraph{Defense-in-Depth.}
 
-Security exploits often rely on raw inputs being present in memory, for example to include
-shell-code or crafted stack frames for ROP-attacks in padding fields~\cite{shotgun-parser} or the
+Security exploits often rely on raw inputs being present in memory~\cite{shotgun-parser}, for example to include
+shell-code or crafted stack frames for ROP~\cite{phrack58:4-nergal}-attacks in padding fields or the
 application executing a controlled sequence of heap allocations and de-allocations to place
 specific data at predictable addresses~\cite{jp-advanced, vudo-malloc}. Because the rest of the
 application or even Nail's generated code may contain memory corruption bugs, Nail

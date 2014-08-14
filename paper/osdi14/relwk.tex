@@ -15,13 +15,12 @@ that were not defined using that interface generator in the first place.
 As a result, interface generators cannot be used to parse or generate
 widely used formats such as DNS or ZIP, which is a goal for Nail.
 
-Closely related work has been done at Bell Labs with the PacketTypes
-system~\cite{mccann2000packet}.  However, PacketTypes works only as a
-parser, not as an output generator, and does not support the expressive
-power of parsing expression grammars (PEGs), but rather implements a
-C-like structure model enhanced with length fields and constraints.
-PacketTypes also cannot handle complicated encodings such as compressed
-data, which are supported by Nail's stream transforms.
+Closely related work has been done in the field of data description languages, for example
+PacketTypes~\cite{mccann2000packet} and DataScript~\cite{DataScript}. However, PacketTypes works
+only as a parser, not as an output generator. Data description languages typically are not as
+expressive as parsing expression grammars (PEGs), but rather implement a C-like structure model
+enhanced with length fields and constraints. These systems also cannot handle complicated encodings
+such as compressed data, which are supported by Nail's stream transforms.
 
 Parser generators for binary protocols were first introduced by the
 Hammer~\cite{hammer-parser} parser.
