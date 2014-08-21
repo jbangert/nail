@@ -35,9 +35,9 @@ than writing a parser.
 
 IMPLEMENTATION. provide prototypes for functions
 
-* Fix ROP citation
+== * Fix ROP citation
 
-* Make clear that BIND is not apples for apples
+# * Make clear that BIND is not apples for apples
 
 * Wrap combinator
 
