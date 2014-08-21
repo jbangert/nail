@@ -109,7 +109,7 @@ Nail-generated code into deployed software?
 
 ===========================================================================
                            OSDI '14 Review #140C
-                     Updated 13 Jun 2014 7:03:22pm PDT
+                    Updated 15 Jul 2014 11:55:17am PDT
 ---------------------------------------------------------------------------
   Paper #140: Nail: A practical tool for parsing and generating data
               formats
@@ -119,13 +119,14 @@ Nail-generated code into deployed software?
 
                       ===== Comments for author =====
 
-Ugh - I'm late on my reviews and apologize.  I will update this but don't want to slow things down.
-
 I quite liked this.  Solves a reasonable problem, well motivated by contemporary security problems arising from real-world parsing problems, and has been applied to three different and non-trivial examples to good effect.  I have no real complaints about this work, only a few little quibbles and concerns.  Accept!
+
+
+(typo section 5:  "And option for C++" -> An option
 
 ===========================================================================
                            OSDI '14 Review #140D
-                     Updated 2 Jul 2014 11:50:10pm PDT
+                     Updated 8 Jul 2014 9:54:24am PDT
 ---------------------------------------------------------------------------
   Paper #140: Nail: A practical tool for parsing and generating data
               formats
@@ -165,7 +166,7 @@ of figure 2 to infer that this is what the < > notation is used for.
 that “This transformation must be carefully written not to have bugs.”
 kind of a true statement for any piece of code, right?)
 
-(4) The grammar seems somewhat jacky to me … maybe I don’t know enough
+(4) The grammar seems somewhat hacky to me … maybe I don’t know enough
 about fancy grammars (but then, hey, wrong conference!)
 
 (5) The paper repeatedly claims that the Nail-based DNS server is faster
@@ -219,4 +220,173 @@ Why is the Nail DNS server faster? Is it just because it does less or does Nail 
              ===== Questions to address in the response =====
 
 How does user code interact with a Nail grammar and library?
+
+===========================================================================
+                           OSDI '14 Review #140F
+                     Updated 8 Jul 2014 3:27:52am PDT
+---------------------------------------------------------------------------
+  Paper #140: Nail: A practical tool for parsing and generating data
+              formats
+---------------------------------------------------------------------------
+
+                      Overall merit: 4. Weak accept
+
+                         ===== Paper summary =====
+
+The paper presents Nail, a tool for automatically implementing
+protocols based off of a programmer-specified grammar.  The vision for
+Nail is that the programmer writes only the (simpler) grammar and the
+tool generates the actual data structures and encoding to be
+transferred between processes.  Automating this process is claimed to
+both reduce overall programmer effort and the introduction of security
+bugs.  The Nail tool is released as open-source software.
+
+                      ===== Comments for author =====
+
+Overall I find this to be a very interesting paper applying techniques
+that I instinctively associate with compilers and programming
+languages to concrete system development.  
+
+I would like to know more about the experience of programming with
+Nail-produced objects.  The psuedocode in Figure 5 doesn't do much to
+help me understand how Nail application logic would look.  Is there
+anything special on this front, or should I consider Nail to be a
+drop-in replacement for protobuff?  Looking specifically at the ZIP
+case study: how easy/difficult would it be to implement the optimized
+versions of the compression algorithms with Nail?
+
+===========================================================================
+                           OSDI '14 Review #140G
+                    Updated 14 Jul 2014 10:53:13am PDT
+---------------------------------------------------------------------------
+  Paper #140: Nail: A practical tool for parsing and generating data
+              formats
+---------------------------------------------------------------------------
+
+                      Overall merit: 5. Accept
+
+                         ===== Paper summary =====
+
+This paper presents a data parsing and generating framework designed with a primary goal of helping to security-harden the often-vulnerable parsing portions of common software.  The key ideas the paper introduces are: (a) employing a specification paradigm that systematically supports not only parsing but generation, by preserving bijectivity in the specification; (b) several provisions for handling realistic, complex streams, such as dependent choices (analogous to dependent types in PLs), separation into multiple logical streams, and custom "transforms"; (c) an emphasis on security in implementation and evaluation.
+
+                      ===== Comments for author =====
+
+I like this paper a lot; it's the first I've seen that really tries to place parsing security front-and-center, and does a rather systematic, pragmatic job of developing ways to deal with all the ugly complexities of existing ad hoc data formats.  Many of the techniques the authors come up with for this purpose do feel a bit ad hoc, but not all, and an ad hoc approach is probably somewhat unavoidable given the nature of the problem.  Overall, the paper seems quite solid and worthy of publication.
+
+A few weaknesses are: (a) it doesn't really get into the security side as deeply as I'd like; (b) only two "realistic" examples - DNS and Zip - offer somewhat limited evidence that the system is really general; (c) the argument for the importance of bijectivity actually seems undercut a bit by the focus on security, because security doesn't seem so important when you're producing data (unless YOU'RE the attacker :) ).  Nevertheless, I don't see any of these weaknesses as show-stopping.
+
+The paper also misses some related work, although I don't think any of these really get at the particular angle the authors are exploring in this paper:
+
+- DataScript–a Specification and Scripting Language for Binary Data
+- PADS: A domain-specific language for processing ad hoc data
+- The Next 700 Data Description Languages
+
+Sections 2 and 3 are both a bit long and verbose, and could probably be
+trimmed down significantly (leaving more room for technical content)
+without losing any important information.
+
+The bullets at the start of section 4 seem redundant with the earlier intro
+and motivation text.  You can probably make do with just a brief 1-paragraph
+lead-in for sec 4.
+
+Nitpicks:
+
+sec 1 mentions PEGs but missing relevant citation (POPL '04)
+
+sec 5 typo "And option for"
+
+===========================================================================
+               Response by Julian Bangert <bangert@mit.edu>
+  Paper #140: Nail: A practical tool for parsing and generating data
+              formats
+---------------------------------------------------------------------------
+First of all, thanks for the reviews and the feedback!  Here are our
+answers and clarifications:
+
+* Do all practical grammars require transformations? 
+
+No, not all protocols require transformations.  Our Ethernet stack
+implementation (with ARP, etc), for example, can be handled by Nail
+without transformations.
+
+* Do transformations compromise the security guarantees of the parser?
+
+Bugs in transformations can compromise security, but we expect that
+transformations are much less likely to contain bugs, compared to complete
+hand-written parsers, for three reasons:
+
+1. Transformations are much smaller than an entire hand-written parser.
+   For example, our Zip transformations are 78 lines of code, compared
+   to 1600 lines of code for an entire parser.
+
+2. There are many common transformations that can be shared between
+   grammars, and that come with Nail in a standard library.  For
+   example, the entire UDP stack, which uses checksum and length field
+   transformations, does not use any custom-written transformations
+   of its own; the checksum and length transforms are part of Nail's
+   standard transform library (which is used by DNS and ZIP as well).
+
+3. The code for transformations involves fewer tricky aspects than
+   writing a parser, in the following ways:
+
+   a. Nail provides convenient and safe interfaces for accessing streams,
+      safely allocating memory, etc.
+
+   b. If the transformation requires dependent variables (e.g., a length
+      field or the ZIP compression method), Nail parses and validates
+      those fields, and passes the result to the transformation function.
+
+As a result, writing transformation functions is less error-prone
+than writing a parser.
+
+* How can Nail be integrated into deployed software?
+
+Nail and all examples and applications have been released as open
+source; we did not provide a link due to anonymity requirements.  We are
+talking with the Tor developers to replace their hand-written protocol
+implementation with Nail-generated code. Furthermore, our example DNS
+server implements enough features to work as a typical authoritative name
+server (the glue records omitted are only necessary to avoid circular
+dependencies when delegating name servers in certain conditions; a
+typical website domain does not need them).
+
+* How does the application code interact with Nail?
+
+The programmer can either provide a pointer to an in-memory buffer
+or provide a stream implementation (methods for reading, writing and
+repositioning). Nail then provides functions that turn a stream into an
+object and vice versa. For example, our DNS grammar exposes two functions:
+
+  int gen_dnspacket(NailArena *arena, NailStream *out, dnspacket *val);
+  dnspacket *parse_dnspacket(NailArena *arena, const uint8_t *data, size_t size);
+
+Our benchmarks use memory buffers for network protocols and memory-mapped
+files for the ZIP archiver. For debugging, an error message mode can be
+turned on in which Nail will report which rules it failed or succeeded
+to apply at what position in the stream. However, in production code,
+all error handling is explicitly disabled and Nail returns either a
+valid object or nothing at all, so that programs do not partially process
+invalid inputs.  A detailed argument for this approach can be found in [4].
+
+If the grammar requires a specialized transformation (e.g., for ZIP
+files), the programmer needs to implement that code.  Figure 5 shows an
+example sketch of a transformation: namely, the offset transformation
+provided by Nail's standard library.
+
+* Is Nail systems research?
+
+We believe Nail is a good fit for a systems conference because it
+provides a practical solution to an important problem facing real-world
+systems software.  The overall contribution lies in showing how to
+build a complete system that addresses this problem.  Of course, Nail
+builds on prior work in parsing and languages, and in those areas,
+the paper describes several systems insights that make Nail work well:
+transformations (a pragmatic way of side-stepping the limited language
+that our parsing algorithm understands), reduced expressive power
+in the grammar due to a lack of semantic actions (which aren't great
+from a language/parser standpoint, but in practice work well for many
+real-world data formats), semantic bijections (a way of side-stepping
+degrees of freedom in real-world formats), etc.  Related work has also
+appeared at systems conferences: e.g., PacketTypes at SIGCOMM.
+
 
