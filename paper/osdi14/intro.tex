@@ -13,13 +13,21 @@ simple formats, such as those used by the zlib compression
 library, have had input processing vulnerabilities in the
 past~\cite{cvedetails:zlib}.
 
-A promising approach to avoid such vulnerabilities is to specify
+
+Typically, input parsers, particularly for binary formats, are often
+written by hand. Not only is such code plagued by the bugs mentioned above, but
+two separate hand-written implementations of the same protocol might disagree on
+the meaning of a particular input, which can lead to security
+vulnerabilities~\cite{saurik-masterkey}.
+
+A promising approach to avoid these problems is to specify
 a precise grammar for the input data format, and to use a parser
 generator, such as {\tt lex} and {\tt yacc}, to synthesize the input
 processing code.  Developers that use a parser generator do not need
 to write error-prone input processing code on their own, and as long
 as the parser generator is bug-free, the application will be safe from
-input processing vulnerabilities.
+input processing vulnerabilities. Grammars can be re-used between
+applications, further reducing effort and eliminating ambiguities.
 
 Unfortunately, applying this approach in practice, using state-of-the-art
 parser generators, still requires too much manual programmer effort,
