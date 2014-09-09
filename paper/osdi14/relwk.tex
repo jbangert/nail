@@ -5,7 +5,7 @@
 
 Generating parsers and generators from an executable specification is the
 core concept of interface generators, such as CORBA~\cite{omg:corba},
-XDR~\cite{rfc:1832}, and Protocol Buffers~\cite{varda2008}.  However,
+XDR~\cite{RFC:1832}, and Protocol Buffers~\cite{varda2008}.  However,
 interface generators do not allow the programmer to specify the byte-level
 data format; instead, they define their own data encoding that is
 specific to a particular interface generator.  For instance, XDR-based
@@ -16,7 +16,8 @@ As a result, interface generators cannot be used to parse or generate
 widely used formats such as DNS or ZIP, which is a goal for Nail.
 
 Closely related work has been done in the field of data description languages, for example
-PacketTypes~\cite{mccann2000packet} and DataScript~\cite{DataScript}. A broader overview of data
+PacketTypes~\cite{mccann2000packet} and DataScript~\cite{back2002datascript}.
+A broader overview of data
 description languages can be found in~\cite{Fisher:700DDL}. However, PacketTypes works
 only as a parser, not as an output generator and implement a C-like structure model enhanced with
 length fields and constraints. DataScript adds output generation and built-in support for offset

@@ -232,7 +232,8 @@ expr = choose {
   SUM = sepBy1 uint8='+' expr
   INTEGER = many1 uint8 | '0' .. '9'
 }
-\end{verbatim} \cc{paren = < uint8="("; optional *paren; uint8=")" >}.
+\end{verbatim}
+% \cc{paren = < uint8="("; optional *paren; uint8=")" >}.
 \caption{Grammar for sums and products of integers.}
 \label{fig:grammar-arith}
 \end{figure}
