@@ -61,13 +61,13 @@
 }
 
 @TechReport{RFC:1035,
-  author = 	 {P. Mockapetris},
-  title = 	 {Domain names -- Implementation and Specification},
-  institution =  {Network Working Group},
-  year = 	 1987,
-  type =	 {RFC},
-  number =	 1035,
-  month =	 nov
+  author =      {P. Mockapetris},
+  title =       {Domain names -- Implementation and Specification},
+  institution = {Network Working Group},
+  year =        1987,
+  type =        {RFC},
+  number =      1035,
+  month =       nov
 }
 
 @TechReport{RFC:1094,
@@ -746,9 +746,7 @@
   author = 	 {Cristian Cadar and Vijay Ganesh and Peter M. Pawlowski
                   and David L. Dill and Dawson R. Engler},
   title = 	 {{EXE}: Automatically Generating Inputs of Death},
-  booktitle =	 POT # {13th ACM Conference on Computer and
-                        Communications Security},
-  year =	 2006
+  crossref =     {CCS06},
 }
 
 @InProceedings{callaghan:automounter,
@@ -5311,6 +5309,7 @@ year = 2001
             Hari Balakrishnan},
   title = {Building web applications on top of encrypted data using Mylar},
   crossref = {NSDI14},
+  pages = {157--172},
 }
 
 @TechReport{beckmann:pika-tr,
@@ -5402,9 +5401,226 @@ year = 2001
   author = {Julian Bangert and Nickolai Zeldovich},
   title = {Nail: A practical interface generator for data formats},
   booktitle = POT # {1st Workshop on Language-Theoretic Security (LangSec)},
-  note = {9 pages},
+  pages = {158--166},
   month = may,
   year = 2014,
   address = {San Jose, CA},
+}
+
+@inproceedings{tu:silo,
+  author = {Stephen Tu and Wenting Zheng and Eddie Kohler and
+            Barbara Liskov and Samuel Madden},
+  title = {Speedy Transactions in Multicore In-Memory Databases},
+  crossref = {SOSP24},
+}
+
+@inproceedings{mickens:blizzard,
+  author = {James Mickens and Ed Nightingale and Jeremy Elson and
+            Bin Fan and Asim Kadav and Vijay Chidambaram and
+            Osama Khan and Krishna Nareddy and Darren Gehring},
+  title = {Blizzard: Fast, Cloud-scale Block Storage for Cloud-oblivious
+           Applications},
+  crossref = {NSDI14},
+}
+
+@inproceedings{geambasu:keypad,
+  author = {Roxana Geambasu and John P. John and Steven D. Gribble and
+            Tadayoshi Kohno and Henry M. Levy},
+  title = {Keypad: An Auditing File System for Theft-Prone Devices},
+  crossref = {EUROSYS11},
+  pages = {1--16},
+}
+
+@inproceedings{kotla:pasture,
+  author = {Ramakrishna Kotla and Tom Rodeheffer and Indrajit Roy and
+            Patrick Stuedi and Benjamin Wester},
+  title = {Pasture: Secure Offline Data Access Using
+           Commodity Trusted Hardware},
+  crossref = {OSDI12},
+}
+
+@inproceedings{criswell:sva,
+  author = {John Criswell and Andrew Lenharth and Dinakar Dhurjati and
+            Vikram Adve},
+  title = {{S}ecure {V}irtual {A}rchitecture: A Safe Execution Environment
+           for Commodity Operating Systems},
+  crossref = {SOSP21},
+  pages = {351--366},
+}
+
+@inproceedings{necula:pcc,
+  author = {George C. Necula and Peter Lee},
+  title = {Safe Kernel Extensions Without Run-Time Checking},
+  crossref = {OSDI96},
+  pages = {229--243},
+}
+
+@article{leroy:compcert,
+  author = {Xavier Leroy},
+  title = {Formal verification of a realistic compiler},
+  journal = {Communications of the ACM},
+  year = 2009,
+  volume = 52,
+  number = 7,
+  pages = {107--115},
+}
+
+@inproceedings{mccoyd:minvisor,
+  author = {Michael McCoyd and Robert Krug and Deepak Goel and
+            Mike Dahlin and William Young},
+  title = {Building a Hypervisor on a Formally Verified Protection Layer},
+  booktitle = POT # {Hawaii International Conference on System Sciences},
+  address = {Maui, HI},
+  month = jan,
+  year = 2013,
+}
+
+@inproceedings{chlipala:bedrock,
+  author = {Adam Chlipala},
+  title = {Mostly-Automated Verification of Low-Level Programs in
+           Computational Separation Logic},
+  crossref = {PLDI11},
+  pages = {234--245},
+}
+
+@inproceedings{sewell:sel4-tv,
+  author = {Thomas Sewell and Magnus Myreen and Gerwin Klein},
+  title = {Translation Validation for a Verified {OS} Kernel},
+  crossref = {PLDI13},
+  pages = {471--482},
+}
+
+@inproceedings{yang:csmith,
+  author = {Xuejun Yang and Yang Chen and Eric Eide and John Regehr},
+  title = {Finding and Understanding Bugs in {C} Compilers},
+  crossref = {PLDI11},
+  pages = {283--294},
+}
+
+@inproceedings{madhavapeddy:unikernels,
+  author = {Anil Madhavapeddy and Richard Mortier and Charalampos Rotsos and
+            David Scott and Balraj Singh and Thomas Gazagnaire and
+            Steven Smith and Steven Hand and Jon Crowcroft},
+  title = {Unikernels: Library Operating Systems for the Cloud},
+  crossref = {ASPLOS13},
+}
+
+@article{lynch:forward-backward,
+  author = {Nancy Lynch and Frits Vaandrager},
+  title = {Forward and Backward Simulations -- {P}art {I}: Untimed Systems},
+  journal = {Information and Computation},
+  volume = 121,
+  number = 2,
+  pages = {214--233},
+  month = sep,
+  year = 1995,
+}
+
+@book{chlipala:cpdt,
+  author = {Adam Chlipala},
+  title = {Certified Programming with Dependent Types},
+  publisher = {MIT Press},
+  year = 2013,
+  month = nov,
+}
+
+@inproceedings{begel:bpf+,
+  author = {Andrew Begel and Steven McCanne and Susan L. Graham},
+  title = {{BPF+}: Exploiting Global Data-flow Optimization in a Generalized
+           Packet Filter Architecture},
+  crossref = {SIGCOMM99},
+  pages = {123--134},
+}
+
+@inproceedings{engler:dpf,
+  author = {Dawson R. Engler and M. Frans Kaashoek},
+  title = {{DPF}: Fast, Flexible Message Demultiplexing using
+           Dynamic Code Generation},
+  crossref = {SIGCOMM96},
+  pages = {53--59},
+}
+
+@inproceedings{seltzer:vino,
+  author = {Margo I. Seltzer and Yasuhiro Endo and Christopher Small and
+            Keith A. Smith},
+  title = {Dealing With Disaster: Surviving Misbehaved Kernel Extensions},
+  crossref = {OSDI96},
+  pages = {213--227},
+}
+
+@inproceedings{li:cp-miner,
+  author = {Zhenmin Li and Shan Lu and Suvda Myagmar and Yuanyuan Zhou},
+  title = {{CP-Miner}: A Tool for Finding Copy-paste and Related Bugs in
+           Operating System Code},
+  crossref = {OSDI04},
+  pages = {289--302},
+}
+
+@inproceedings{carbonneaux:stack,
+  author = {Quentin Carbonneaux and Jan Hoffmann and Tahina Ramananandro and
+            Zhong Shao},
+  title = {End-to-End Verification of Stack-Space Bounds for {C} Programs},
+  crossref = {PLDI14},
+}
+
+@inproceedings{mccanne:bpf,
+  author = {Steven McCanne and Van Jacobson},
+  title = {The {BSD} Packet Filter:
+           A New Architecture for User-level Packet Capture},
+  crossref = {USENIX93W},
+  pages = {259--270},
+}
+
+@inproceedings{lazar:cryptobugs,
+  author = {David Lazar and Haogang Chen and Xi Wang and Nickolai Zeldovich},
+  title = {Why does cryptographic software fail?  {A} case study and open problems},
+  crossref = {APSYS14},
+}
+
+@inproceedings{anderson:why-fail,
+  author = {Ross Anderson},
+  title = {Why cryptosystems fail},
+  crossref = {CCS93},
+  pages = {215--227},
+}
+
+@inproceedings{chen:rail,
+  author = {Haogang Chen and Taesoo Kim and Xi Wang and
+            M. Frans Kaashoek and Nickolai Zeldovich},
+  title = {Identifying information disclosure in web applications with
+           retroactive auditing},
+  crossref = {OSDI14},
+}
+
+@inproceedings{bangert:nail,
+  author = {Julian Bangert and Nickolai Zeldovich},
+  title = {Nail: A practical tool for parsing and generating data formats},
+  crossref = {OSDI14},
+}
+
+@inproceedings{wang:jitk,
+  author = {Xi Wang and David Lazar and Nickolai Zeldovich and
+            Adam Chlipala and Zachary Tatlock},
+  title = {Jitk: A Trustworthy In-Kernel Interpreter Infrastructure},
+  crossref = {OSDI14},
+}
+
+@inproceedings{vandenhooff:versum,
+  author = {Jelle van den Hooff and M. Frans Kaashoek and Nickolai Zeldovich},
+  title = {{VerSum}: Verifiable Computations over Large Public Logs},
+  crossref = {CCS14},
+}
+
+@article{popa:mylar-login,
+  author = {Raluca Ada Popa and Emily Stark and Jonas Helfer and
+            Steven Valdez and Nickolai Zeldovich and M. Frans Kaashoek and
+            Hari Balakrishnan},
+  title = {Building Web Applications on Top of Encrypted Data Using Mylar},
+  journal = {USENIX ;login:},
+  year = 2014,
+  month = aug,
+  volume = 29,
+  number = 4,
+  pages = {22--27},
 }
 
