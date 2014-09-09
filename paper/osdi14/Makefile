@@ -1,9 +1,7 @@
+Q=@
 
 main.pdf: $(wildcard *.tex) $(wildcard *.bib) $(wildcard code/*.tex)
-	pdflatex main
-	bibtex -min-crossrefs=100 main
-	pdflatex main
-	pdflatex main
+	$(Q)PATH=$$PATH:. latexrun --bibtex-args=-min-crossrefs=100 main.tex
 
 code/fmt.tex:
 	pygmentize -f latex -S default \
@@ -19,7 +17,7 @@ code/%.tex: code/%.c
 pygmentize: code/fmt.tex $(patsubst %.c,%.tex,$(wildcard code/*.c))
 
 clean:
-	rm -f main.pdf main.aux main.bbl main.blg main.log main.out
+	rm -f main.pdf
 
 SPELLTEX := $(shell ./bin/get-tex-files.sh main.tex) main.bbl
 spell:
