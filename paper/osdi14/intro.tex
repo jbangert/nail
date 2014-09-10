@@ -2,23 +2,19 @@
 
 Code that handles untrusted inputs, such as processing network
 data or parsing a file, is error-prone and is often exploited by
-attackers.  This is in part because attackers have precise control
-over the inputs to that code, and can craft inputs that trigger
-subtle corner cases in input processing.  For example, the libpng image decompression
-library has had 24 remotely exploitable vulnerabilities from 2007 to
-2013~\cite{cvedetails:libpng},
-and Adobe's PDF and Flash viewers have been notoriously
-plagued by input processing vulnerabilities.  Even relatively
-simple formats, such as those used by the zlib compression
-library, have had input processing vulnerabilities in the
-past~\cite{cvedetails:zlib}.
-
-
-Typically, input parsers, particularly for binary formats, are often
-written by hand. Not only is such code plagued by the bugs mentioned above, but
-two separate hand-written implementations of the same protocol might disagree on
-the meaning of a particular input, which can lead to security
-vulnerabilities~\cite{saurik-masterkey}.
+attackers.
+%   This is in part because attackers have precise control
+% over the inputs to that code, and can craft inputs that trigger
+% subtle corner cases in input processing.
+For example, the libpng image decompression library had 24 remotely
+exploitable vulnerabilities from 2007 to 2013~\cite{cvedetails:libpng},
+Adobe's PDF and Flash viewers have been notoriously plagued by input
+processing vulnerabilities, and even the zlib compression library had
+input processing vulnerabilities in the past~\cite{cvedetails:zlib}.
+With a memory-unsafe language like C, mistakes in input processing
+code can lead to memory errors like buffer overflows, but even with
+a memory-safe language like Java, inconsistencies between different
+parsers can lead to security issues~\cite{saurik-masterkey}.
 
 A promising approach to avoid these problems is to specify
 a precise grammar for the input data format, and to use a parser
@@ -38,27 +34,29 @@ tree (AST) that corresponds to the grammar.  In order to produce a data
 structure that the rest of the application code can easily process,
 application developers must write explicit {\em semantic actions} that
 update the application's internal representation of the data based on
-each AST node.  Not only does the programmer allocate memory and manipulate pointers,
- operations that are error-prone, but
-writing these semantic actions
-also requires the programmer to describe the structure of the input three
+each AST node.  
+Writing these semantic actions requires the programmer to describe the
+structure of the input three
 times---once to describe the grammar, once to describe the internal data
 structure, and once again in the semantic actions that translate the
-grammar into the data structure---leading to another potential source
-of bugs and inconsistencies.
+grammar into the data structure---leading to potential bugs and
+inconsistencies.
+Furthermore, in a memory-unsafe language like C, these semantic
+actions often involve error-prone manual memory allocation and
+pointer manipulation.
 
 Second,  applications often need to produce output in the same
 format as their input---for example, applications might both
 read and write files, or both receive and send network packets.
 Most parser generators focus on just parsing an input, rather
-than producing also an output, thus requiring the programmer to manually
+than producing an output, thus requiring the programmer to manually
 construct outputs, which is work-intensive and more code that could contain errors.
 Some parser generators, such as
 Boost.Spirit~\cite{boost-spirit},
 allow reusing the grammar for generating output from the internal
 representation.  However, those generators require yet another set of
 semantic actions to be written, transforming the internal representation
-into an AST\@.
+back into an AST\@.
 
 Third, many data formats contain redundancies, such as repeating
 information in multiple structures.  Applications usually do not
