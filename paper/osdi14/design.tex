@@ -331,10 +331,11 @@ Nail provides library functions that can be used to safely operate on streams, s
 concatenation. Nail implements streams as iterators, so they can share underlying buffers and can be
 efficiently duplicated and split.
 
-Transformations need to be carefully written, because they can escape Nail's security and introduce
+Transformations need to be carefully written, because they can violate Nail's safety properties
+and introduce
 bugs. However, as we will show in \S\ref{s:eval-effort}, Nail transformations are much shorter than
-hand-written parsers and many formats can be represented with just the transformations in the
-standard library. 
+hand-written parsers, and many formats can be represented with just the transformations in Nail's
+standard library.
 For example, our Zip transformations are 78 lines of code, compared to 1600 lines of code for a
    hand-written parser. Additionally, Nail provides convenient and safe interfaces for allocating
    memory and accessing streams that address the most common occurrences of buffer overflow
