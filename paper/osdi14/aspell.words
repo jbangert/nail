@@ -1,4 +1,4 @@
-personal_ws-1.1 en 227 
+personal_ws-1.1 en 235 
 ACM
 AES
 ARP
@@ -22,6 +22,7 @@ Coq
 DARPA
 Daan
 Danielsson
+DataScript
 Evasi
 Frans
 GitHub
@@ -46,6 +47,7 @@ LoC
 MITRE
 MX
 MaXX
+Mandelbaum
 Marlinspike
 McCann
 Meijer
@@ -55,6 +57,7 @@ NUL
 NailArena
 NailDNS
 NailStream
+Nergal
 Nickolai
 Nils
 OCaml
@@ -65,6 +68,7 @@ PEGs
 PKI
 PKWARE
 PNG
+PaX
 PacketTypes
 Packrat
 Patteron
@@ -95,8 +99,10 @@ Varda
 Vudo
 XDR
 XNU
+Yitzhak
 Zeldovich
 aa
+abbrvnat
 al
 allocator
 ar
@@ -118,6 +124,7 @@ cryptographic
 cryptosystem
 cve
 de
+decomp
 dir
 dirstr
 djbdns
@@ -198,6 +205,7 @@ struct
 superset
 tc
 th
+tmp
 ttl
 typedef
 uint

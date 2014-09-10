@@ -340,7 +340,7 @@ Second, we randomly selected 90\% of these domains and created a zone
 file that mapped these domain names to \cc{127.0.0.1}.  Finally, we used
 the \cc{queryperf} tool provided with BIND to query each domain between
 zero and three times, using a DNS server running on the local machine.
-We used a single core of an Intel i7-3610QM system with 12GB of RAM.
+We used a single core of an Intel i7-3610QM system with 12GB of RAM\@.
 The benchmark tool kept at most 20 queries outstanding at once, and
 was configured to repeat the same randomized sequence of queries for
 one minute.  We repeated each test seven times with 50,000 domain names,
