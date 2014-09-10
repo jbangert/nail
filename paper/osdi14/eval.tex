@@ -310,7 +310,7 @@ Because Nail's generated code checks offsets before reading and does not
 expose any untrusted pointers to the application, it is immune against
 memory corruption attacks by design.
 
-Nail also protects against parsing ambiguity vulnerabilities like the four others we studied. First,
+Nail also protects against parsing inconsistency vulnerabilities like the four others we studied. First,
 Nail grammars explicitly encode duplicated information such as the redundant length fields in ZIP
 that caused a vulnerability in the Python ZIP library. Second, the other three vulnerabilities exist
 because multiple implementations of the same protocol disagree on some inputs. Hand-written protocol

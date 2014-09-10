@@ -20,7 +20,7 @@ user-mode code-signing verifier interpreting executable metadata differently, so
 sees different bytes at a virtual address than kernel maps into the process. The next version of iOS
 added an explicit check for this particular metadata inconsistency. However, because parsing and
 processing of the input data is still mixed, the jailbreakers could set a flag that re-introduced
-the ambiguity after the check, but before signatures are verified~\cite{geohot-evasion}, which
+the inconsistency after the check, but before signatures are verified~\cite{geohot-evasion}, which
 allowed iOS 7 to be jailbroken.
 
 Similarly, vulnerabilities in X.509 parsers for SSL certificates allowed attackers to get
