@@ -16,21 +16,21 @@ As a result, interface generators cannot be used to parse or generate
 widely used formats such as DNS or ZIP, which is a goal for Nail.
 
 Closely related work has been done in the field of data description languages, for example
-PacketTypes~\cite{mccann2000packet} and DataScript~\cite{back2002datascript}. 
-A broader overview of data
-description languages can be found in~\cite{Fisher:700DDL}. However, PacketTypes works
-only as a parser, not as an output generator and implement a C-like structure model enhanced with
-length fields and constraints. DataScript adds output generation and built-in support for offset
-fields. A
-particularly sophisticated data description language, PADS~\cite{Fisher:2005:PDL:1064978.1065046},
+PacketTypes~\cite{mccann2000packet} and DataScript~\cite{back2002datascript}; a
+broader overview of data description languages can be found in Fisher et
+al~\cite{Fisher:700DDL}.
+PacketTypes implements a C-like structure model enhanced with
+length fields and constraints, but works only as a parser, and
+not as an output generator.
+DataScript adds output generation and built-in support for offset fields.
+A particularly sophisticated data description language, PADS~\cite{Fisher:2005:PDL:1064978.1065046},
 which is targeted more towards offline analysis, even features built-in support for XML and
-automatic grammar inference. 
-
+automatic grammar inference.
 However, these systems cannot easily handle complicated encodings such as compressed data, which are
 supported by Nail's stream transforms. While sophisticated languages like PADS allow for handling
-particular variations of offset fields, compressed data or even XML entities, each of these
-features has to be implemented in the data description language - and all associated tools. Nail's
-transformations keep the core language practicably small, while enabling the wide range of
+particular variations of offset fields, compressed data, or even XML entities, each of these
+features has to be implemented in the data description language and all associated tools. Nail's
+transformations keep the core language small, while enabling the wide range of
 features real-world protocols require. 
 
 Recently, the Hammer project~\cite{hammer-parser} introduced a security-focused parser framework for
@@ -54,8 +54,8 @@ Hammer cannot handle, such as protocols with offset fields, length fields,
 checksums, or compressed data, although Hammer has special facilities for
 arrays immediately preceded by their length.
 
-Parsifal~\cite{ANSSI:parsifal} is a parser framework that also supports
-generating output for OCaml.  Parsifal structures grammars as an OCaml
+Parsifal~\cite{ANSSI:parsifal} is a parser framework for OCaml that also supports
+generating output.  Parsifal structures grammars as an OCaml
 type that holds an internal model and functions for parsing input and
 output.  However, Parsifal can produce parsers and generators
 only for simple, fixed-size structures.  The programmer can then use
