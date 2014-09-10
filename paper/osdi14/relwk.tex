@@ -16,26 +16,25 @@ As a result, interface generators cannot be used to parse or generate
 widely used formats such as DNS or ZIP, which is a goal for Nail.
 
 Closely related work has been done in the field of data description languages, for example
-PacketTypes~\cite{mccann2000packet} and DataScript~\cite{back2002datascript}.
+PacketTypes~\cite{mccann2000packet} and DataScript~\cite{back2002datascript}. 
 A broader overview of data
 description languages can be found in~\cite{Fisher:700DDL}. However, PacketTypes works
 only as a parser, not as an output generator and implement a C-like structure model enhanced with
 length fields and constraints. DataScript adds output generation and built-in support for offset
-fields. However, these systems cannot handle complicated encodings such as compressed data, which
-are supported by Nail's stream transforms. Many built-in features of these date description
-languages, such as the various ways of encoding array size or length and offsets, can be expressed
-by Nail transformations, keeping the core language itself smaller and increasing flexibility.
+fields. A
+particularly sophisticated data description language, PADS~\cite{Fisher:2005:PDL:1064978.1065046},
+which is targeted more towards offline analysis, even features built-in support for XML and
+automatic grammar inference. 
 
-Parser generators for binary protocols were first introduced by the
-Hammer~\cite{hammer-parser} parser.
-While previous parser generators could also be used to write grammars
-for binary protocols,\footnote{Theoretically speaking, the alphabet
-over which a grammar is an abstract set, so most algorithms work
-just as well on an alphabet of $\{0,1\}$.} doing so is practically
-inconvenient. Hammer allows the programmer to specify a grammar in
-terms of bits and bytes instead of characters. Common concerns, such as
-endianness and bit-packing, are handled transparently. 
+However, these systems cannot easily handle complicated encodings such as compressed data, which are
+supported by Nail's stream transforms. While sophisticated languages like PADS allow for handling
+particular variations of offset fields, compressed data or even XML entities, each of these
+features has to be implemented in the data description language - and all associated tools. Nail's
+transformations keep the core language practicably small, while enabling the wide range of
+features real-world protocols require. 
 
+Recently, the Hammer project~\cite{hammer-parser} introduced a security-focused parser framework for
+binary protocols.
 Hammer implements grammars as language-integrated parser combinators, an approach popularized by
 Parsec for Haskell~\cite{LeijenMeijer:parsec}. The parser combinator style (to our knowledge, first
 described by Burge~\cite{burge1975recursive}) is a natural way of concisely expressing top-down
