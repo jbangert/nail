@@ -9,7 +9,7 @@ are prevalent in software and lead to significant security problems.
 
 \paragraph{Widely exploited parsing errors.}
 
-Three recent high profile security vulnerabilities are due to logic
+Three recent high-profile security vulnerabilities are due to logic
 errors in input processing.  In all cases, when the vulnerabilities were
 fixed, a similar flaw was exposed immediately afterwards, showing the
 need for a different approach to input handling that eliminates those
@@ -17,7 +17,7 @@ vulnerabilities by design.
 
 The Evasi0n jailbreak for iOS 6~\cite{evaders6} relies on the XNU kernel and
 user-mode code-signing verifier interpreting executable metadata differently, so the code signature
-sees different bytes at a virtual address than kernel maps into the process. The next version of iOS
+checker sees different bytes at a virtual address than what the kernel maps into the process. The next version of iOS
 added an explicit check for this particular metadata inconsistency. However, because parsing and
 processing of the input data is still mixed, the jailbreakers could set a flag that re-introduced
 the inconsistency after the check, but before signatures are verified~\cite{geohot-evasion}, which
@@ -43,9 +43,10 @@ To understand the impact of parsing mistakes in real-world software,
 we conducted a systematic study of
 vulnerabilities related to ZIP file parsing.  
 The ZIP format has been associated with many vulnerabilities, and the
-PROTOS Genome project~\cite{protos-c10-archive} found numerous security vulnerabilities in most
-implementations of ZIP and other archive formats that are directly
-related to input handling. We extend this study by looking at the CVE database.
+PROTOS Genome project~\cite{protos-c10-archive} found numerous security vulnerabilities
+related to input handling
+in most implementations of ZIP and other archive formats.
+We extend this study by looking at the CVE database.
 
 \input{fig-motivation}
 
@@ -56,10 +57,10 @@ archives or involved applications insecurely using the contents of untrusted
 ZIP files.  Figure~\ref{fig:motivation} summarizes the 16 ZIP-related
 vulnerabilities.
 
-These input processing vulnerabilities fall into two broad classes.  The first
-class, which occurred 11 times\footnote{We classified the following vulnerabilities as memory corruption
-    attacks based on their description: 2013-5660, - 0742, -0138, 2012-4987, -1163,-1162, 2011-2265,
-    2010-4535, -1657, -1336, -1218}, is memory safety bugs, such as buffer overflows, which allow an
+These input-processing vulnerabilities fall into two broad classes.  The first
+class, which occurred 11 times,\footnote{We classified the following vulnerabilities as memory corruption
+    attacks based on their description: CVE-2013-5660, -0742, -0138, CVE-2012-4987, -1163, -1162, CVE-2011-2265,
+    CVE-2010-4535, -1657, -1336, and -1218.} is memory safety bugs, such as buffer overflows, which allow an
 adversary to corrupt the application's memory using specially crafted
 inputs.  These mistakes arise in lower-level languages that do not
 provide memory safety guarantees, such as C, and can be partially
