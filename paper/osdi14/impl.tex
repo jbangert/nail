@@ -17,30 +17,30 @@ model. Currently the parser uses a straightforward top-down algorithm, which can
 grammars that backtrack heavily. However, preparations have been made to add Packrat
 parsing~\cite{packrat-parsing:icfp02} that achieve linear time even in the worst case.
 
-\paragraph{Defense-in-Depth.}
+\paragraph{Defense-in-depth.}
 
 Security exploits often rely on raw inputs being present in memory~\cite{shotgun-parser}, for example to include
-shell-code or crafted stack frames for ROP~\cite{phrack58:4-nergal}-attacks in padding fields or the
+shell-code or crafted stack frames for ROP~\cite{phrack58:4-nergal} attacks in padding fields or the
 application executing a controlled sequence of heap allocations and de-allocations to place
 specific data at predictable addresses~\cite{jp-advanced, vudo-malloc}. Because the rest of the
 application or even Nail's generated code may contain memory corruption bugs, Nail
 carefully handles memory allocations as defense-in-depth to make exploiting such vulnerabilities harder.
 
 When parsing input, Nail uses two separate memory arenas. These arenas allocate memory from the
-system allocator in large, fixed size blocks. Allocations are handled linearly and all data in the
+system allocator in large, fixed-size blocks. Allocations are handled linearly and all data in the
 arena is zeroed and freed at the same time. Nail uses one arena for data used only during parsing,
-including dependent fields and temporary streams and is released before the Nail's parser returns.
+including dependent fields and temporary streams; this arena is released before the parser returns.
 The other arena is used to allocate the internal data type returned and is freed by the application
 once it is done processing an input. 
 
 Furthermore, the internal representation does not include any references to the input stream, which
 can therefore be zeroed immediately after the parser succeeds, so an attacker has to write an
-exploit that works without referencing data in the raw input.
+exploit that works without referencing data from the raw input.
 
-Finally, Nail only supports error handling in a special debug configuration and will only print
-error messages about the input to standard error. Besides complicating the parser, advanced error handling
-invites programmers to attempt and fix malformed input, such as adding reasonable defaults for a
-missing field. Such error-fixing not only introduces parser differential, but also might allow an
+Finally, Nail performs sophisticated error handling only in a special debug configuration and will print
+error messages about the input only to \cc{stderr}. Besides complicating the parser, advanced error handling
+invites programmers to attempt to fix malformed input, such as adding reasonable defaults for a
+missing field. Such error-fixing not only introduces parser inconsistencies, but also might allow an
 attacker to sneak inconsistent input past a parser.
 % \paragraph{Intermediate representation.}
 
