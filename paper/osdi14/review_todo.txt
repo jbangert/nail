@@ -1,7 +1,7 @@
 
 * The paper makes some noise about "semantic bisection" early on but then kind of abandons that. I get it that this is important to improve security properties of the implementation, but the text does not discuss that clearly and I think that is important to make the case cleanly. 
 
-* Transformations: Safer API
+# * Transformations: Safer API
 
 Bugs in transformations can compromise security, but we expect that
 transformations are much less likely to contain bugs, compared to complete
@@ -33,7 +33,7 @@ than writing a parser.
 
 * How does the application code interact with Nail?  
 
-IMPLEMENTATION. provide prototypes for functions
+# IMPLEMENTATION. provide prototypes for functions
 
 == * Fix ROP citation
 
@@ -43,9 +43,9 @@ IMPLEMENTATION. provide prototypes for functions
 
 * Explain error handling (and lack thereof) 
 
-* PDF parser as example.
+# * PDF parser as example.
 
-Similarly Section 4.4: "This transformation must be carefully written
+# Similarly Section 4.4: "This transformation must be carefully written
 to not have bugs."  Doesn't that go without saying for any code that
 can be potentially attacked?
 
