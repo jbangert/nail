@@ -1,5 +1,16 @@
 \begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8}]
-\PY{k}{struct} \PY{n}{dnspacket}\PY{o}{*}\PY{n+nf}{parse\PYZus{}dnspacket}\PY{p}{(}\PY{n}{NailArena} \PY{o}{*}\PY{n}{arena}\PY{p}{,} 
+\PY{k}{struct} \PY{n}{dnspacket} \PY{p}{\PYZob{}}
+    \PY{k+kt}{uint16\PYZus{}t} \PY{n}{id}\PY{p}{;}
+    \PY{k+kt}{uint8\PYZus{}t} \PY{n}{qr}\PY{p}{;}
+    \PY{c+cm}{/*  abbreviated */}
+    \PY{k}{struct} \PY{p}{\PYZob{}}
+        \PY{n}{question}\PY{o}{*}\PY{n}{elem}\PY{p}{;}
+        \PY{k+kt}{size\PYZus{}t} \PY{n}{count}\PY{p}{;}
+    \PY{p}{\PYZcb{}} \PY{n}{questions}\PY{p}{;}
+\PY{p}{\PYZcb{}}\PY{p}{;} 
+\PY{c+cm}{/* Other structures */}
+\PY{k}{struct} \PY{n}{dnspacket}\PY{o}{*}\PY{n+nf}{parse\PYZus{}dnspacket}\PY{p}{(}
+  \PY{n}{NailArena} \PY{o}{*}\PY{n}{arena}\PY{p}{,} 
   \PY{k}{const} \PY{k+kt}{uint8\PYZus{}t} \PY{o}{*}\PY{n}{data}\PY{p}{,} 
   \PY{k+kt}{size\PYZus{}t} \PY{n}{size}\PY{p}{)}\PY{p}{;}
 \PY{k+kt}{int} \PY{n+nf}{gen\PYZus{}dnspacket}\PY{p}{(}\PY{n}{NailArena} \PY{o}{*}\PY{n}{tmp\PYZus{}arena}\PY{p}{,}

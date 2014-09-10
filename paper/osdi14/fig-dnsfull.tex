@@ -41,6 +41,7 @@ label = { @length uint8 | 1..64
            label n_of @length uint8 }
 labels = <many label; uint8 = 0>
 \end{Verbatim}
-\caption{Nail grammar for DNS packets, used by our prototype DNS server.}
+\input{code/dns-api}
+\caption{Nail grammar for DNS packets, used by our prototype DNS server, and generated API.}
 \label{fig:dns-full}
 \end{figure}

@@ -28,6 +28,7 @@ prevent vulnerabilities like those described in \S\ref{s:motivation}. In particu
 
 \end{itemize}
 
+
 \subsection{Overview}
 
 \paragraph{Internal model.}
@@ -46,6 +47,12 @@ instance of the model, and
 \item the \textit{generator}, a function to create a
 sequence of bytes from an instance of the model.
 \end{CompactItemize}
+
+For example, Figure~\ref{fig:dns-full} shows an example grammar for DNS packets and the
+corresponding data type and functions that Nail produces.
+
+
+\input{fig-dnsfull}
 
 \noindent
 
@@ -111,7 +118,8 @@ in Figure~\ref{fig:syntax}, and explain our design in more detail below,
 using a grammar for the well-known DNS protocol as a running example
 (shown in Figure~\ref{fig:dns-full}).
 
-\input{fig-dnsfull}
+
+\paragraph{Parsing.}
 \paragraph{Rules.}
 A Nail grammar consists of rules that assign a parser to a name. Rules are written as assignments,
 such as \cc{ints = /*parser definition*/}, which defines a rule called \cc{ints}. As we will
