@@ -103,6 +103,8 @@ reading and writing of bits and re-positioning. Transformations allow the progra
 functions in a general-purpose language that consume streams and define new temporary streams, while
 also reading or writing the values of dependent fields.
 
+\input{fig-syntax}
+
 Initial versions of Nail's design included a special combinator for handling offset fields,
 which consumed a dependent field and applied
 a parser at the offset specified therein. However, it proved impossible to foresee all the ways in which a protocol could encode an offset;
@@ -114,8 +116,6 @@ handle such structures and streams, which are a generic abstraction for input an
 output data that allow the decoded data to be integrated with the rest of the
 generated Nail parser.
 
-
-\input{fig-syntax}
 
 \subsection{Basics}
 
@@ -131,7 +131,6 @@ using a grammar for the well-known DNS protocol as a running example
 (shown in Figure~\ref{fig:dns-full}).
 
 
-\paragraph{Parsing.}
 \paragraph{Rules.}
 A Nail grammar consists of rules that assign a parser to a name. Rules are written as assignments,
 such as \cc{ints = /*parser definition*/}, which defines a rule called \cc{ints}. As we will
@@ -144,7 +143,7 @@ reference.
 Nail's fundamental parsers represent signed or unsigned
 integers with arbitrary lengths up to 64 bits.
 Note that is possible to define parsers for sub-byte lengths, for example, the flag bits in the DNS
-message header, in lines 4 through 8.
+message header, in lines 5 through 8.
 
 The grammar can also constrain the values of an integer.  Nail expresses
 constraints as a set of permissible values or value ranges. Extending the Nail language and
@@ -155,11 +154,11 @@ concisely.
 
 \paragraph{Repetition.}
 
-The \emph{many} combinator takes a parser and applies it repeatedly
+The \cc{many} combinator takes a parser and applies it repeatedly
 until it fails, returning an array of the inner parser's results. In line 39 of the DNS grammar, a
 sequence of labels is parsed by parsing as many labels as possible, that is, until an invalid length
 field is encountered.
-The \emph{sepBy} combinator
+The \cc{sepBy} combinator
 additionally takes a constant parser, which it applies in between parsing
 two values, but not before parsing the first value or after parsing the
 last.  This is useful for parsing an array of items delimited by a separator.
@@ -236,10 +235,10 @@ without consuming input when it cannot recognize that value. Syntactically, \cc{
 equivalent to a choice between the parser and an empty structure, but in the internal model it is
 more concisely represented as a reference that is null when the parser fails.
 For example, the grammar for  Ethernet headers uses \cc{optional vlan\_header} to parse the VLAN
-header that only appears in Ethernet packets transmitted to a non-default VLAN\@.
+header that appears only in Ethernet packets transmitted to a non-default VLAN\@.
 
 \paragraph{References.}
-Rules allow for recursive grammars. To support recursive data types, we allow introduce the
+Rules allow for recursive grammars. To support recursive data types, we introduce the
 reference combinator \cc{*}  that does not change the syntax of the external format described, but
 introduces a layer of indirection, such as a reference or pointer, to the model data type.
 The reference combinator does not need to be used when another combinator, such as \cc{optional} or
