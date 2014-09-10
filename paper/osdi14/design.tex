@@ -57,30 +57,33 @@ corresponding data type and functions that Nail produces.
 \noindent
 
 \paragraph{Semantic bijection.}
+Parsing inputs and generating outputs form a bijection. However,
+a bijection in the traditional sense often does not make sense for data
+formats. Consider a grammar for a text language that tolerates white space, or a binary protocol
+that tolerates arbitrarily long padding. Program semantics should be independent of the number of padding elements in the input, and Nail therefore
+does not expose that information to the programmer. We call such discarded fields \emph{constants}. 
+Similarly, programs should not necessarily preserve the layout of objects referred to by their offsets. 
 
-In order to generate output, Nail maintains
-a \emph{semantic bijection} between the external format and the internal model.
+Therefore, Nail  maintains only a  \emph{semantic bijection} between the external format and the internal model.
 That is, when Nail parses an input into an internal representation, and then
 generates output from that representation, the two byte streams (input and
 output) will have the same meaning (i.e., be interpreted equivalently by Nail).
-However, the byte streams might not be identical.
-A bijection in the traditional sense often does not make sense for data
-formats. Consider a grammar for a text language that tolerates white space, or a binary protocol
-that tolerates arbitrarily long padding.
+However, the byte streams might not be identical. If the grammar
+consists of a simple protocol without offset fields, constants, and the like, there is a
+conventional bijection between  internal models and valid parser inputs.
 %\footnote{Say, the physical layer of most communication
 %  protocols is a possibly infinite sequence of symbols that are syntactically nil followed by a
 %  pre-determined synchronization sequence and the actual contents of the transmission.}
- Program semantics should be independent of the number of padding elements in the input, and Nail therefore
-does not expose that information to the programmer. We call such discarded fields \emph{constants}.
-Similarly, Nail does not preserve the layout of objects referred to by their offsets. If the grammar
-consists of a simple protocol without offset fields, constants, and the like, there is a conventional
-bijection between  internal models and valid parser inputs.
+ 
 
 \paragraph{Hide redundant information.}
 Nail's internal model is designed to hide unneeded and redundant information from the application.
 Nail introduces \emph{dependent fields}, which contain data that can be computed during generation
 and need to be kept as additional state during parsing. Dependent fields are, for example, used to represent
-lengths, offsets, and checksums.
+lengths, offsets, and checksums. If dependent fields were exposed in the internal model, information
+would be duplicated and inconsistent internal data structures could be produced when data is
+modified. For example when using Nail to handle UDP packets, without dependent fields, programmers
+might forget to update checksum fields when they modify the payload data.
 
 \paragraph{Parser extensions.}
 Real-world protocols contain complicated ways of encoding data. Fully representing these in an
