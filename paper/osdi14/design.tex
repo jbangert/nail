@@ -241,6 +241,7 @@ The reference combinator does not need to be used when another combinator, such 
 \cc{many}, already introduces indirection in the data type. An example is shown in Figure~\ref{fig:grammar-arith}.
 
 \begin{figure}
+\smaller[0.5]
 \begin{verbatim}
 expr = choose {
   PAREN = <uint8='('; *expr; uint8=')'>
