@@ -7,24 +7,28 @@ prevent vulnerabilities like those described in \S\ref{s:motivation}. In particu
 \begin{itemize}
 
 
-\item Using the grammar to define both the \emph{external format} and the \emph{internal
-    representation}, allowing the same grammar to be re-used in multiple programs, avoiding
-  vulnerabilities like the Android Master Key.
+\item Using a single grammar to define both the \emph{external format} and the
+  \emph{internal representation}.  This allows the same grammar to be re-used
+  in multiple programs, and helps avoid vulnerabilities like the Android Master
+  Key bug.
 
-\item Both parsing inputs into internal representations, as well as
+\item Parsing inputs into internal representations, as well as
       generating outputs from internal representations, without
       requiring the programmer to write any semantic actions. This prevents
-      vulnerabilities such as the XNU bug, where format recognition and semantics
+      vulnerabilities such as the iOS XNU bug, where format recognition and semantics
       are mixed and interact in unexpected ways.
 
 \item Eliminating redundancy in internal representations, such as
       storing both an explicit length field and an implicit length
       of a container data structure, to provide programmers
-      a consistent, unambiguous view of the data,
-      to avoid bugs such as in the Python ZIP library.
+      a consistent, unambiguous view of the data.
+      This helps avoid bugs such as the one discovered in the
+      Python ZIP library~\cite{python-bug:20078}.
 
 \item Allow programmers to define grammars for complex real-world
       data formats through well-defined extensibility mechanisms. 
+      This helps prevent programmers from falling back on manual
+      parsing when encountering a complex data format.
 
 \end{itemize}
 
