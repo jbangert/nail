@@ -38,22 +38,26 @@ prevent vulnerabilities like those described in \S\ref{s:motivation}. In particu
 \paragraph{Internal model.}
 
 Nail grammars describe both the \emph{external format} and an
-\emph{internal representation} of a protocol, as opposed to existing
-grammar languages, which describe only the former and leave it up to
-the programmer to construct an internal representation, typically in
-the form of an abstract syntax tree.
+\emph{internal representation} of a protocol.
 Nail produces the following from a single, descriptive grammar: 
 
-\begin{CompactItemize}
-\item \textit{type declarations} for the internal model,
-\item the \textit{parser}, a function to parse a sequence of bytes into an
-instance of the model, and
-\item the \textit{generator}, a function to create a
-sequence of bytes from an instance of the model.
-\end{CompactItemize}
+\begin{itemize}
+\item \textit{Type declarations} for the internal model, which
+the application should use to represent data items in memory.
 
-For example, Figure~\ref{fig:dns-full} shows an example grammar for DNS packets and the
-corresponding data type and functions that Nail produces.
+\item The \textit{parser}, a function that the application
+should invoke to parse a sequence of bytes into an instance
+of the above model.
+
+\item The \textit{generator}, a function that the application
+should invoke to create a sequence of bytes from an instance
+of the model.
+\end{itemize}
+
+For example, Figure~\ref{fig:dns-full} shows a Nail grammar for DNS
+packets.  For this grammar, Nail produces the type declarations
+shown in Figure~\ref{fig:dns-full-struct}, and the parser and
+generator functions shown in Figure~\ref{fig:dns-full-api}.
 
 
 \input{fig-dnsfull}
@@ -61,14 +65,15 @@ corresponding data type and functions that Nail produces.
 \noindent
 
 \paragraph{Semantic bijection.}
-Parsing inputs and generating outputs form a bijection. However,
+Parsing inputs and generating outputs suggests a bijection
+between external data and its internal representation. However,
 a bijection in the traditional sense often does not make sense for data
 formats. Consider a grammar for a text language that tolerates white space, or a binary protocol
 that tolerates arbitrarily long padding. Program semantics should be independent of the number of padding elements in the input, and Nail therefore
 does not expose that information to the programmer. We call such discarded fields \emph{constants}. 
 Similarly, programs should not necessarily preserve the layout of objects referred to by their offsets. 
 
-Therefore, Nail  maintains only a  \emph{semantic bijection} between the external format and the internal model.
+Therefore, Nail  establishes only a  \emph{semantic bijection} between the external format and the internal model.
 That is, when Nail parses an input into an internal representation, and then
 generates output from that representation, the two byte streams (input and
 output) will have the same meaning (i.e., be interpreted equivalently by Nail).
@@ -80,13 +85,13 @@ conventional bijection between  internal models and valid parser inputs.
 %  pre-determined synchronization sequence and the actual contents of the transmission.}
  
 
-\paragraph{Hide redundant information.}
+\paragraph{Hiding redundant information.}
 Nail's internal model is designed to hide unneeded and redundant information from the application.
 Nail introduces \emph{dependent fields}, which contain data that can be computed during generation
 and need to be kept as additional state during parsing. Dependent fields are, for example, used to represent
 lengths, offsets, and checksums. If dependent fields were exposed in the internal model, information
 would be duplicated and inconsistent internal data structures could be produced when data is
-modified. For example when using Nail to handle UDP packets, without dependent fields, programmers
+modified. For example, when using Nail to handle UDP packets, without dependent fields, programmers
 might forget to update checksum fields when they modify the payload data.
 
 \paragraph{Parser extensions.}
@@ -94,15 +99,15 @@ Real-world protocols contain complicated ways of encoding data. Fully representi
 intentionally limited model such as our parser language is impractical. Therefore, Nail introduces
 \emph{transformations}, which allow arbitrary code by the programmer to interact with the parser and
 generator. Nail parsers and generators interact with data through an abstract stream, which allows
-reading and writing of bits as re-positioning. Transformations allow the programmer to write
-functions in a general purpose language that consume streams and define new temporary streams, while
+reading and writing of bits and re-positioning. Transformations allow the programmer to write
+functions in a general-purpose language that consume streams and define new temporary streams, while
 also reading or writing the values of dependent fields.
 
 Initial versions of Nail's design included a special combinator for handling offset fields,
 which consumed a dependent field and applied
 a parser at the offset specified therein. However, it proved impossible to foresee all the ways in which a protocol could encode an offset;
 for example, some protocols such as PDF and ZIP locate structures by scanning for a magic number starting at the
-end of the file or a fixed offset. In nested grammars, offsets are also not necessarily computed from
+end of the file or at a fixed offset. In nested grammars, offsets are also not necessarily computed from
 the beginning of a file or packet.
 Nail's transformations allow the programmer to write arbitrary functions that can
 handle such structures and streams, which are a generic abstraction for input and
