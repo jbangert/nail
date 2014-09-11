@@ -19,7 +19,7 @@ pygmentize: code/fmt.tex $(patsubst %.c,%.tex,$(wildcard code/*.c))
 clean:
 	rm -f main.pdf
 
-SPELLTEX := $(shell ./bin/get-tex-files.sh main.tex) main.bbl
+SPELLTEX := $(shell ./bin/get-tex-files.sh main.tex) latex.out/main.bbl
 spell:
 	@ for i in $(SPELLTEX); do aspell -l en_us --mode=tex -p ./aspell.words -c $$i; done
 	@ for i in $(SPELLTEX); do perl bin/double.pl $$i; done

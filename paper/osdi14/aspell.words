@@ -1,4 +1,4 @@
-personal_ws-1.1 en 236 
+personal_ws-1.1 en 253 
 ACM
 AES
 API
@@ -24,9 +24,11 @@ DARPA
 Daan
 Danielsson
 DataScript
+Datascript
 Evasi
 Frans
 GitHub
+Gruber
 HD
 HITB
 Hartmut
@@ -39,6 +41,7 @@ IP
 ISC
 Infozip
 Kaashoek
+Kaempf
 Kaminsky
 Kerberos
 LangSec
@@ -58,6 +61,7 @@ NUL
 NailArena
 NailDNS
 NailStream
+Nandiya
 Nergal
 Nickolai
 Nils
@@ -68,7 +72,9 @@ PDFs
 PEGs
 PKI
 PKWARE
+PLDI
 PNG
+POPL
 PaX
 PacketTypes
 Packrat
@@ -78,8 +84,10 @@ Pseudocode
 ROP
 Ragel
 Rebecca
+Roelofs
 SIGCOMM
 SIGPLAN
+SIGSOFT
 SSL
 STL
 Sassaman
@@ -102,6 +110,7 @@ XDR
 XNU
 Yitzhak
 Zeldovich
+ZipExtFile
 aa
 abbrvnat
 al
@@ -132,6 +141,8 @@ djbdns
 dns
 dnscompress
 dnspacket
+doi
+ea's
 eird
 encodings
 endianness
@@ -172,15 +183,18 @@ metadata
 metasploit
 mis
 monadic
+msec
 mtime
 nf
 ns
 opcode
+oug
 outlier
 outliers
 paren
 parser's
 parsers
+pgf
 phrack
 pre
 pxtt
@@ -201,6 +215,7 @@ sep
 sepBy
 sloccount
 spargelze
+stderr
 str
 struct
 superset
@@ -214,6 +229,7 @@ unambiguity
 underappreciated
 untrusted
 updatable
+urlstyle
 utfstring
 validators
 valuelen
@@ -233,5 +249,6 @@ xmin
 xxxcolor
 yacc
 yticklabels
+zipfile
 zlib
 zonefile
