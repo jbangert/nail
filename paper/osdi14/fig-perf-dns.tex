@@ -6,7 +6,9 @@
   yticklabels={NailDNS, Bind 9},
   xmin=0,
   xlabel ={Throughput},
-  x unit ={\frac{\text{queries}}{s}}
+  x unit ={\frac{\text{queries}}{s}},
+  scaled x ticks = false,
+  x tick label style = {/pgf/number format/fixed}
 ]
 \addplot+[boxplot]
   table[row sep=\\,y index=0] {
@@ -40,29 +42,30 @@ data\\
   yticklabels={NailDNS, Bind 9},
   xmin=0,
   xlabel ={Round Trip Time},
-  x unit= {s}
+  x unit= {msec},
+  scaled x ticks = false
 ]
 \addplot+[boxplot]
   table[row sep=\\,y index=0] {
 data\\
-0.000137\\
-0.000141\\
-0.000138\\
-0.000139\\
-0.000176\\
-0.000155\\
-0.000139\\
+0.137\\
+0.141\\
+0.138\\
+0.139\\
+0.176\\
+0.155\\
+0.139\\
  };
 \addplot+[boxplot]
   table[row sep=\\,y index=0] {
 data\\
-0.000388\\
-0.000434\\
-0.000411\\
-0.000501\\
-0.000416\\
-0.000333\\
-0.000486\\
+0.388\\
+0.434\\
+0.411\\
+0.501\\
+0.416\\
+0.333\\
+0.486\\
  };
 \end{axis}
 \end{tikzpicture}
