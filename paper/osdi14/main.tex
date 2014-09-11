@@ -24,7 +24,7 @@
 \usepackage{pgfplots}
 \lstset{language=C}          % Set your language (you can change the language for each code-block optionally)
 
-\pgfplotsset{width=8cm,compat=1.8}
+\pgfplotsset{width=7.3cm,compat=1.8}
 \usepgfplotslibrary{statistics}
 \usepgfplotslibrary{units}
 \makeatletter
@@ -39,6 +39,9 @@
 %% Ensure ligatures (e.g., ``fine official flag'') can be copy/pasted from PDF.
 \input{glyphtounicode}
 \pdfgentounicode=1
+
+\widowpenalty=5000
+\clubpenalty=5000
 
 \input{cmds}
 \input{code/fmt}
@@ -62,7 +65,7 @@
 \input{concl}
 \input{ack}
 
-\small
+\setlength{\bibsep}{2.5pt}
 \bibliography{n-str,main,locasto,langsec,n,n-conf}
 \bibliographystyle{abbrvnat}
 

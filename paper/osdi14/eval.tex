@@ -65,7 +65,7 @@ C code for protocol-specific transforms (after the +).}
 \paragraph{DNS.}
 
 In Section~\ref{s:design}, we introduced Nail's syntax with a grammar
-for DNS packets, shown in Figure~\ref{fig:dns-xform}.
+for DNS packets, shown in Figure~\ref{fig:dns-full}.
 The grammar corresponds almost directly to the diagrams in RFC 1035,
 which defines DNS~\cite[\S4]{RFC:1035}.  Each DNS packet consists of a
 header, a set of question records, and a set of answer records. Domain
@@ -90,7 +90,7 @@ suffix was previously encoded.
 
 
 Handling label compression in existing tools, such as Bison or Hammer,
-would at best be very awkward, because some ad-hoc trick would have to
+would be awkward at best, because some ad-hoc trick would have to
 be used to re-position the parser's input stream.  Keeping track of the
 position of all recognized labels would not be enough, as the offset field
 may refer to any byte within the packet, not just the beginning of labels.
@@ -161,6 +161,7 @@ languages cannot handle a file format of this complexity.
 The \cc{zip\_file} grammar first splits the entire file stream into two
 streams based on the \cc{zip\_end\_of\_directory} transform on line 2.
 %(whose two C function signatures are shown in Figure~\ref{fig:zip-eod-xform}). 
+The corresponding C function
 \cc{zip\_end\_of\_directory_parse}
 finds the end-of-directory header as described above, by scanning the
 file backwards, and splits the file into two streams, one containing
@@ -212,7 +213,7 @@ to the layout or metadata of the file.
 
 To evaluate how much programmer effort is required to build an
 application that uses Nail, we implemented two applications---a
-DNS server, and an
+DNS server and an
 \cc{unzip} program---based on the above grammars, and compared code
 size with comparable applications that process data manually, using
 \cc{sloccount}~\cite{sloccount}.  We also compare the code size of our
@@ -223,7 +224,7 @@ among other things).  Figure~\ref{fig:effort} summarizes the results.
 \begin{figure}[tb]
 \centering
 \smaller[0.5]
-\begin{tabular}{@{~}lrr@{~}l@{~}}
+\begin{tabular}{lrr@{~}l}
 \toprule
 \textbf{Application}
   & \textbf{LoC w/ Nail}
@@ -303,19 +304,19 @@ fuzz-testing our DNS server.
 
 \paragraph{ZIP analysis.}
 
-In \S\ref{s:motivation}, we found 15 input handling vulnerabilities
+In \S\ref{s:motivation}, we presented 15 input handling vulnerabilities
 related to ZIP files.
 
 11 of these vulnerabilities involved memory corruption during input handling.
 Because Nail's generated code checks offsets before reading and does not
-expose any untrusted pointers to the application, it is immune against
+expose any untrusted pointers to the application, it is immune to
 memory corruption attacks by design.
 
-Nail also protects against parsing inconsistency vulnerabilities like the four others we studied. First,
+Nail also protects against parsing inconsistency vulnerabilities like the four others we studied.
 Nail grammars explicitly encode duplicated information such as the redundant length fields in ZIP
-that caused a vulnerability in the Python ZIP library. Second, the other three vulnerabilities exist
+that caused a vulnerability in the Python ZIP library. The other three vulnerabilities exist
 because multiple implementations of the same protocol disagree on some inputs. Hand-written protocol
-parsers are not very reusable, as they build application specific data structures and are tightly
+parsers are not very reusable, as they build application-specific data structures and are tightly
 coupled to the rest of the code. Nail grammars, however, can be re-used between applications,
 avoiding protocol misunderstandings.
 
@@ -353,7 +354,7 @@ The results are shown in Figure~\ref{fig:perf-dns}, and demonstrate that
 our Nail-based DNS server can achieve higher performance and lower latency
 than BIND\@.  Although BIND is a more sophisticated DNS server,
 and implements many features that are not present in our Nail-based DNS
-server and allow it to be used in more complicated configurations, 
+server and that allow it to be used in more complicated configurations, 
 we believe our results demonstrate that Nail's parsers are not
 a barrier to achieving good performance.
 

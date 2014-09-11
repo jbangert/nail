@@ -38,24 +38,26 @@ prevent vulnerabilities like those described in \S\ref{s:motivation}. In particu
 \paragraph{Internal model.}
 
 Nail grammars describe both the \emph{external format} and an
-\emph{internal representation} of a protocol, as opposed to existing
-grammar languages, which describe only the former and leave it up to
-the programmer to construct an internal representation, typically in
-the form of an abstract syntax tree.
+\emph{internal representation} of a protocol.
 Nail produces the following from a single, descriptive grammar: 
 
-\begin{CompactItemize}
-\item \textit{type declarations} for the internal model,
-\item the \textit{parser}, a function to parse a sequence of bytes into an
-instance of the model, and
-\item the \textit{generator}, a function to create a
-sequence of bytes from an instance of the model.
-\end{CompactItemize}
+\begin{itemize}
+\item \textit{Type declarations} for the internal model, which
+the application should use to represent data items in memory.
 
-For example, Figure~\ref{fig:dns-full} shows an example grammar for DNS packets. Nail produces two
-functions shown in Figure~\ref{fig:dns-full-api} that parse a DNS packet into the structures
-partially shown in
-Figure~\ref{fig:dns-full-struct} and vice versa.
+\item The \textit{parser}, a function that the application
+should invoke to parse a sequence of bytes into an instance
+of the above model.
+
+\item The \textit{generator}, a function that the application
+should invoke to create a sequence of bytes from an instance
+of the model.
+\end{itemize}
+
+For example, Figure~\ref{fig:dns-full} shows a Nail grammar for DNS
+packets.  For this grammar, Nail produces the type declarations
+shown in Figure~\ref{fig:dns-full-struct}, and the parser and
+generator functions shown in Figure~\ref{fig:dns-full-api}.
 
 
 \input{fig-dnsfull}
@@ -63,14 +65,15 @@ Figure~\ref{fig:dns-full-struct} and vice versa.
 \noindent
 
 \paragraph{Semantic bijection.}
-Parsing inputs and generating outputs form a bijection. However,
+Parsing inputs and generating outputs suggests a bijection
+between external data and its internal representation. However,
 a bijection in the traditional sense often does not make sense for data
 formats. Consider a grammar for a text language that tolerates white space, or a binary protocol
 that tolerates arbitrarily long padding. Program semantics should be independent of the number of padding elements in the input, and Nail therefore
 does not expose that information to the programmer. We call such discarded fields \emph{constants}. 
 Similarly, programs should not necessarily preserve the layout of objects referred to by their offsets. 
 
-Therefore, Nail  maintains only a  \emph{semantic bijection} between the external format and the internal model.
+Therefore, Nail  establishes only a  \emph{semantic bijection} between the external format and the internal model.
 That is, when Nail parses an input into an internal representation, and then
 generates output from that representation, the two byte streams (input and
 output) will have the same meaning (i.e., be interpreted equivalently by Nail).
@@ -82,13 +85,13 @@ conventional bijection between  internal models and valid parser inputs.
 %  pre-determined synchronization sequence and the actual contents of the transmission.}
  
 
-\paragraph{Hide redundant information.}
+\paragraph{Hiding redundant information.}
 Nail's internal model is designed to hide unneeded and redundant information from the application.
 Nail introduces \emph{dependent fields}, which contain data that can be computed during generation
 and need to be kept as additional state during parsing. Dependent fields are, for example, used to represent
 lengths, offsets, and checksums. If dependent fields were exposed in the internal model, information
 would be duplicated and inconsistent internal data structures could be produced when data is
-modified. For example when using Nail to handle UDP packets, without dependent fields, programmers
+modified. For example, when using Nail to handle UDP packets, without dependent fields, programmers
 might forget to update checksum fields when they modify the payload data.
 
 \paragraph{Parser extensions.}
@@ -96,23 +99,23 @@ Real-world protocols contain complicated ways of encoding data. Fully representi
 intentionally limited model such as our parser language is impractical. Therefore, Nail introduces
 \emph{transformations}, which allow arbitrary code by the programmer to interact with the parser and
 generator. Nail parsers and generators interact with data through an abstract stream, which allows
-reading and writing of bits as re-positioning. Transformations allow the programmer to write
-functions in a general purpose language that consume streams and define new temporary streams, while
+reading and writing of bits and re-positioning. Transformations allow the programmer to write
+functions in a general-purpose language that consume streams and define new temporary streams, while
 also reading or writing the values of dependent fields.
+
+\input{fig-syntax}
 
 Initial versions of Nail's design included a special combinator for handling offset fields,
 which consumed a dependent field and applied
 a parser at the offset specified therein. However, it proved impossible to foresee all the ways in which a protocol could encode an offset;
 for example, some protocols such as PDF and ZIP locate structures by scanning for a magic number starting at the
-end of the file or a fixed offset. In nested grammars, offsets are also not necessarily computed from
+end of the file or at a fixed offset. In nested grammars, offsets are also not necessarily computed from
 the beginning of a file or packet.
 Nail's transformations allow the programmer to write arbitrary functions that can
 handle such structures and streams, which are a generic abstraction for input and
 output data that allow the decoded data to be integrated with the rest of the
 generated Nail parser.
 
-
-\input{fig-syntax}
 
 \subsection{Basics}
 
@@ -128,7 +131,6 @@ using a grammar for the well-known DNS protocol as a running example
 (shown in Figure~\ref{fig:dns-full}).
 
 
-\paragraph{Parsing.}
 \paragraph{Rules.}
 A Nail grammar consists of rules that assign a parser to a name. Rules are written as assignments,
 such as \cc{ints = /*parser definition*/}, which defines a rule called \cc{ints}. As we will
@@ -141,7 +143,7 @@ reference.
 Nail's fundamental parsers represent signed or unsigned
 integers with arbitrary lengths up to 64 bits.
 Note that is possible to define parsers for sub-byte lengths, for example, the flag bits in the DNS
-message header, in lines 4 through 8.
+message header, in lines 5 through 8.
 
 The grammar can also constrain the values of an integer.  Nail expresses
 constraints as a set of permissible values or value ranges. Extending the Nail language and
@@ -152,11 +154,11 @@ concisely.
 
 \paragraph{Repetition.}
 
-The \emph{many} combinator takes a parser and applies it repeatedly
+The \cc{many} combinator takes a parser and applies it repeatedly
 until it fails, returning an array of the inner parser's results. In line 39 of the DNS grammar, a
 sequence of labels is parsed by parsing as many labels as possible, that is, until an invalid length
 field is encountered.
-The \emph{sepBy} combinator
+The \cc{sepBy} combinator
 additionally takes a constant parser, which it applies in between parsing
 two values, but not before parsing the first value or after parsing the
 last.  This is useful for parsing an array of items delimited by a separator.
@@ -233,10 +235,10 @@ without consuming input when it cannot recognize that value. Syntactically, \cc{
 equivalent to a choice between the parser and an empty structure, but in the internal model it is
 more concisely represented as a reference that is null when the parser fails.
 For example, the grammar for  Ethernet headers uses \cc{optional vlan\_header} to parse the VLAN
-header that only appears in Ethernet packets transmitted to a non-default VLAN\@.
+header that appears only in Ethernet packets transmitted to a non-default VLAN\@.
 
 \paragraph{References.}
-Rules allow for recursive grammars. To support recursive data types, we allow introduce the
+Rules allow for recursive grammars. To support recursive data types, we introduce the
 reference combinator \cc{*}  that does not change the syntax of the external format described, but
 introduces a layer of indirection, such as a reference or pointer, to the model data type.
 The reference combinator does not need to be used when another combinator, such as \cc{optional} or
@@ -284,9 +286,9 @@ dependent field's value to this space.
 
 Nail provides only one built-in combinator that uses dependent fields, \cc{n_of}, which acts like
 the \cc{many} combinator, except it represents an exact number, specified in the dependent field, of
-repetitions, as opposed as many repetitions as possible. For example, DNS labels, which
+repetitions, as opposed to as many repetitions as possible. For example, DNS labels, which
 are encoded as a length followed by
-a value are described in line 38 of the DNS grammar.
+a value, are described in line 38 of the DNS grammar.
 Other dependencies, such as offset fields or checksums, are not handled directly by combinators, but
 through  transformations, as we describe next.
 
@@ -329,10 +331,11 @@ Nail provides library functions that can be used to safely operate on streams, s
 concatenation. Nail implements streams as iterators, so they can share underlying buffers and can be
 efficiently duplicated and split.
 
-Transformations need to be carefully written, because they can escape Nail's security and introduce
+Transformations need to be carefully written, because they can violate Nail's safety properties
+and introduce
 bugs. However, as we will show in \S\ref{s:eval-effort}, Nail transformations are much shorter than
-hand-written parsers and many formats can be represented with just the transformations in the
-standard library. 
+hand-written parsers, and many formats can be represented with just the transformations in Nail's
+standard library.
 For example, our Zip transformations are 78 lines of code, compared to 1600 lines of code for a
    hand-written parser. Additionally, Nail provides convenient and safe interfaces for allocating
    memory and accessing streams that address the most common occurrences of buffer overflow
