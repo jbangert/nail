@@ -21,7 +21,7 @@ blockverticalspace=10mm, colspace=15mm, subcolspace=8mm]{tikzposter}
 \usepackage{relsize}
 \usepackage{fancyvrb}
 \usepackage{pgfplots}
-
+\usepackage{adjustbox}
 \title{Nail: A practical tool for parsing and generating data formats}
 \author{Julian Bangert and Nickolai Zeldovich }
 \institute{MIT CSAIL}
@@ -39,9 +39,9 @@ Current software typically uses hand-implemented parsers, which are not only pro
 separate parser implementations can disagree about the meaning of an input. This has been the source
 of many recent high-profile vulnerabilities:
 \begin{itemize}
-\item Evasi0n jailbreaks on iOS~\cite{evaders6}.
-\item PKI layer cake~\cite{Marlinspike:SSL},\cite{DBLP:conf/fc/KaminskyPS10}.
-\item Android master key ~\cite{saurik-masterkey}
+\item Evasi0n jailbreaks on iOS.
+\item PKI layer cake.
+\item Android master key.
 \end{itemize}
 
 {\bf Case study of ZIP vulnerabilities in the CVE database:}
@@ -59,51 +59,38 @@ of many recent high-profile vulnerabilities:
   
 \end{tabular}
 }
-\block{Solution: Grammar-based Parsers}{   
-Grammar-based parsers, such as \texttt{bison} or Hammer~\cite{hammer-parser}, are compact, reuseable
+
+\block{State of the art}{   
+Grammar-based parsers, such as \texttt{bison} or Hammer, are compact, reuseable
 and safer. However, traditional parsers are inconvenient to use, because the programmer has to write all the
 yellow-colored parts:
 
 \includegraphics{StateOfTheArt.png}
 
-Nail grammars describe both the format and a data type to represent it. 
+Nail grammars describe both the format and a data type to represent it, an idea introduced by data
+description languages such as PacketTypes. 
 
 \includegraphics{Nail.png}
   
-}
-\block{Complicated real-world example: ZIP }{
+However, existing solutions cannot handle complicated file formats like ZIP, which feature
+duplicated data, offsets and format-specific complications, such as a variable-length end-of-file header:
+
   \includegraphics[width=0.4\columnwidth]{ZipHorizontal.png}
-  \begin{itemize}
-    \item Variable-length end-of-file header
-    \item Length and offset fields
-    \item Duplicated information
-    \item Checksums, compression and encryption
-  \end{itemize}
 }
 \block{Design Goals}{
   \begin{itemize}
     \item Reduce programmer effort
   \begin{itemize}
       \item Semantic combinators describes data type and format.
-      \item Generate output.
+      \item Generate output. Semantic bijection, preserves meaning, but can change representation.
   \end{itemize}
      \item Handle complex formats
   \begin{itemize}
-       \item Dependency Fields: hide redundant information.
-       \item Transforms: Extensibility.
+       \item Dependency Fields: hide redundant and structural information.
+       \item Transforms: Extensibility mechanism to capture many features without complicating the
+         grammar language.
        \end{itemize}
   \end{itemize}
-}
-\block{Semantic Bijection}{
-  Traditional bijections don't make sense for some data formats. For example, offsets are and should
-  be discarded during parsing. Nail parsers and generators therefore form a looser 'semantic
-  bijection', in which parser(generator(x)) = x, but not necessarily vice versa.
-
-}
-\column{.5}
-\block{Nail Grammar for DNS}{
-\small
-\input{code/zip.nail}
 }
 \block{Dependent Fields}{
 Duplicated data and layout information can cause parser consistency bugs. Nail represents them with
@@ -111,30 +98,81 @@ Dependent Fields, which are automatically verified during parsing and created du
 generation. 
 }
 \block{Streams and Transformations}{
-  Existing parsers are linear, consuming input front to back; Offset fields require kludges.
-  Nail grammars feature multiple streams, and introduce \emph{Transformations} to create
-  new streams. Transformations are a pair of functions operating on streams and dependent fields.
-  A standard library of Transformations is provided, but for complex formats, programmers can write
-  their own Transformations, for which they have to guarantee security and semantic bijection.
- For example, in the ZIP grammar above, the programmer has to write two functions to find and
- generate the end-of-file header, with the following prototype:
-\input{code/dns-xform}
+  Existing parsers are linear, consuming input front to back. Complicated formats require inelegant hacks. 
+  Nail grammars feature multiple streams and introduce \emph{Transformations} to create
+  them. Transformations are a pair of functions operating on streams and dependent fields.
+  A standard library of Transformations is provided, but  programmers can extend
+  Nail with custom transformations, which are security critical. 
+
+%  For example, in the ZIP grammar above, the programmer has to write two functions to find and
+%  generate the end-of-file header, with the following prototype:
+% \input{code/dns-xform}
 }
-\block{Related Work and Bibliography}{
-  \begin{itemize}
-    \item Interface generators such XDR~\cite{RFC:1832} and ProtoBuf~\cite{varda2008} can parse and
-      generate, but cannot interoperate with legacy formats.
-    \item Data Description Languages, such as PacketTypes~\cite{mccann2000packet},
-      DataScript~\cite{back2002datascript} and PADS~\cite{Fisher:2005:PDL:1064978.1065046}, can
-      parse and generate, but are not extensible, so they cannot support complicated encodings in
-      formats like ZIP.
-    \item See our paper for a detailed discussion, including application use of parsers.
-  \end{itemize}
-\begin{minipage}{\textwidth}
-\tiny \bibliography{n-str,main,locasto,langsec,n,n-conf}
-\bibliographystyle{alpha} 
+% \block{Semantic Bijection}{
+%   Traditional bijections don't make sense for some data formats. For example, offsets are and should
+%   be discarded during parsing. Nail parsers and generators therefore form a looser 'semantic
+%   bijection', in which parser(generator(x)) = x, but not necessarily vice versa.
+
+% }
+\column{.5}
+\block{Nail Grammar for ZIP}{
+{\small
+\input{code/zip.nail}}
+An excerpt of Nail's output for this example:
+\input{code/zip-out}
+}
+\block{Evaluation}{
+\begin{tabular}{p{0.43\linewidth}p{0.57\linewidth}}
+\begin{minipage}[t]{0.43\linewidth}
+\vspace{0pt}\begin{tabular}{lrr@{~}l}
+\toprule
+\multicolumn{4}{l}{\textbf{Comparing total lines of code}}\\
+
+\midrule
+\textbf{Application}
+  & \textbf{Nail}
+  & \multicolumn{2}{c}{\textbf{Alternative}} \\
+\midrule
+DNS server
+  & 295
+  & 683
+  & (Hammer) \\
+
+%  &
+%  & 10,000
+%  & (DJBDNS) \\
+
+\texttt{unzip}
+  & 220
+  & 1,600
+  & (Info-Zip) \\
+\bottomrule
+\end{tabular}
+\end{minipage}&
+\vspace{0pt}\begin{minipage}{0.57\linewidth}
+
+\begin{tabular}[t]{lrl}
+\toprule
+\textbf{Protocol} & \textbf{LoC} & \textbf{Challenging features} \\ 
+\midrule
+DNS packets & 48+64 & Label compression,\\
+  & & count fields \\
+ZIP archives & 92+78 & Checksums, offsets, \\ 
+  & & variable length trailer, \\
+  & & compression \\
+Ethernet  & 16+0\phantom{0} & --- \\
+ARP       & 10+0\phantom{0} & --- \\
+IP        & 25+0\phantom{0} & Total length field, options \\
+UDP       &  7+0\phantom{0} & Checksum, length field \\
+ICMP      &  5+0\phantom{0} & Checksum \\
+\bottomrule
+\end{tabular}
 \end{minipage}
+\end{tabular}
+
+Nail and our example applications are available at \url{https://github.com/jbangert/nail}.
 }
   
 \end{columns}
+
 \end{document}

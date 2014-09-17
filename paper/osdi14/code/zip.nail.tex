@@ -1,6 +1,6 @@
 \begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8}]
-\PY{n}{zip\PYZus{}file} \PY{o}{=} \PY{p}{\PYZob{}} 
- \PY{err}{\PYZdl{}}\PY{n}{filestream}\PY{p}{,} \PY{err}{\PYZdl{}}\PY{n}{end\PYZus{}directory} \PY{n}{transform} \PY{n}{zip\PYZus{}end\PYZus{}of\PYZus{}directory} \PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{current}\PY{p}{)}
+\PY{n}{zip} \PY{o}{=} \PY{p}{\PYZob{}} 
+ \PY{err}{\PYZdl{}}\PY{n}{filestream}\PY{p}{,} \PY{err}{\PYZdl{}}\PY{n}{end\PYZus{}directory} \PY{n}{transform} \PY{n}{zip\PYZus{}eod} \PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{current}\PY{p}{)}
  \PY{n}{contents} \PY{n}{apply} \PY{err}{\PYZdl{}}\PY{n}{end\PYZus{}directory} \PY{n}{end\PYZus{}of\PYZus{}directory}\PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{filestream}\PY{p}{)}
 \PY{p}{\PYZcb{}}
 \PY{n}{end\PYZus{}of\PYZus{}directory}\PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{filestream}\PY{p}{)} \PY{o}{=} \PY{p}{\PYZob{}} 
@@ -20,22 +20,22 @@
 \PY{p}{\PYZcb{}}
 \PY{n}{dir\PYZus{}fileheader}\PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{filestream}\PY{p}{)} \PY{o}{=} \PY{p}{\PYZob{}}  \PY{c+cm}{/*cut for brevity*/}
  \PY{n}{uint32} \PY{o}{=} \PY{l+m+mh}{0x02014b50}\PY{c+cm}{/*...*/}
- \PY{err}{@}\PY{n}{compression\PYZus{}method} \PY{n}{uint16} \PY{c+cm}{/*...*/}
+ \PY{err}{@}\PY{n}{compressed\PYZus{}size} \PY{n}{uint16} \PY{c+cm}{/*...*/}
  \PY{err}{@}\PY{n}{crc32} \PY{n}{uint32}\PY{c+cm}{/*...*/}
  \PY{err}{@}\PY{n}{file\PYZus{}name\PYZus{}len} \PY{n}{uint16}\PY{c+cm}{/*...*/}
  \PY{err}{@}\PY{n}{off} \PY{n}{uint32}
  \PY{n}{filename} \PY{n}{n\PYZus{}of} \PY{err}{@}\PY{n}{file\PYZus{}name\PYZus{}len} \PY{n}{uint8}\PY{c+cm}{/*...*/}
  \PY{err}{\PYZdl{}}\PY{n}{contentstream} \PY{n}{transform} \PY{n}{offset\PYZus{}u32} \PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{filestream} \PY{err}{@}\PY{n}{off}\PY{p}{)}
- \PY{n}{contents} \PY{n}{apply} \PY{err}{\PYZdl{}}\PY{n}{contentstream} \PY{n}{fileentry}\PY{p}{(}\PY{err}{@}\PY{n}{crc32}\PY{p}{,}\PY{err}{@}\PY{n}{compression\PYZus{}method}\PY{c+cm}{/*...*/}\PY{p}{)}
+ \PY{n}{contents} \PY{n}{apply} \PY{err}{\PYZdl{}}\PY{n}{contentstream} \PY{n}{fileentry}\PY{p}{(}\PY{err}{@}\PY{n}{crc32}\PY{p}{,}\PY{err}{@}\PY{n}{compressed\PYZus{}size} \PY{c+cm}{/*...*/}\PY{p}{)}
 \PY{p}{\PYZcb{}}
-\PY{n}{fileentry}\PY{p}{(}\PY{err}{@}\PY{n}{crc32} \PY{n}{uint32}\PY{p}{,}\PY{err}{@}\PY{n}{method} \PY{n}{uint16}\PY{c+cm}{/*...*/}\PY{p}{)} \PY{o}{=} \PY{p}{\PYZob{}}
+\PY{n}{fileentry}\PY{p}{(}\PY{err}{@}\PY{n}{crc32} \PY{n}{uint32}\PY{p}{,}\PY{err}{@}\PY{n}{size} \PY{n}{uint32}\PY{c+cm}{/*...*/}\PY{p}{)} \PY{o}{=} \PY{p}{\PYZob{}}
  \PY{n}{uint32} \PY{o}{=} \PY{l+m+mh}{0x04034b50}\PY{c+cm}{/*...*/}
- \PY{err}{@}\PY{n}{method\PYZus{}local} \PY{n}{uint16}\PY{c+cm}{/*...*/}
- \PY{err}{\PYZdl{}}\PY{n}{compressed} \PY{n}{transform} \PY{n}{size\PYZus{}u32} \PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{current} \PY{err}{@}\PY{n}{compressed\PYZus{}size}\PY{p}{)}
- \PY{err}{\PYZdl{}}\PY{n}{uncompressed} \PY{n}{transform} \PY{n}{zip\PYZus{}compression} \PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{compressed} \PY{err}{@}\PY{n}{method}\PY{c+cm}{/*...*/}\PY{p}{)}
+ \PY{err}{@}\PY{n}{crc\PYZus{}local} \PY{n}{uint32}\PY{c+cm}{/*...*/}
+ \PY{err}{\PYZdl{}}\PY{n}{compressed} \PY{n}{transform} \PY{n}{size\PYZus{}u32} \PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{current} \PY{err}{@}\PY{n}{size}\PY{p}{)}
+ \PY{err}{\PYZdl{}}\PY{n}{uncompressed} \PY{n}{transform} \PY{n}{zip\PYZus{}compression} \PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{compressed} \PY{err}{@}\PY{n}{size}\PY{c+cm}{/*...*/}\PY{p}{)}
  \PY{n}{transform} \PY{n}{crc\PYZus{}32} \PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{uncompressed} \PY{err}{@}\PY{n}{crc32}\PY{p}{)}
  \PY{n}{contents} \PY{n}{apply} \PY{err}{\PYZdl{}}\PY{n}{uncompressed} \PY{n}{many} \PY{n}{uint8}
  
- \PY{n}{transform} \PY{n}{uint16\PYZus{}depend} \PY{p}{(}\PY{err}{@}\PY{n}{method\PYZus{}local} \PY{err}{@}\PY{n}{method}\PY{p}{)}\PY{c+cm}{/*...*/}
+ \PY{n}{transform} \PY{n}{uint16\PYZus{}depend} \PY{p}{(}\PY{err}{@}\PY{n}{crc\PYZus{}local} \PY{err}{@}\PY{n}{crc32}\PY{p}{)}\PY{c+cm}{/*...*/}
 \PY{p}{\PYZcb{}}
 \end{Verbatim}
