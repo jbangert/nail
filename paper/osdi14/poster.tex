@@ -1,0 +1,140 @@
+\documentclass[25pt, a0paper, portrait, margin=0mm, innermargin=15mm,
+blockverticalspace=10mm, colspace=15mm, subcolspace=8mm]{tikzposter}
+
+\usepackage{times}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{mathptmx}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{underscore}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\usepackage{color}
+\usepackage{xspace}
+\usepackage{multirow}
+\usepackage{relsize}
+\usepackage{fancyvrb}
+\usepackage{pgfplots}
+
+\title{Nail: A practical tool for parsing and generating data formats}
+\author{Julian Bangert and Nickolai Zeldovich }
+\institute{MIT CSAIL}
+%\titlegraphic{Logo}
+\usetheme{Envelope}
+
+\input{code/fmt}
+
+\begin{document}
+\maketitle
+\begin{columns}
+\column{.5}
+\block{Parsing vulnerabilities}{
+Current software typically uses hand-implemented parsers, which are not only prone to bugs, but two
+separate parser implementations can disagree about the meaning of an input. This has been the source
+of many recent high-profile vulnerabilities:
+\begin{itemize}
+\item Evasi0n jailbreaks on iOS~\cite{evaders6}.
+\item PKI layer cake~\cite{Marlinspike:SSL},\cite{DBLP:conf/fc/KaminskyPS10}.
+\item Android master key ~\cite{saurik-masterkey}
+\end{itemize}
+
+{\bf Case study of ZIP vulnerabilities in the CVE database:}
+
+\begin{tabular}{lllr}
+\toprule
+ \bf Classification  & \bf Example description & \bf Count\\
+\midrule
+  Memory corruption  & Buffer overflow & 11\\
+  Parsing inconsistency & Virus scanners interpret ZIP files incorrectly & 4\\
+  Semantic misunderstanding & Weak cryptography used even if user selects AES & 1\\
+\midrule
+  \multicolumn{2}{l}{\bf Total of all vulnerabilities related to .zip processing }& \bf 16  \\
+\bottomrule
+  
+\end{tabular}
+}
+\block{Solution: Grammar-based Parsers}{   
+Grammar-based parsers, such as \texttt{bison} or Hammer~\cite{hammer-parser}, are compact, reuseable
+and safer. However, traditional parsers are inconvenient to use, because the programmer has to write all the
+yellow-colored parts:
+
+\includegraphics{StateOfTheArt.png}
+
+Nail grammars describe both the format and a data type to represent it. 
+
+\includegraphics{Nail.png}
+  
+}
+\block{Complicated real-world example: ZIP }{
+  \includegraphics[width=0.4\columnwidth]{ZipHorizontal.png}
+  \begin{itemize}
+    \item Variable-length end-of-file header
+    \item Length and offset fields
+    \item Duplicated information
+    \item Checksums, compression and encryption
+  \end{itemize}
+}
+\block{Design Goals}{
+  \begin{itemize}
+    \item Reduce programmer effort
+  \begin{itemize}
+      \item Semantic combinators describes data type and format.
+      \item Generate output.
+  \end{itemize}
+     \item Handle complex formats
+  \begin{itemize}
+       \item Dependency Fields: hide redundant information.
+       \item Transforms: Extensibility.
+       \end{itemize}
+  \end{itemize}
+}
+\block{Semantic Bijection}{
+  Traditional bijections don't make sense for some data formats. For example, offsets are and should
+  be discarded during parsing. Nail parsers and generators therefore form a looser 'semantic
+  bijection', in which parser(generator(x)) = x, but not necessarily vice versa.
+
+}
+\column{.5}
+\block{Nail Grammar for DNS}{
+\small
+\input{code/zip.nail}
+}
+\block{Dependent Fields}{
+Duplicated data and layout information can cause parser consistency bugs. Nail represents them with
+Dependent Fields, which are automatically verified during parsing and created during 
+generation. 
+}
+\block{Streams and Transformations}{
+  Existing parsers are linear, consuming input front to back; Offset fields require kludges.
+  Nail grammars feature multiple streams, and introduce \emph{Transformations} to create
+  new streams. Transformations are a pair of functions operating on streams and dependent fields.
+  A standard library of Transformations is provided, but for complex formats, programmers can write
+  their own Transformations, for which they have to guarantee security and semantic bijection.
+ For example, in the ZIP grammar above, the programmer has to write two functions to find and
+ generate the end-of-file header, with the following prototype:
+\input{code/dns-xform}
+}
+\block{Related Work and Bibliography}{
+  \begin{itemize}
+    \item Interface generators such XDR~\cite{RFC:1832} and ProtoBuf~\cite{varda2008} can parse and
+      generate, but cannot interoperate with legacy formats.
+    \item Data Description Languages, such as PacketTypes~\cite{mccann2000packet},
+      DataScript~\cite{back2002datascript} and PADS~\cite{Fisher:2005:PDL:1064978.1065046}, can
+      parse and generate, but are not extensible, so they cannot support complicated encodings in
+      formats like ZIP.
+    \item See our paper for a detailed discussion, including application use of parsers.
+  \end{itemize}
+\begin{minipage}{\textwidth}
+\tiny \bibliography{n-str,main,locasto,langsec,n,n-conf}
+\bibliographystyle{alpha} 
+\end{minipage}
+}
+  
+\end{columns}
+\end{document}
