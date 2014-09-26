@@ -73,9 +73,12 @@ description languages such as PacketTypes.
 \includegraphics{Nail.png}
   
 However, existing solutions cannot handle complicated file formats like ZIP, which feature
-duplicated data, offsets and format-specific complications, such as a variable-length end-of-file header:
+duplicated data, offsets and format-specific complications, such as a variable-length end-of-file
+header:
 
-  \includegraphics[width=0.4\columnwidth]{ZipHorizontal.png}
+\begin{centering}
+  \includegraphics[width=0.35\columnwidth]{ZipHorizontal.png}
+\end{centering}
 }
 \block{Design Goals}{
   \begin{itemize}
@@ -93,17 +96,17 @@ duplicated data, offsets and format-specific complications, such as a variable-l
   \end{itemize}
 }
 \block{Dependent Fields}{
-Duplicated data and layout information can cause parser consistency bugs. Nail represents them with
-Dependent Fields, which are automatically verified during parsing and created during 
-generation. 
+Duplicated data and layout information can confuse the application, for
+example if a length field is not correct or multiple copies of the same data are inconsistent. 
+Nail grammars can use Dependent Fields, which are automatically verified during parsing and created during 
+generation, to hide such information from the application.
 }
 \block{Streams and Transformations}{
   Existing parsers are linear, consuming input front to back. Complicated formats require inelegant hacks. 
   Nail grammars feature multiple streams and introduce \emph{Transformations} to create
   them. Transformations are a pair of functions operating on streams and dependent fields.
   A standard library of Transformations is provided, but  programmers can extend
-  Nail with custom transformations, which are security critical. 
-
+  Nail with custom transformations, which contain arbitrary code and should be carefully written.
 %  For example, in the ZIP grammar above, the programmer has to write two functions to find and
 %  generate the end-of-file header, with the following prototype:
 % \input{code/dns-xform}
@@ -125,10 +128,10 @@ An excerpt of Nail's output for this example:
 \begin{tabular}{p{0.43\linewidth}p{0.57\linewidth}}
 \begin{minipage}[t]{0.43\linewidth}
 \vspace{0pt}\begin{tabular}{lrr@{~}l}
+%
+\multicolumn{4}{l}{\textrm{Comparing total lines of code}}\\
 \toprule
-\multicolumn{4}{l}{\textbf{Comparing total lines of code}}\\
-
-\midrule
+%\midrule
 \textbf{Application}
   & \textbf{Nail}
   & \multicolumn{2}{c}{\textbf{Alternative}} \\
@@ -150,8 +153,8 @@ DNS server
 \end{tabular}
 \end{minipage}&
 \vspace{0pt}\begin{minipage}{0.57\linewidth}
-
 \begin{tabular}[t]{lrl}
+\multicolumn{3}{l}{LoC for Nail grammar+transformations}\\
 \toprule
 \textbf{Protocol} & \textbf{LoC} & \textbf{Challenging features} \\ 
 \midrule

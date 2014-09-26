@@ -9,6 +9,7 @@ code/fmt.tex:
 		| grep -vw 'PY@tok@m' \
 		| grep -vw 'PY@tok@mi' \
 		| grep -vw 'PY@tok@o' \
+	  |	grep -vw 'PY@tok@err'\
 		> $@~
 	mv $@~ $@
 
