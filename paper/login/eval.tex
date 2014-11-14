@@ -157,16 +157,13 @@ framework~\cite{mspframework} on our DNS server, which sent randomly
 corrupted DNS queries to our server for 4 hours, during which it did
 not crash or trigger the stack or heap corruption detector.
 
-\paragraph{Performance}
-
 To evaluate whether Nail-based parsers are compatible with good
 performance, we compare the performance of our DNS server to that of ISC
 BIND 9 release 9.9.5~\cite{bind9}, a mature and widely used DNS server.
 We simulate a load resembling that of an authoritative name server, generating a random zone file
 and a random sequence of queries, with 10\% non-existent domains. We repeated this sequence of
-queries for one minute against both DNS servers. The results are shown in Figure~\ref{fig:perf-dns}, and demonstrate that
-our Nail-based DNS server can achieve higher performance and lower latency
-than BIND\@.  Although BIND is a more sophisticated DNS server,
+queries for one minute against both DNS servers. We found that our DNS server is approximately three
+times faster than BIND. Although BIND is a more sophisticated DNS server,
 and implements many features that are not present in our Nail-based DNS
 server and that allow it to be used in more complicated configurations, 
 we believe our results demonstrate that Nail's parsers are not
