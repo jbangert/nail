@@ -1,0 +1,711 @@
+Nail: A practical tool for parsing and generating data formats
+Julian Bangert and Nickolai Zeldovich
+MIT CSAIL
+
+I am ZIP, file of files. Parse me, ye mighty and
+despair.
+
+This approach is typical in compiler design and in other
+applications handling text-based inputs, but not common
+for binary inputs. The Hammer framework [? ] and
+data description languages such as PADS [? ] have been
+developing generated parsers for binary protocols.
+However, existing tools are not powerful enough to handle some complixities formats such as PDF and ZIP, so
+programmers still have to hand-write code to handle the
+most complicated and therefore most error-prone formats.
+For example, existing parser generators cannot conveniently represent size or offset fields and more complex
+features, such as data compression or checksums cannot
+be expressed at all.
+Furthermore, some parser generators are cumbersome
+to use when parsing binary data for several reasons. First,
+parser generators typically parse inputs into an abstract
+syntax tree that corresponds to the grammar. Application
+developers must then write explicit semantic actions to
+construct a data structure the rest of the program can process. Therefore, programmers must describe the format
+up to three times – in the grammar, the data structure
+and the semantic actions. Second, many applications also
+need to produce outputs in the same formats they parse say when saving files or responding to network requests.
+However, most parser generators only address parsing inputs, so the programmer must manually construct outputs.
+Some parser generators, such as Boost.Spirit [3] allow
+generating output, but require the programmer to write
+another set of semantic actions.
+We address these challenges with Nail, a new parser
+generator with several features geared towards binary formats. First, Nail grammars describe not only a format,
+but also a data type to represent it within the program.
+This removes the semantic actions and type declarations
+that programmers have to write with existing parser generators. This forces the programmer to clearly separate
+syntactic validation and semantic processing.
+Second, Nail does not just parse input into an internal
+representation, but also generates output from the internal
+representation, without requiring the programmer to write
+additional code.
+Third, Nail introduces two abstractions, dependent
+fields and transformations, to elegantly handle problematic structures, such as offset fields or checksums. Dependent fields capture fields in a protocol whose value
+depends in some way on the value or layout of other parts
+
+– Edward Shelley on the Android Master Key
+
+1
+
+I NTRODUCTION
+
+Binary file formats and network protocols are hard to
+parse safely: The libpng image decompression library
+had 24 remotely exploitable vulnerabilities from 2007 to
+2013 [1], Adobe’s PDF and Flash viewers have been notoriously plagued by input processing vulnerabilities, and
+even the zlib compression library had input processing
+vulnerabilities in the past [2]. Most of these attacks involve memory corruption - therefore, it is easy to assume
+that solving memory corruption will end all our woes
+when handling untrusted inputs.
+However, as memory-safe languages and exploit mitigation tricks are becoming more prevalent, attackers
+are moving to a new class of attack - parser differentials. Many applications use hand-written input processing code, which is often mixed with the rest of the application, e.g. by passing a pointer to the raw input through
+the application. This (anti-)pattern makes it impossible
+to figure out whether two implementations of the same
+format or protocol are identical, and input handling code
+can’t be easily reused between applications. As a result,
+different applications often disagree in the corner cases
+of a protocol, which can have fatal security consequences.
+For example, Android has two parsers for ZIP archives
+involved in securely installing applications. First, a Java
+program checks the signatures of files contained within
+an app archive and then another tool extracts them to the
+filesystem. Because the two ZIP parsers disagree in multiple places, attackers can modify a valid file so that the verifier will see the original contents, but attacker-controlled
+files will be extracted to the filesystem, bypassing Android’s code signing. Similar issues showed up on iOS [?
+] and SSL [? ].
+Instead of attempting to parse inputs by hand and failing, a promising approach is to specify a precise grammar
+for the input data format, and automatically generate parsing code from that with tools like yacc. As long as the
+parser generator is bug-free, the application will be safe
+from many input processing vulnerabilities. Grammars
+can also be re-used between applications, further reducing
+effort and eliminating inconsistencies.
+1
+
+of the format; for example, offset or length fields, which
+specify the position or length of another data structure,
+fall in this category. Transformations allow the programmer to escape the generated code to modify the raw data
+and interact with dependent fields in a controlled manner.
+In the rest of this article, we will show some tricky
+features of real world formats and how to handle them
+with Nail.
+
+2
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+
+D ESIGN B Y E XAMPLE
+
+12
+13
+
+In this section, we will explain how to handle basic data
+formats in Nail, how to handle redundancies in the format with dependent fields and how Nail parsers can be
+extended with transformations.
+We will use DNS packets as a leading example, as
+defined in RFC 1035 [5: §4]. Each DNS packet consists
+of a header, a set of question records, and a set of answer
+records. Domain names in both queries and answers are
+encoded as a sequence of labels, terminated by a zero byte.
+Labels are Pascal-style strings, consisting of a length field
+followed by that many bytes comprising the label.
+
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+
+2.1
+
+Basic Data formats
+
+28
+29
+
+Let’s stepping through a simplified Nail grammar for
+non-compressed packets, shown in Figure 1. For this
+grammar, Nail produces the type declarations shown in
+Figure 2, and the parser and generator functions shown
+in Figure 3. A more concise reference of the syntax can
+be found in ??. Nail grammars are reuseable between
+applications and we will use this grammar to implement
+both a DNS server and client, which previously would
+have had two separate hand-written parsers, leading to
+bugs such as the Android Master Key.
+A Nail grammar file consists of rule definitions, for
+example l. 1-20, which assign a name (dnspacket) to a
+grammar production (2-20). If you are not familiar with
+other parsers, you can imagine rules as C type declarations
+on steroids (although our syntax is inspired by Go).
+Just like C supports various constructs to build up
+types, such as structures, unions, pointers and elemental types, Nail supports a integers as elemental parsers
+and a plethora of combinators to represent features of a
+file or protocol.
+
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+
+dnspacket =
+{
+id uint16
+qr uint1
+opcode uint4
+aa uint1
+tc uint1
+rd uint1
+ra uint1
+uint3 = 0
+rcode uint4
+@qc uint16
+@ac uint16
+@ns uint16
+@ar uint16
+questions n_of @qc question
+responses n_of @ac answer
+authority n_of @ns answer
+additional n_of @ar answer
+}
+question = {
+labels compressed_labels
+qtype uint16 | 1..16
+qclass uint16 | [1,255]
+}
+answer = {
+labels compressed_labels
+rtype uint16 | 1..16
+class uint16 | [1]
+ttl uint32
+@rlength uint16
+rdata n_of @rlength uint8
+}
+compressed_labels = {
+$decompressed transform dnscompress ($current)
+labels apply $decompressed labels
+}
+label = { @length uint8 | 1..64
+label n_of @length uint8 }
+labels = <many label; uint8 = 0>
+
+Figure 1: Nail grammar for DNS packets, used by our prototype DNS
+server.
+struct dnspacket {
+uint16_t id;
+uint8_t qr;
+/* ... */
+struct {
+struct question *elem;
+size_t count;
+} questions;
+};
+
+Integers and Constraints . Because Nail is designed
+to cope with binary formats, it handles not only common
+integer types (such as uint16 on l. 16), but bit fields of
+any length, such as uint1. These integers are exposed
+to the programmer as an appropriately sized machine
+integer, e.g. uint8_t. Nail also supports constraints
+on integer values, limiting the values to either a range
+(l. 23, |1..16), which can optionally be half-open, or
+a fixed set (l. 24, |[1,255]). Both types of constraint
+can be combined, e.g. | [1..16,255]. Constant values
+are also supported, e.g. l. 10: uint3=0 represents three
+
+Figure 2: Portions of the C data structures defined by Nail for the DNS
+grammar shown in Figure 1.
+struct dnspacket *parse_dnspacket(NailArena *arena,
+const uint8_t *data,
+size_t size);
+int gen_dnspacket(NailArena *tmp_arena,
+NailStream *out,
+struct dnspacket *val);
+Figure 3: The API functions generated by Nail for parsing inputs and
+generating outputs for the DNS grammar shown in Figure 1.
+
+2
+
+expr = choose {
+PAREN = <uint8=’(’; *expr; uint8=’)’>
+PRODUCT = sepBy1 uint8=’*’ expr
+SUM = sepBy1 uint8=’+’ expr
+INTEGER = many1 uint8 | ’0’ .. ’9’
+}
+
+reserved bits that must be 0. Because constant values
+carry no information, they are not represented in the data
+type.
+Structures. The body of the dnspacket rule is a structure, which contains any number of fields enclosed between curly braces. Each field in the structure is parsed in
+sequence, and represented as a structure to the programmer. Contrary to other programming languages, Nail does
+not have a special keyword for structs. We also reverse the
+usual structure-field syntax: id uint1 is a field called
+id with type uint11 .
+
+Figure 4: Grammar for sums and products of integers.
+
+Optional. Nail includes an optional combinator,
+which attempts to recognize a value, but succeeds without
+consuming input when it cannot recognize that value. Syntactically, optional is equivalent to a choice between the
+parser and an empty structure, but in the internal model
+it is more concisely represented as a reference that is
+null when the parser fails. For example, the grammar for
+Ethernet headers uses optional vlan_header to parse
+the VLAN header that appears only in Ethernet packets
+transmitted to a non-default VLAN.
+
+Wrap combinator. When implementing real protocols
+with Nail, we often found structures that consist of many
+constants and only one named field. This pattern is common in binary protocols which use fixed headers to denote
+the type of data structure to be parsed. In order to keep the
+internal representation cleaner, we introduced the wrap
+combinator, which takes a sequence of parsers containing
+exactly one non-constant parser. The external format is
+defined as though the wrap combinator were a structure,
+but the data model does not introduce a structure with just
+one element, making the application-visible representation (and thus application code) more concise. Line 39 of
+the DNS grammar uses the wrap combinator to hide the
+terminating NUL-byte of a sequence of labels.
+
+References. Rules allow for recursive grammars, but
+some programming languages, such as C, do not support
+recursive structures. We introduce the reference combinator * that does not change the syntax of the external
+format described, but introduces a reference or pointer
+to the internal data type. The reference combinator does
+not need to be used when another combinator, such as
+optional or many, already introduces indirection in the
+data type. An example is shown in Figure 4.
+
+Choices. If multiple structures can appear at a given position in a format, the programmer lists the options along
+with a label for each in the choose combinator. During
+parsing, Nail remembers the current input position and
+attempts each option in the order they appear in the grammar. If an option fails, the parser backtracks to the initial
+position. If no options succeed, the entire combinator
+fails. In the data model, choices are represented as tagged
+unions. The programmer has to be careful when options
+overlap, because if the programmer meant to generate
+output for a choice, but the external representation is also
+valid for an earlier, higher-priority option, the parser will
+interpret it as such. However, real data formats normally
+do not have this overlap and we did not encounter it in the
+grammars we wrote. An example is provided in Figure 4.
+
+2.2
+
+Redundant Data
+
+Data formats often contain values that are determined by
+other values or the layout of information, such as checksums, duplicated information, or offset and length fields.
+Exposing such values risks inconsistencies that could
+trick the program into unsafe behaviour. Therefore, we
+represent such values using dependent fields and handle
+them transparently during parsing and generation without
+exposing them to the application.
+In DNS packets, the packet header contains count fields
+(qc, ac, ns, and ar), which contain the number of questions and answers that follow the header, which we represent by dependent fields (line 12-15).
+Dependent fields are defined within a structure like
+normal fields, but their name starts with an @ symbol. A
+dependent field is in scope and can be referred to by the
+definition of all subsequent fields in the same structure.
+Dependent fields can be passed to rule invocations as
+parameters.
+Dependent fields are handled like other fields when
+parsing input, but only stored temporarily instead of in the
+data type. Their value can be referenced by other parsers
+until it goes out of scope. When generating output, Nail
+visits a dependent field twice. First, while generating the
+other fields of a structure, the generator reserves space
+
+Repetition. The many combinator takes a parser and applies it repeatedly until it fails, returning an array of the
+inner parser’s results. In line 39 of the DNS grammar, a
+sequence of labels is parsed by parsing as many labels as
+possible, that is, until an invalid length field is encountered. The sepBy combinator additionally takes a constant
+parser, which it applies in between parsing two values,
+but not before parsing the first value or after parsing the
+last. This is useful for parsing an array of items delimited
+by a separator.
+1 This
+
+is a feature from Go, and makes nested types more readable
+and the parser for Nail itself easier to write.
+
+3
+
+for the dependent field in the output. Once the dependent
+field goes out of scope, the generator writes the dependent
+field’s value to this space.
+Nail provides only one built-in combinator that uses dependent fields, n_of, which acts like the many combinator,
+except it parses an exact number of repetitions specified
+in the dependent field. Lines 16-19 in Figure 1 shows how
+to use n_of to parse the question and answer records in a
+DNS packet. Other dependencies, such as offset fields or
+checksums, are not handled directly by combinators, but
+through transformations, as we describe next.
+
+2.3
+
+and offset fields. Furthermore, Nail provides library functions that can be used to safely operate on streams, such
+as splitting and concatenation. Nail implements streams
+as iterators, so they can share underlying buffers and can
+be efficiently duplicated and split.
+Transformations need to be carefully written, because
+they can violate Nail’s safety properties and introduce
+bugs. However, as we will show in §3.2, Nail transformations are much shorter than hand-written parsers, and
+many formats can be represented with just the transformations in Nail’s standard library. For example, our Zip
+transformations are 78 lines of code, compared to 1600
+lines of code for a hand-written parser. Additionally,
+Nail provides convenient and safe interfaces for allocating memory and accessing streams that address the most
+common occurrences of buffer overflow vulnerabilities.
+Transformations can handle a wide variety of patterns
+in data formats, including the following:
+
+Input streams and transformations
+
+Traditional parsers handle input one symbol at a time,
+from beginning to end. However, real-world formats
+often require non-linear parsing. Offset fields require a
+parser to move to a different position in the input, possibly
+backwards. Size fields require the parser to stop processing before the end of input has been reached, and perhaps
+resume executing a parent parser. Other cases, such as
+compressed data, require more complicated processing
+on parts of the input before it can be handled.
+Nail introduces two concepts to handle these challenges, streams and transformations. Streams represent a
+sequence of bytes that contain some external format. The
+parsers and generators that Nail generates always operate
+on an implicit stream named $current that they process
+front to back, reading input or appending output. Grammars can use the apply combinator to parse a stream or
+generate output into it.
+Streams are passed as arguments to a rule or defined
+within the grammar through transformations. The current
+stream is always passed as an implicit parameter.
+Transformations are two arbitrary functions called during parsing and output generation. The parsing function takes any number of stream arguments and dependent field values, and produces any number of temporary
+streams. This function may reposition and read from the
+input streams and read the values of dependent fields,
+but not change their contents and values. The generating function has to be an inverse of the parsing function.
+It takes the same number of temporary streams that the
+parsing function produces, and writes the same number
+of streams and dependent field values that the parsing
+function consumes.
+Typically, the top level of most grammars is a rule that
+takes only a single stream, which may then be broken up
+by various transformations and passed to sub-rules, which
+eventually parse various linear fragment streams. Upon
+parsing, these fragment streams are generated and then
+combined by the transforms.
+To reduce both programmer effort and the risk of unsafe
+operations, Nails provides implementations of transformations for many common features, such as checksums, size,
+
+Compressed data. Encoded, compressed, or encrypted
+data can be handled transparently by writing a custom
+transformation that transforms a coded stream into one
+that can be parsed by a Nail grammar and vice versa. This
+transformation must be carefully written to not have bugs.
+For example, DNS uses label compression to reduce
+the overhead of including each domain name multiple
+times in a DNS reply. If a domain name suffix is repeated,
+it may be replaced by a two-bit marker followed by a
+14-bit offset into the packet, indicating the position where
+that suffix was previously encoded. We use a transform
+in line 35 of our DNS grammar to handle DNS label compression; the signatures of the two transform functions
+are shown in Figure ??. When parsing a packet, this
+transform decompresses the DNS label stream. When
+generating a packet, this transform receives the current
+suffix as an input, and scans the packet so far for previous
+occurrences and inserts the offset.
+Handling label compression in existing tools, such as
+Bison or Hammer, would be awkward at best, because
+some ad-hoc trick would have to be used to re-position
+the parser’s input stream. Keeping track of the position of
+all recognized labels would not be enough, although still
+awkward, as the offset field may refer to any byte within
+the packet. For this reason, the sample DNS grammar in
+Hammer does not support compression.
+Offsets. A built-in transformation for handling offset fields, which is invoked as follows: $fragment
+transform offset_u32($current, @offset).
+This
+transformation corresponds to two functions for parsing
+and generation, as shown in Figure ??. It defines a new
+stream $fragment that can be used to parse data at the
+offset contained in @offset, by using apply $fragment
+some_parser.
+4
+
+Protocol
+DNS packets
+
+LoC
+48+64
+
+ZIP archives
+
+92+78
+
+Ethernet
+ARP
+IP
+UDP
+ICMP
+
+16+0
+10+0
+25+0
+7+0
+5+0
+
+Challenging features
+
+Application
+
+LoC w/ Nail
+
+Label compression,
+count fields
+Checksums, offsets,
+variable length trailer,
+compression
+—
+—
+Total length field, options
+Checksum, length field
+Checksum
+
+DNS server
+
+295
+220
+
+unzip
+
+fields handle DNS’s count fields, and transformations
+represent label compression. Both of these features are
+awkward at best to handle with existing tools.
+ZIP An especially tricky data format is the ZIP compressed archive format [9]. ZIP files are normally parsed
+end-to-beginning. At the end of each ZIP file is an end-ofdirectory header. This header contains a variable-length
+comment, so it has to be located by scanning backwards
+from the end of the file until a magic number and a valid
+length field is found. Many ZIP implementations disagree
+on the exact semantics of this, such as when the comment
+contains the magic number [10].
+This header contains points to the ZIP directory, contains an entry every file in the archive. Each entry stores
+file metadata in addition to the offset of a local file header.
+The local file header duplicates most information from
+the directory entry header and is followed immediately
+by the compressed archive entry. Duplicating information
+made sense when ZIP files were stored on floppy disks
+with slow seek times and high fault rates, and memory
+constraints made it impossible to keep the ZIP directory
+in memory.
+However, if attackers craft inconsistent files, hand written parsers fail in interesting ways, e.g. the length in
+the central directory is used to allocate memory and the
+length in the local directory is used to extract without
+checking that they are equal first, as was the case in the
+Python ZIP library [7].
+Nail avoids these issues by capturing these redundancies with dependent fields and decompressing files transparently with transformations, and the programmer is
+presented with a data structure containing the archive
+contents. To handle formats based on ZIP, such as office
+documents, our ZIP grammar could be extended to apply
+additional grammars to the files within an archive.
+
+Sizes. A similar transformation handles size fields. Just
+like the offset transform, it takes two parameters, a stream
+and a dependent field, but instead of returning the suffix
+of the current stream after an offset, it returns a slice of
+the given size from the current stream starting at its current position. When generating, it appends the fragment
+stream to the current stream and writes the size of the
+fragment to the dependent field.
+Checksums. Checksums can be verified and computed
+in a transformation that takes a stream and a dependent
+field. In some cases, a checksum is calculated over a
+buffer that contains the checksum itself, with the checksum being set to some particular value.
+A real-world example with many different transforms,
+used to support the ZIP file format, is described in our
+full paper.
+
+3.1
+
+683 (Hammer parser)
+1,600 (Info-Zip)
+
+Figure 6: Comparison of code size for three applications written in
+Nail,and a comparable existing implementation without Nail.
+
+Figure 5: Protocols, sizes of their Nail grammars, and challenging
+aspects of the protocol that cannot be expressed in existing grammar
+languages. A + symbol counts lines of Nail grammar code (before the
++) and lines of C code for protocol-specific transforms (after the +).
+
+3
+
+LoC w/o Nail
+
+E VALUATION
+Real-World Formats
+
+First, we ask whether Nail can handle real-world data
+formats and whether its techniques are critical to that.
+We used Nail to implement grammars for seven protocols
+with a range of challenging features. Figure 5 summarizes
+our results. We find that despite the challenging aspects
+of these protocols, Nail is able to capture the protocols,
+by relying on its novel features: dependent fields, streams,
+and transforms. In contrast, state-of-the-art parser generators would be unable to fully handle 5 out of the 7 data
+formats. In the rest of this subsection, we describe the
+DNS and Zip grammars in more detail, focusing on how
+Nail’s features enable us to support these formats.
+
+3.2
+
+Applications
+
+We implemented two applications—a DNS server and an
+unzip program—based on the above grammars, and will
+compare the effort involved and the resulting security to
+similar applications with hand-written parsers and with
+other parser generators. We will use lines of code as a
+proxy for programmer effort. To evaluate security, we
+will argue how our design avoids classes of vulnerabilities
+and fuzz-test one of our applications.
+
+DNS In Section 2, we introduced Nail’s syntax with
+a grammar for DNS packets, shown in Figure 1. The
+grammar corresponds almost directly to the diagrams in
+RFC 1035, which defines DNS [5: §4]. Nail’s dependent
+5
+
+DNS. Our DNS server parses a zone file, listens to incoming DNS requests, parses them, and generates appropriate responses. The DNS server is implemented in 183
+lines of C, together with 48 lines of Nail grammar and 64
+lines of C code implementing stream transforms for DNS
+label compression. In comparison, Hammer [8] ships with
+a toy DNS server that responds to any valid DNS query
+with a CNAME record to the domain “spargelze.it”. Their
+server consists of 683 lines of C, mostly custom validators, semantic actions, and data structure definitions, with
+52 lines of code defining the grammar with Hammer’s
+combinators. Their DNS server does not implement label
+compression, zone files, etc. From this, we conclude that
+Nail leads to much more compact code for dealing with
+DNS packet formats.
+We ran the DNS fuzzer provided with the Metasploit
+framework [6] on our DNS server, which sent randomly
+corrupted DNS queries to our server for 4 hours, during which it did not crash or trigger the stack or heap
+corruption detector.
+
+More interestingly, Nail also protects against parsing inconsistency vulnerabilities like the four others we studied.
+Nail grammars explicitly encode duplicated information
+such as the redundant length fields in ZIP that caused a
+vulnerability in the Python ZIP library. The other three
+vulnerabilities exist because multiple implementations
+of the same protocol disagree on some inputs. Handwritten protocol parsers are not very reusable, as they
+build application-specific data structures and are tightly
+coupled to the rest of the code. Nail grammars, however,
+can be re-used between applications, avoiding protocol
+misunderstandings.
+
+4
+
+C ONCLUSION
+
+This paper presented the design and implementation of
+Nail, a tool for parsing and generating complex data formats based on a precise grammar. Nail helps programmers avoid memory corruption and inconsistency vulnerabilities while reducing effort in parsing and generating
+real-world protocols and file formats. Nail achieves this
+by reducing the expressive power of the grammar, establishing a semantic bijection between data formats and
+internal representations. Nail captures complex data formats by introducing dependent fields, streams, and transforms. Using these techniques, Nail is able to support
+DNS packet and ZIP file formats, and enables applications to handle these data formats in many fewer lines of
+code. Nail and all of the applications and grammars developed in this paper are released as open-source software,
+available at https://github.com/jbangert/nail.
+
+Performance To evaluate whether Nail-based parsers
+are compatible with good performance, we compare the
+performance of our DNS server to that of ISC BIND 9
+release 9.9.5 [4], a mature and widely used DNS server.
+We simulate a load resembling that of an authoritative
+name server, generating a random zone file and a random
+sequence of queries, with 10% non-existent domains. We
+repeated this sequence of queries for one minute against
+both DNS servers. The results are shown in Figure ??, and
+demonstrate that our Nail-based DNS server can achieve
+higher performance and lower latency than BIND. Although BIND is a more sophisticated DNS server, and
+implements many features that are not present in our Nailbased DNS server and that allow it to be used in more
+complicated configurations, we believe our results demonstrate that Nail’s parsers are not a barrier to achieving
+good performance.
+
+ACKNOWLEDGMENTS
+We thank M. Frans Kaashoek and the anonymous reviewers for their feedback. This research was supported by the
+DARPA Clean-slate design of Resilient, Adaptive, Secure
+Hosts (CRASH) program under contract #N66001-10-24089, and by NSF award CNS-1053143.
+
+R EFERENCES
+ZIP. We implemented a ZIP file extractor in 50 lines of
+C code, together with 92 lines of Nail grammar and 78
+lines of C code implementing two stream transforms (one
+for the DEFLATE compression algorithm with the help of
+the zlib library, and one for finding the end-of-directory
+header). The unzip utility contains a file extract.c,
+which parses ZIP metadata and calls various decompression routines in other files. This file measures over 1,600
+lines of C, which suggests that Nail is highly effective at
+reducing manual input parsing code, even for the complex
+ZIP file format.
+In our full paper [? ], we present a study of 15 ZIP
+parsing bugs. 11 of these vulnerabilities involved memory corruption during input handling, which generated
+code is immune to memory corruption attacks by design.
+
+[1] CVE Details.
+Libpng: Security vulnerabilities, 2014.
+http://www.cvedetails.com/
+vulnerability-list/vendor_id-7294/
+Libpng.html.
+[2] CVE Details. GNU Zlib: List of security vulnerabilities, 2014. http://www.cvedetails.
+com/vulnerability-list/vendor_id-72/
+product_id-1820/GNU-Zlib.html.
+[3] J. de Guzman and H. Kaiser. Boost Spirit 2.5.2,
+Oct. 2013. http://www.boost.org/doc/libs/
+1_55_0/libs/spirit/doc/html/.
+[4] Internet Systems Consortium. BIND 9 DNS
+server, 2014. http://www.isc.org/downloads/
+bind/.
+6
+
+[5] P. Mockapetris. Domain names – implementation
+and specification. RFC 1035, Network Working
+Group, Nov. 1987.
+[6] H. Moore et al. The metasploit project, 2014. http:
+//www.metasploit.com/.
+[7] Nandiya. zipfile - ZipExtFile.read goes into 100%
+CPU infinite loop on maliciously binary edited
+zips, Dec. 2013. http://bugs.python.org/
+issue20078.
+[8] M. Patterson and D. Hirsch. Hammer parser
+generator, Mar. 2014. https://github.com/
+UpstandingHackers/hammer.
+[9] PKWARE, Inc. .ZIP File Format Specification, 6.3.3
+edition, Sept. 2012. http://www.pkware.com/
+documents/casestudies/APPNOTE.TXT.
+[10] J. Wolf. Stupid zip file tricks! In BerlinSides 0x7DD,
+2013.
+
+7
+
+

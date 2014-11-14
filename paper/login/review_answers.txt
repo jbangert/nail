@@ -1,0 +1,88 @@
+First of all, thanks for the reviews and the feedback!  Here are our
+answers and clarifications:
+
+* Do all practical grammars require transformations? 
+
+No, not all protocols require transformations.  Our Ethernet stack
+implementation (with ARP, etc), for example, can be handled by Nail
+without transformations.
+
+* Do transformations compromise the security guarantees of the parser?
+
+Bugs in transformations can compromise security, but we expect that
+transformations are much less likely to contain bugs, compared to complete
+hand-written parsers, for three reasons:
+
+1. Transformations are much smaller than an entire hand-written parser.
+   For example, our Zip transformations are 78 lines of code, compared
+   to 1600 lines of code for an entire parser.
+
+2. There are many common transformations that can be shared between
+   grammars, and that come with Nail in a standard library.  For
+   example, the entire UDP stack, which uses checksum and length field
+   transformations, does not use any custom-written transformations
+   of its own; the checksum and length transforms are part of Nail's
+   standard transform library (which is used by DNS and ZIP as well).
+
+3. The code for transformations involves fewer tricky aspects than
+   writing a parser, in the following ways:
+
+   a. Nail provides convenient and safe interfaces for accessing streams,
+      safely allocating memory, etc.
+
+   b. If the transformation requires dependent variables (e.g., a length
+      field or the ZIP compression method), Nail parses and validates
+      those fields, and passes the result to the transformation function.
+
+As a result, writing transformation functions is less error-prone
+than writing a parser.
+
+* How can Nail be integrated into deployed software?
+
+Nail and all examples and applications have been released as open
+source; we did not provide a link due to anonymity requirements.  We are
+talking with the Tor developers to replace their hand-written protocol
+implementation with Nail-generated code. Furthermore, our example DNS
+server implements enough features to work as a typical authoritative name
+server (the glue records omitted are only necessary to avoid circular
+dependencies when delegating name servers in certain conditions; a
+typical website domain does not need them).
+
+* How does the application code interact with Nail?
+
+The programmer can either provide a pointer to an in-memory buffer
+or provide a stream implementation (methods for reading, writing and
+repositioning). Nail then provides functions that turn a stream into an
+object and vice versa. For example, our DNS grammar exposes two functions:
+
+  int gen_dnspacket(NailArena *arena, NailStream *out, dnspacket *val);
+  dnspacket *parse_dnspacket(NailArena *arena, const uint8_t *data, size_t size);
+
+Our benchmarks use memory buffers for network protocols and memory-mapped
+files for the ZIP archiver. For debugging, an error message mode can be
+turned on in which Nail will report which rules it failed or succeeded
+to apply at what position in the stream. However, in production code,
+all error handling is explicitly disabled and Nail returns either a
+valid object or nothing at all, so that programs do not partially process
+invalid inputs.  A detailed argument for this approach can be found in [4].
+
+If the grammar requires a specialized transformation (e.g., for ZIP
+files), the programmer needs to implement that code.  Figure 5 shows an
+example sketch of a transformation: namely, the offset transformation
+provided by Nail's standard library.
+
+* Is Nail systems research?
+
+We believe Nail is a good fit for a systems conference because it
+provides a practical solution to an important problem facing real-world
+systems software.  The overall contribution lies in showing how to
+build a complete system that addresses this problem.  Of course, Nail
+builds on prior work in parsing and languages, and in those areas,
+the paper describes several systems insights that make Nail work well:
+transformations (a pragmatic way of side-stepping the limited language
+that our parsing algorithm understands), reduced expressive power
+in the grammar due to a lack of semantic actions (which aren't great
+from a language/parser standpoint, but in practice work well for many
+real-world data formats), semantic bijections (a way of side-stepping
+degrees of freedom in real-world formats), etc.  Related work has also
+appeared at systems conferences: e.g., PacketTypes at SIGCOMM.

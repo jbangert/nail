@@ -1,0 +1,38 @@
+\newif\ifdraft\drafttrue
+\newif\ifnotes\notestrue
+\ifdraft\else\notesfalse\fi
+
+% Define \XXX, \XXX[notes] and \XXX[author][notes]
+\definecolor{xxxcolor}{rgb}{0.8,0,0}
+\makeatletter
+\long\def\XXX{\@ifnextchar[{\@XXX}{\@XXX[]}}
+\long\def\@XXX[#1]{\@ifnextchar[{\@@@XXX{#1}}{\@@XXX{#1}}}
+\ifnotes
+% Show XXX comments
+\long\def\@@XXX#1{{\color{xxxcolor} XXX #1}\xspace}
+\long\def\@@@XXX#1[#2]{{\color{xxxcolor} XXX (#1) #2}\xspace}
+\else
+% Hide XXX comments
+\long\def\@@XXX#1{\ignorespaces}
+\long\def\@@@XXX#1[#2]{\ignorespaces}
+\fi
+\makeatother
+
+\newcommand{\cc}[1]{{\smaller[0.5]\texttt{#1}}}
+
+%% Aggressive float placement
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\setcounter{topnumber}{2}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{4}
+\setcounter{dbltopnumber}{2}
+\renewcommand{\dbltopfraction}{0.9}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.7}
+\renewcommand{\dblfloatpagefraction}{0.7}
+%%
+
+\bibpunct[: ]{[}{]}{,}{n}{XXX}{XXX}
+
+\fvset{xleftmargin=6pt}

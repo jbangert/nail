@@ -1,0 +1,198 @@
+\section{Evaluation}
+\label{s:eval}
+
+% In our evaluation of Nail, we answer four questions:
+
+% \begin{itemize}
+
+% \item Can Nail grammars support real-world data formats, and
+%       are Nail's techniques critical to handling these formats?
+
+% \item How much programmer effort is required to build an
+%       application that uses Nail for data input and output?
+
+% \item Does using Nail for handling input and output improve
+%       application security?
+
+% \item Does Nail achieve acceptable performance?
+
+% \end{itemize}
+
+\subsection{Real-World Formats}
+\label{s:eval-formats}
+
+First, we ask whether Nail can handle real-world data formats and whether its techniques are
+critical to that. We used Nail to implement grammars
+for seven protocols with a range of challenging features.
+Figure~\ref{fig:eval-protocols} summarizes our results.
+We find that despite the challenging aspects of these protocols, Nail is
+able to capture the protocols, by relying on its novel features: dependent
+fields, streams, and transforms.  In contrast, state-of-the-art parser
+generators would be unable to fully handle 5 out of the 7 data formats.
+In the rest of this subsection, we describe the DNS and Zip grammars in
+more detail, focusing on how Nail's features enable us to support these
+formats.
+
+\begin{figure}[tb]
+\centering
+\begin{tabular}{lrl}
+\toprule
+\textbf{Protocol} & \textbf{LoC} & \textbf{Challenging features} \\ 
+\midrule
+DNS packets & 48+64 & Label compression,\\
+  & & count fields \\
+ZIP archives & 92+78 & Checksums, offsets, \\ 
+  & & variable length trailer, \\
+  & & compression \\
+Ethernet  & 16+0\phantom{0} & --- \\
+ARP       & 10+0\phantom{0} & --- \\
+IP        & 25+0\phantom{0} & Total length field, options \\
+UDP       &  7+0\phantom{0} & Checksum, length field \\
+ICMP      &  5+0\phantom{0} & Checksum \\
+\bottomrule
+\end{tabular}
+
+\caption{Protocols, sizes of their Nail grammars, and challenging aspects
+of the protocol that cannot be expressed in existing grammar languages.
+A + symbol counts lines of Nail grammar code (before the +) and lines of
+C code for protocol-specific transforms (after the +).}
+\label{fig:eval-protocols}
+\end{figure}
+
+\paragraph{DNS} In Section~\ref{s:design}, we introduced Nail's syntax with a grammar
+for DNS packets, shown in Figure~\ref{fig:dns-full}.
+The grammar corresponds almost directly to the diagrams in RFC 1035,
+which defines DNS~\cite[\S4]{RFC:1035}. Nail's dependent fields handle DNS's count fields, and
+transformations represent label compression. Both of these features are awkward at best to handle
+with existing tools.
+
+
+\paragraph{ZIP} An especially tricky data format is the ZIP compressed archive format~\cite{pkzip}.
+ZIP files are normally parsed end-to-beginning. At the end of each ZIP file is an
+\emph{end-of-directory header}. This header contains a variable-length comment, so it has to be
+located by scanning backwards from the end of the file until a magic number and a valid length field
+is found. Many ZIP implementations disagree on the exact semantics of this, such as when the comment
+contains the magic number~\cite{wolf:berlinsides-zip}.
+
+This header  contains points to the \emph{ZIP directory}, contains an entry every file
+in the archive.  Each entry stores file metadata in addition to the
+offset of a \emph{local file header}. The local file header duplicates
+most information from the directory entry header and is followed immediately by the compressed
+archive entry.
+Duplicating information made sense when ZIP files were stored on floppy
+disks with slow seek times and high fault rates, and memory constraints
+made it impossible to keep the ZIP directory in memory. 
+
+ However, if attackers craft inconsistent files, hand written parsers fail in interesting ways, e.g. 
+the length in the central directory is used to allocate memory and the
+length in the local directory is used to extract without checking that
+they are equal first, as was the case in the Python ZIP
+library~\cite{python-bug:20078}. 
+
+Nail avoids these issues by capturing these redundancies with dependent fields and decompressing
+files transparently with transformations, and the programmer
+is presented with a data structure containing the archive contents. To handle formats based on ZIP,
+such as office documents, our ZIP grammar could be extended to apply additional grammars to the
+files within an archive.
+
+
+
+\subsection{Applications}
+\label{s:eval-effort}
+
+%code size unzip 6.0
+%2821 lines
+We implemented two applications---a
+DNS server and an
+\cc{unzip} program---based on the above grammars, and will compare the effort involved and the
+resulting security to similar applications with hand-written parsers and with other parser generators.
+We will use lines of code as a proxy for programmer effort. To evaluate security, we will argue how
+our design avoids classes of vulnerabilities and fuzz-test one of our applications.
+\begin{figure}[tb]
+\centering
+\smaller[0.5]
+\begin{tabular}{lrr@{~}l}
+\toprule
+\textbf{Application}
+  & \textbf{LoC w/ Nail}
+  & \multicolumn{2}{c}{\textbf{LoC w/o Nail}} \\
+\midrule
+DNS server
+  & 295
+  & 683
+  & (Hammer parser) \\
+
+%  &
+%  & 10,000
+%  & (DJBDNS) \\
+
+\cc{unzip}
+  & 220
+  & 1,600
+  & (Info-Zip) \\
+\bottomrule
+\end{tabular}
+\caption{Comparison of code size for three applications written in
+  Nail,and a comparable existing implementation without Nail.}
+\label{fig:effort}
+\end{figure}
+
+\paragraph{DNS.}
+
+Our DNS server parses a zone file, listens to incoming DNS requests,
+parses them, and generates appropriate responses.  The DNS server is
+implemented in 183 lines of C, together with 48 lines of Nail grammar
+and 64 lines of C code implementing stream transforms for DNS label
+compression.  In comparison, Hammer~\cite{hammer-parser} ships with a toy
+DNS server that responds to any valid DNS query with a CNAME record to the
+domain ``spargelze.it''.  Their server consists of 683 lines of C, mostly
+custom validators, semantic actions, and data structure definitions, with
+ 52 lines of code defining the grammar with Hammer's combinators.
+Their DNS server does not implement label compression, zone files, etc.
+From this, we conclude that Nail leads to much more compact code for
+dealing with DNS packet formats.
+
+We ran the DNS fuzzer provided with the Metasploit
+framework~\cite{mspframework} on our DNS server, which sent randomly
+corrupted DNS queries to our server for 4 hours, during which it did
+not crash or trigger the stack or heap corruption detector.
+
+\paragraph{Performance}
+
+To evaluate whether Nail-based parsers are compatible with good
+performance, we compare the performance of our DNS server to that of ISC
+BIND 9 release 9.9.5~\cite{bind9}, a mature and widely used DNS server.
+We simulate a load resembling that of an authoritative name server, generating a random zone file
+and a random sequence of queries, with 10\% non-existent domains. We repeated this sequence of
+queries for one minute against both DNS servers. The results are shown in Figure~\ref{fig:perf-dns}, and demonstrate that
+our Nail-based DNS server can achieve higher performance and lower latency
+than BIND\@.  Although BIND is a more sophisticated DNS server,
+and implements many features that are not present in our Nail-based DNS
+server and that allow it to be used in more complicated configurations, 
+we believe our results demonstrate that Nail's parsers are not
+a barrier to achieving good performance.
+\paragraph{ZIP.}
+
+We implemented a ZIP file extractor in 50 lines of C code, together with
+92 lines of Nail grammar and 78 lines of C code implementing two stream
+transforms (one for the DEFLATE compression algorithm with the help of
+the zlib library, and one for finding the end-of-directory header).
+ The \cc{unzip} utility contains a file \cc{extract.c}, which parses
+ZIP metadata and calls various decompression routines in other files. This
+file measures over 1,600 lines of C, which suggests that Nail is highly
+effective at reducing manual input parsing code, even for the complex
+ZIP file format.
+
+In our full paper~\cite{bangert:nail-osdi14}, we present a study of 15 ZIP parsing bugs.
+11 of these vulnerabilities involved memory corruption during input handling, which generated code is immune to
+memory corruption attacks by design.
+More interestingly, Nail also protects against parsing inconsistency vulnerabilities like the four others we studied.
+Nail grammars explicitly encode duplicated information such as the redundant length fields in ZIP
+that caused a vulnerability in the Python ZIP library. The other three vulnerabilities exist
+because multiple implementations of the same protocol disagree on some inputs. Hand-written protocol
+parsers are not very reusable, as they build application-specific data structures and are tightly
+coupled to the rest of the code. Nail grammars, however, can be re-used between applications,
+avoiding protocol misunderstandings.
+
+
+

@@ -1,0 +1,173 @@
+\documentclass[25pt, a0paper, portrait, margin=0mm, innermargin=15mm,
+blockverticalspace=10mm, colspace=15mm, subcolspace=8mm]{tikzposter}
+
+\usepackage{times}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{mathptmx}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{underscore}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\usepackage{color}
+\usepackage{xspace}
+\usepackage{multirow}
+\usepackage{relsize}
+\usepackage{fancyvrb}
+\usepackage{pgfplots}
+\usepackage{adjustbox}
+\title{Nail: A practical tool for parsing and generating data formats}
+\author{Julian Bangert and Nickolai Zeldovich }
+\institute{MIT CSAIL}
+%\titlegraphic{Logo}
+\usetheme{Envelope}
+
+\input{code/fmt}
+
+\begin{document}
+\maketitle
+\begin{columns}
+\column{.5}
+
+\block{Parsing vulnerabilities}{
+\begin{itemize}
+\item Hand-written parsers introduce bugs.
+\item Different parsers not equivalent
+\begin{itemize}
+\item Evasi0n jailbreaks on iOS.
+\item PKI layer cake.
+\item Android master key.
+\end{itemize}
+\end{itemize}
+
+\innerblock{ZIP: A tricky file format}{
+  \includegraphics[width=0.43\columnwidth]{ZipHorizontal.png}
+}
+
+\innerblock{Case study of ZIP vulnerabilities in the CVE database:}{
+
+\begin{tabular}{lllr}
+\toprule
+ \bf Classification  & \bf Example description & \bf Count\\
+\midrule
+  Memory corruption  & Buffer overflow & 11\\
+  Parsing inconsistency & Virus scanners interpret ZIP files incorrectly & 4\\
+  Semantic misunderstanding & Weak cryptography used even if user selects AES & 1\\
+\midrule
+  \multicolumn{2}{l}{\bf Total of all vulnerabilities related to .zip processing }& \bf 16  \\
+\bottomrule
+  
+\end{tabular}
+}
+}
+
+\block{Existing parsers}{   
+Automatically generated parsers, such as  \texttt{bison} or Hammer are
+\begin{itemize}
+\item Immune to classes of bugs (e.g. memory corruption)\
+\item Easier to use
+\item Re-useable, eliminating parser ambiguities
+\end{itemize} 
+However, traditional parsers are inconvenient to use, because the programmer has to write all the
+yellow-colored parts:
+
+\includegraphics{StateOfTheArt.png}
+
+}
+\block{Nail}{
+Nail grammars describe both the format and a data type to represent it, an idea introduced by data
+description languages such as PacketTypes. 
+
+\includegraphics{Nail.png}
+
+\innerblock{Dependent Fields}{
+\begin{itemize}
+\item Redundant Information in protocol
+\begin{itemize}
+\item Length field
+\item Repeated information
+\end{itemize}
+\item Confuses application, e.g.: 
+\begin{itemize}
+\item Android master key: Uses local name length for extracting, directory for signature
+\item PKI layer cake: Mix implicit (terminator) string length and length field.
+\end{itemize}
+\end{itemize}
+Dependent Fields \textbf{hide redundant information}and automatically
+verify and generate it.
+}
+\innerblock{Streams and Transformations}{
+\begin{itemize}
+ \item Existing parsers are linear, consuming input front to back.
+\item  Nail grammars feature multiple streams.
+\item \emph{Transformations} modify and create streams.
+\item Pair of functions operating on streams and dependent fields.
+\item Standard library of Transformations enough for many formats.
+\item Programmer can write their own for complex formats.
+\end{itemize}
+}
+}
+% \block{Design Goals}{
+%   \begin{itemize}
+%     \item Reduce programmer effort
+%   \begin{itemize}
+%       \item Semantic combinators describes data type and format.
+%       \item Generate output. Semantic bijection, preserves meaning, but can change representation.
+%   \end{itemize}
+%      \item Handle complex formats
+%   \begin{itemize}
+%        \item Dependency Fields: hide redundant and structural information.
+%        \item Transforms: Extensibility mechanism to capture many features without complicating the
+%          grammar language.
+%        \end{itemize}
+%   \end{itemize}
+%}
+% \block{Semantic Bijection}{
+%   Traditional bijections don't make sense for some data formats. For example, offsets are and should
+%   be discarded during parsing. Nail parsers and generators therefore form a looser 'semantic
+%   bijection', in which parser(generator(x)) = x, but not necessarily vice versa.
+
+% }
+\column{.5}
+\block{Nail Grammar for .ZIP }{
+\innerblock{Nail Grammar}{
+\small
+\input{code/zip.nail}
+}
+\innerblock{Excerpt of the generated API}{
+\input{code/zip-out}
+}
+}
+\block{Evaluation}{
+\begin{tabular}{lllllll}
+\toprule
+\textbf{Protocol}&\textbf{Grammar} & \textbf{Transform}& \textbf{Application} & \textbf{App LoC} &
+\textbf{Total LoC } &
+\textbf{Alternative}\\
+\midrule
+DNS & 48&64 & Server & 186 & 298 & 683 (Hammer) \\
+\multicolumn{3}{l}{} & Resolver &  97 & 209 & >3000 (libc) \\
+ZIP & 92&78 & Extractor & 49 & 219 & 1600(Info-ZIP)\\
+Ethernet & 16 & 0 & \multicolumn{4}{l}{}\\
+ARP & 10 & 0 & \multicolumn{4}{l}{}\\
+IP & 25 & 0 & \multicolumn{4}{l}{}\\
+UDP & 7 & 0 & \multicolumn{4}{l}{}\\
+ICMP & 5 & 0 & \multicolumn{4}{l}{}\\
+
+
+\end{tabular}
+
+Nail and our example applications are available at 
+
+\url{https://github.com/jbangert/nail}.
+}
+  
+\end{columns}
+
+\end{document}

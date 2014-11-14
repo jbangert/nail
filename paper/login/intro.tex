@@ -1,0 +1,96 @@
+\begin{quote}
+  I am ZIP, file of files.
+  Parse me, ye mighty and despair.
+
+  -- Edward Shelley on the Android Master Key
+\end{quote}
+\section{Introduction}
+Binary file formats and network protocols are hard to parse safely: 
+The libpng image decompression library had 24 remotely
+exploitable vulnerabilities from 2007 to 2013~\cite{cvedetails:libpng},
+Adobe's PDF and Flash viewers have been notoriously plagued by input
+processing vulnerabilities, and even the zlib compression library had
+input processing vulnerabilities in the past~\cite{cvedetails:zlib}.
+Most of these attacks involve memory corruption - therefore, it is easy to assume that 
+solving memory corruption will end all our woes when handling untrusted inputs. 
+
+However, as memory-safe languages and exploit mitigation  tricks are becoming more prevalent,
+attackers are moving to a new class of attack - parser differentials. Many applications use
+hand-written input processing code, which is often mixed with the rest of the application, e.g. by
+passing a pointer to the raw input through the application. This (anti-)pattern makes it impossible
+to figure out whether two implementations of the same format or protocol are identical, and input
+handling code can't be easily reused between applications. As a result, different applications often
+disagree in the corner cases of a protocol, which can have fatal security consequences. For example,
+Android has two parsers for ZIP archives involved in securely installing applications. First, a Java
+program checks the signatures of files contained within an app archive and then another tool
+extracts them to the filesystem. Because the two ZIP parsers disagree in multiple places, attackers
+can modify a valid file so that the verifier will see the original contents, but attacker-controlled
+files will be extracted to the filesystem, bypassing Android's code signing. Similar issues showed
+up on iOS \cite{evasion} and SSL \cite{layercake}. 
+
+Instead of attempting to parse inputs by hand and failing, 
+a promising approach is to specify
+a precise grammar for the input data format, and automatically generate parsing code from that with tools like {\tt yacc}. As long
+as the parser generator is bug-free, the application will be safe from many
+input processing vulnerabilities. Grammars can also be re-used between
+applications, further reducing effort and eliminating inconsistencies.
+
+This approach is typical in compiler design and in other applications handling text-based inputs, but not
+common for binary inputs. The Hammer framework~\cite{hammer} and data description languages such as
+PADS~\cite{pads} have been developing generated parsers for binary protocols.
+
+However, existing tools are not powerful enough to handle some complixities formats such as PDF
+and ZIP, so programmers still have to hand-write code to handle the most complicated and therefore
+most error-prone formats. For example, existing parser generators cannot conveniently represent size or offset fields and more complex features, such as data compression or checksums cannot be expressed at all.
+
+Furthermore, some parser generators are cumbersome to use when parsing binary data for several reasons. First, parser generators typically parse inputs into an abstract syntax tree that corresponds to the grammar. Application developers must then write explicit {\em semantic actions} to construct a data structure the rest of the program can process. Therefore, programmers must describe the format up to three times -- in the grammar, the data structure and the semantic actions. Second, many applications also need to produce outputs in the same formats they parse - say when saving files or responding to network requests. However, most parser generators only address parsing inputs, so  the programmer must manually construct outputs. Some parser generators, such as 
+Boost.Spirit~\cite{boost-spirit} allow generating output, but require the programmer to write another set of semantic actions.
+
+
+
+We address these challenges with Nail, a new parser generator  with several features geared towards
+binary formats.
+First, Nail grammars describe not only a format, but also a data type to represent it within the program.
+This removes the semantic actions and type declarations that programmers have to write with existing
+parser generators. This forces the programmer
+to clearly separate syntactic validation and semantic processing.
+
+Second, Nail does not just
+parse input into an internal representation, but also generates output from the internal representation,
+without requiring the programmer to write additional code.
+
+Third, Nail introduces two abstractions, \emph{dependent fields} and
+\emph{transformations}, to elegantly handle problematic structures,
+such as offset fields or checksums.  Dependent fields capture fields
+in a protocol whose value depends in some way on the value or layout
+of other parts of the format; for example, offset or length fields,
+which specify the position or length of another data structure, fall
+in this category.  Transformations allow the programmer to escape the
+generated code to modify the raw data and interact with dependent fields
+in a controlled manner.
+
+In the rest of this article, we will show some tricky features of real world formats and how to
+handle them with Nail.
+
+%% To evaluate whether Nail's design is effective at handling real-world data
+%% formats, we implemented a prototype of Nail for C\@. Using our prototype, we
+%% implemented grammars for parts of an IP network stack, for DNS packets,
+%% and for ZIP files, each in about a hundred lines of grammar. On top of these
+%% grammars, we were able to build a DNS server in under 200 lines of C code, and
+%% an {\tt unzip} utility in about 50 lines of C code, with performance comparable
+%% to or exceeding existing implementations. This suggests both that Nail is
+%% effective at handling complex real-world data formats, and that Nail makes it
+%% easy for application developers to parse and generate external data
+%% representations. Performance results show that the Nail-based DNS server
+%% outperforms the widely used BIND DNS server, demonstrating that Nail-based
+%% parsers and generators can achieve good performance.
+
+%% The rest of this paper is organized as follows.  \S\ref{s:relwk}
+%% puts Nail in the context of related work.
+%% \S\ref{s:motivation} motivates the need for Nail by examining
+%% past data format vulnerabilities.
+%% \S\ref{s:design} describes
+%% Nail's design.  \S\ref{s:impl} discusses our implementation
+%% of Nail.  \S\ref{s:eval} provides evaluation results, and
+%% \S\ref{s:concl} concludes.
+

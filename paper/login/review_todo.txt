@@ -1,0 +1,56 @@
+
+* The paper makes some noise about "semantic bisection" early on but then kind of abandons that. I get it that this is important to improve security properties of the implementation, but the text does not discuss that clearly and I think that is important to make the case cleanly. 
+
+# * Transformations: Safer API
+
+Bugs in transformations can compromise security, but we expect that
+transformations are much less likely to contain bugs, compared to complete
+hand-written parsers, for three reasons:
+
+1. Transformations are much smaller than an entire hand-written parser.
+   For example, our Zip transformations are 78 lines of code, compared
+   to 1600 lines of code for an entire parser.
+
+2. There are many common transformations that can be shared between
+   grammars, and that come with Nail in a standard library.  For
+   example, the entire UDP stack, which uses checksum and length field
+   transformations, does not use any custom-written transformations
+   of its own; the checksum and length transforms are part of Nail's
+   standard transform library (which is used by DNS and ZIP as well).
+
+3. The code for transformations involves fewer tricky aspects than
+   writing a parser, in the following ways:
+
+   a. Nail provides convenient and safe interfaces for accessing streams,
+      safely allocating memory, etc.
+
+   b. If the transformation requires dependent variables (e.g., a length
+      field or the ZIP compression method), Nail parses and validates
+      those fields, and passes the result to the transformation function.
+
+As a result, writing transformation functions is less error-prone
+than writing a parser.
+
+* How does the application code interact with Nail?  
+
+# IMPLEMENTATION. provide prototypes for functions
+
+== * Fix ROP citation
+
+# * Make clear that BIND is not apples for apples
+
+* Wrap combinator
+
+* Explain error handling (and lack thereof) 
+
+# * PDF parser as example.
+
+# Similarly Section 4.4: "This transformation must be carefully written
+to not have bugs."  Doesn't that go without saying for any code that
+can be potentially attacked?
+
+Section 6.1: You are now experts on real-world data formats and the
+headaches they create for tools to deal with them automatically.
+Since there will undoubtedly be new formats defined in the future, do
+you have any best-practice guidelines or recommendations you can give
+to format/protocol designers, or at least practices to avoid?

@@ -1,0 +1,15 @@
+\BOOKMARK [1][-]{section.1}{Introduction}{}% 1
+\BOOKMARK [1][-]{section.2}{Related work}{}% 2
+\BOOKMARK [1][-]{section.3}{Motivation}{}% 3
+\BOOKMARK [1][-]{section.4}{Design}{}% 4
+\BOOKMARK [2][-]{subsection.4.1}{Overview}{section.4}% 5
+\BOOKMARK [2][-]{subsection.4.2}{Basics}{section.4}% 6
+\BOOKMARK [2][-]{subsection.4.3}{Dependent fields}{section.4}% 7
+\BOOKMARK [2][-]{subsection.4.4}{Input streams and transformations}{section.4}% 8
+\BOOKMARK [1][-]{section.5}{Implementation}{}% 9
+\BOOKMARK [1][-]{section.6}{Evaluation}{}% 10
+\BOOKMARK [2][-]{subsection.6.1}{Data formats}{section.6}% 11
+\BOOKMARK [2][-]{subsection.6.2}{Programmer effort}{section.6}% 12
+\BOOKMARK [2][-]{subsection.6.3}{Security}{section.6}% 13
+\BOOKMARK [2][-]{subsection.6.4}{Performance}{section.6}% 14
+\BOOKMARK [1][-]{section.7}{Conclusion}{}% 15

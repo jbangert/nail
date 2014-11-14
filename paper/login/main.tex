@@ -1,0 +1,71 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[10pt,nocopyright,inchmargins]{sigmin}
+\usepackage[letterpaper, breaklinks, pdfborder={0 0 0}]{hyperref}
+\usepackage[square,comma,numbers,sort&compress]{natbib}
+\usepackage{times}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{mathptmx}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{underscore}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\usepackage{color}
+\usepackage{xspace}
+\usepackage{multirow}
+\usepackage{relsize}
+\usepackage{fancyvrb}
+\usepackage{pgfplots}
+\lstset{language=C}          % Set your language (you can change the language for each code-block optionally)
+
+\pgfplotsset{width=7.3cm,compat=1.8}
+\usepgfplotslibrary{statistics}
+\usepgfplotslibrary{units}
+\makeatletter
+\pgfplotsset{
+    boxplot/hide outliers/.code={
+        \def\pgfplotsplothandlerboxplot@outlier{}%
+    }
+}
+\makeatother
+\renewcommand{\ttdefault}{pxtt}   %% better \tt font
+
+%% Ensure ligatures (e.g., ``fine official flag'') can be copy/pasted from PDF.
+\input{glyphtounicode}
+\pdfgentounicode=1
+
+\widowpenalty=5000
+\clubpenalty=5000
+
+\input{cmds}
+\input{code/fmt}
+
+
+\begin{document}
+\author{Julian Bangert and Nickolai Zeldovich \\ \em MIT CSAIL}
+\date{}
+\title{Nail: A practical tool for parsing and generating data formats}
+
+\maketitle
+
+\input{intro}
+% \input{relwk}
+% \input{motivation}
+\input{design}
+%\input{impl}
+\input{eval}
+%\input{future}
+\input{concl}
+\input{ack}
+
+\setlength{\bibsep}{2.5pt}
+\bibliography{n-str,main,locasto,langsec,n,n-conf}
+\bibliographystyle{abbrvnat}
+
+\end{document} 

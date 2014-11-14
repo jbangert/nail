@@ -1,0 +1,21 @@
+\section{Future work}
+\label{s:future}
+
+
+One problem with the current design of Nail is that the design of the
+grammar dictates the internal structure of the software.  This makes
+changing grammars or adding Nail to existing software awkward.
+One possible solution to this problem would be to implement a concept
+similar to relational lenses~\cite{bohannon2006relational}, which would
+allow the data model to be ``seen'' by the rest of the program through
+an isomorphism.  Such an isomorphism would still be much more concise
+than two sets of semantic actions, while allowing changes in syntax,
+alternative representations, and adaption to legacy systems.
+
+% Finally, we would like to demonstrate the capabilities of Nail by
+% implementing various binary formats ``notorious'' for their insecurity
+% in Nail. Nail was designed with the idioms of formats such as PDF and
+% PNG in mind. Ultimately, we want to provide examples of successful Nail
+% parsers throughout a network stack, from a user-space TCP stack to a
+% PNG de-compressor.
+
