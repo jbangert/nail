@@ -181,8 +181,8 @@ effective at reducing manual input parsing code, even for the complex
 ZIP file format.
 
 In our full paper~\cite{bangert:nail-osdi14}, we present a study of 15 ZIP parsing bugs.
-11 of these vulnerabilities involved memory corruption during input handling, which generated code is immune to
-memory corruption attacks by design.
+11 of these vulnerabilities involved memory corruption during input handling, which generated code
+is immune to by design.
 More interestingly, Nail also protects against parsing inconsistency vulnerabilities like the four others we studied.
 Nail grammars explicitly encode duplicated information such as the redundant length fields in ZIP
 that caused a vulnerability in the Python ZIP library. The other three vulnerabilities exist

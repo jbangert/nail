@@ -49,12 +49,13 @@ The body of the \texttt{dnspacket} rule is a structure, which contains any numbe
 between  curly braces. Each field in the structure is parsed in sequence, and represented as a
 structure to the programmer.  Contrary to other programming languages, Nail does not have a special
 keyword for structs. We also reverse the usual structure-field syntax: \texttt{id uint1} is a field
-called \texttt{id} with type \texttt{uint1}\footnote{This is a feature from Go, and makes nested
-  types more readable and the parser for Nail itself easier to write.}. Often, Nail grammars have
-structures with just one non-constant field, for example when parsing a fixed header. To prevent
-this from cluttering the data type, we support an alternative form of the structure combinator,
-using angle brackets, that has just one unnamed, non-constant field, which is represented directly
-in the data type. 
+called \texttt{id} with type \texttt{uint1}. Often, Nail grammars have
+structures with just one non-constant field, for example when parsing a fixed header. Nail supports
+this with an alternative form of the structure combinator,
+using angle brackets, that contains one unnamed, non-constant field, which is represented directly
+in the datatype, without introducing another layer of indirection, as shown on line 40.
+
+
 
 % To support recursive structures, we include a reference combinator \cc{*}, which
 %   is syntactically equivalent to directly including the parser, but in the internal model adds a
@@ -88,6 +89,7 @@ through  transformations, as we describe next.
 
 \subsection{Input streams and transformations}
 \label{s:transforms}
+Formats have 
 
 Traditional parsers handle input one symbol at a time, from beginning to end.
 However, real-world formats often require non-linear parsing. Offset fields require a parser to move
@@ -95,16 +97,21 @@ to a different position in the input, possibly backwards. Size fields require th
 processing before the end of input has been reached, and perhaps resume executing a parent parser.
 Other cases, such as compressed data, require more complicated processing on parts of the input
 before it can be handled.
-
-Nail introduces two concepts to handle these challenges, \emph{streams} and \emph{transformations}. 
 Streams represent a sequence of bytes that contain some external format. The parsers and generators
 that Nail generates always operate on an implicit stream named \cc{\$current} that they process front to
 back, reading input or appending output.
 Grammars can use the \cc{apply} combinator to parse a stream or generate output into it. 
-
 Streams are passed as arguments to a rule or defined within the grammar through \emph{transformations}.
 The current stream is always passed as an implicit parameter.
 
+
+There are many ways conceptual streams could be encoded in a data format --
+A tool like Nail needs to support all of them. This makes data description languages like
+PADS~\cite{Fisher:2005:PDL:1064978.1065046} contain not just a kitchen sink, but a kitchen store
+full of features -- and a language that can handle all possible format oddities will be a general
+purpose language.  Nail instead of allows you to plug in your own code as \emph{transformations},
+with a small, but powerful camping kitchen included that will handle most formats.
+ 
 Transformations are two arbitrary functions called during parsing and output generation.
 The parsing function  takes any number of stream arguments and dependent field values,
 and produces any number of temporary streams. This function may reposition and read from the
@@ -113,12 +120,12 @@ The generating function has to be an inverse of the parsing function. It takes t
 temporary streams that the parsing function produces, and writes the same number of streams and
 dependent field values that the parsing function consumes.
 
-Typically, the top level of most grammars is a rule that takes only a single stream, which may then
+Typically, grammars start out with a single stream, which may then
 be broken up by various transformations and passed to sub-rules, which eventually parse various linear
 fragment streams. Upon parsing, these fragment streams are generated and then combined by the
 transforms.
 
- To reduce both programmer effort and the risk of unsafe operations, Nails provides implementations of
+ To make your life easier and your code safer, Nails provides implementations of
 transformations for many common features, such as checksums, size, and offset fields. Furthermore,
 Nail provides library functions that can be used to safely operate on streams, such as splitting and
 concatenation. Nail implements streams as iterators, so they can share underlying buffers and can be
@@ -137,10 +144,6 @@ For example, our Zip transformations are 78 lines of code, compared to 1600 line
 Transformations can handle a wide variety of patterns in data formats, including the following: 
 
 \paragraph{Compressed data.}
-Encoded, compressed, or encrypted data can be handled transparently by writing a custom
-transformation that transforms a coded stream into one that can be parsed by a Nail grammar and vice
-versa. This transformation must be carefully written to not have bugs. 
-
 For example, DNS uses label compression to reduce the overhead of including each domain name
 multiple times in a DNS reply. If a domain name suffix is repeated, it may be replaced by a two-bit
 marker followed by a  14-bit offset into the packet, indicating the position where that suffix was
@@ -166,7 +169,7 @@ For this reason, the sample DNS grammar in Hammer does not
 support compression.
 
 \paragraph{Offsets.}
-A built-in transformation for handling offset fields, which is invoked as follows:
+We provide a  transformation for handling offset fields, which is invoked as follows:
 \cc{\$fragment transform offset\_u32(\$current, \cc{@}offset)}. 
 This transformation corresponds to two functions for parsing and
 generation, as shown in Figure~\ref{fig:xform-sig}. It defines a new stream \cc{\$fragment} that can
