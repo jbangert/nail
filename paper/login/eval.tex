@@ -62,12 +62,13 @@ C code for protocol-specific transforms (after the +).}
 \paragraph{DNS} In Section~\ref{s:design}, we introduced Nail's syntax with a grammar
 for DNS packets, shown in Figure~\ref{fig:dns-full}.
 The grammar corresponds almost directly to the diagrams in RFC 1035,
-which defines DNS~\cite[\S4]{RFC:1035}. Nail's dependent fields handle DNS's count fields, and
+which defines DNS. Nail's dependent fields handle DNS's count fields, and
 transformations represent label compression. Both of these features are awkward at best to handle
 with existing tools.
 
 
-\paragraph{ZIP} An especially tricky data format is the ZIP compressed archive format~\cite{pkzip}.
+\paragraph{ZIP} An especially tricky data format is the ZIP compressed archive format, as specified
+by PKWare.
 ZIP files are normally parsed end-to-beginning. At the end of each ZIP file is an
 \emph{end-of-directory header}. This header contains a variable-length comment, so it has to be
 located by scanning backwards from the end of the file until a magic number and a valid length field
@@ -86,8 +87,8 @@ made it impossible to keep the ZIP directory in memory.
  However, if attackers craft inconsistent files, hand written parsers fail in interesting ways, e.g. 
 the length in the central directory is used to allocate memory and the
 length in the local directory is used to extract without checking that
-they are equal first, as was the case in the Python ZIP
-library~\cite{python-bug:20078}. 
+they are equal first, as occured in Python bug 20078.
+
 
 Nail avoids these issues by capturing these redundancies with dependent fields and decompressing
 files transparently with transformations, and the programmer
@@ -153,13 +154,13 @@ From this, we conclude that Nail leads to much more compact code for
 dealing with DNS packet formats.
 
 We ran the DNS fuzzer provided with the Metasploit
-framework~\cite{mspframework} on our DNS server, which sent randomly
+framework on our DNS server, which sent randomly
 corrupted DNS queries to our server for 4 hours, during which it did
 not crash or trigger the stack or heap corruption detector.
 
 To evaluate whether Nail-based parsers are compatible with good
 performance, we compare the performance of our DNS server to that of ISC
-BIND 9 release 9.9.5~\cite{bind9}, a mature and widely used DNS server.
+BIND 9 release 9.9.5, a mature and widely used DNS server.
 We simulate a load resembling that of an authoritative name server, generating a random zone file
 and a random sequence of queries, with 10\% non-existent domains. We repeated this sequence of
 queries for one minute against both DNS servers. We found that our DNS server is approximately three

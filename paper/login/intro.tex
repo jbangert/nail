@@ -7,10 +7,10 @@
 \section{Introduction}
 Binary file formats and network protocols are hard to parse safely: 
 The libpng image decompression library had 24 remotely
-exploitable vulnerabilities from 2007 to 2013~\cite{cvedetails:libpng},
+exploitable vulnerabilities from 2007 to 2013 according to CVEDetails,
 Adobe's PDF and Flash viewers have been notoriously plagued by input
 processing vulnerabilities, and even the zlib compression library had
-input processing vulnerabilities in the past~\cite{cvedetails:zlib}.
+input processing vulnerabilities in the past.
 Most of these attacks involve memory corruption - therefore, it is easy to assume that 
 solving memory corruption will end all our woes when handling untrusted inputs. 
 
@@ -50,7 +50,7 @@ that the you write to construct a data structure. Therefore,you must
 describe the format up to three times -- in the grammar, the data structure and the semantic
 actions. Second, most parser generators only address parsing inputs, so you'd have to manually
 construct outputs. Some parser generators, such as 
-Boost.Spirit~\cite{boost-spirit} allow generating output, but require you to write another set of semantic actions.
+Boost.Spirit  allow generating output, but require you to write another set of semantic actions.
 
 
 We address these challenges with Nail, a new parser generator for binary formats.
