@@ -21,17 +21,13 @@
 \subsection{Real-World Formats}
 \label{s:eval-formats}
 
-First, we ask whether Nail can handle real-world data formats and whether its techniques are
-critical to that. We used Nail to implement grammars
+First, we'll demonstrate how Nail's features help process real-world protocols. We used Nail to implement grammars
 for seven protocols with a range of challenging features.
 Figure~\ref{fig:eval-protocols} summarizes our results.
 We find that despite the challenging aspects of these protocols, Nail is
 able to capture the protocols, by relying on its novel features: dependent
 fields, streams, and transforms.  In contrast, state-of-the-art parser
 generators would be unable to fully handle 5 out of the 7 data formats.
-In the rest of this subsection, we describe the DNS and Zip grammars in
-more detail, focusing on how Nail's features enable us to support these
-formats.
 
 \begin{figure}[tb]
 \centering
@@ -68,33 +64,31 @@ with existing tools.
 
 
 \paragraph{ZIP} An especially tricky data format is the ZIP compressed archive format, as specified
-by PKWare.
-ZIP files are normally parsed end-to-beginning. At the end of each ZIP file is an
+by PKWare. At the end of each ZIP file is an
 \emph{end-of-directory header}. This header contains a variable-length comment, so it has to be
 located by scanning backwards from the end of the file until a magic number and a valid length field
 is found. Many ZIP implementations disagree on the exact semantics of this, such as when the comment
 contains the magic number~\cite{wolf:berlinsides-zip}.
-
 This header  contains points to the \emph{ZIP directory}, contains an entry every file
 in the archive.  Each entry stores file metadata in addition to the
 offset of a \emph{local file header}. The local file header duplicates
 most information from the directory entry header and is followed immediately by the compressed
 archive entry.
 Duplicating information made sense when ZIP files were stored on floppy
-disks with slow seek times and high fault rates, and memory constraints
-made it impossible to keep the ZIP directory in memory. 
+disks with slow seek times and high fault rates, but nowadays lead to parsers being confused, such
+as in the recent Android Master Key bug.
 
- However, if attackers craft inconsistent files, hand written parsers fail in interesting ways, e.g. 
-the length in the central directory is used to allocate memory and the
-length in the local directory is used to extract without checking that
-they are equal first, as occured in Python bug 20078.
+%  However, if attackers craft inconsistent files, hand written parsers fail in interesting ways, e.g. 
+% the length in the central directory is used to allocate memory and the
+% length in the local directory is used to extract without checking that
+% they are equal first, as occured in Python bug 20078.
 
 
 Nail avoids these issues by capturing these redundancies with dependent fields and decompressing
 files transparently with transformations, and the programmer
-is presented with a data structure containing the archive contents. To handle formats based on ZIP,
-such as office documents, our ZIP grammar could be extended to apply additional grammars to the
-files within an archive.
+is presented with a data structure containing the archive contents. Nail even allows parsing the
+contents of an archive file -- allowing formats based on ZIP, such as Microsoft Office documents, to
+be handled with one grammar.
 
 
 
@@ -150,13 +144,7 @@ domain ``spargelze.it''.  Their server consists of 683 lines of C, mostly
 custom validators, semantic actions, and data structure definitions, with
  52 lines of code defining the grammar with Hammer's combinators.
 Their DNS server does not implement label compression, zone files, etc.
-From this, we conclude that Nail leads to much more compact code for
-dealing with DNS packet formats.
 
-We ran the DNS fuzzer provided with the Metasploit
-framework on our DNS server, which sent randomly
-corrupted DNS queries to our server for 4 hours, during which it did
-not crash or trigger the stack or heap corruption detector.
 
 To evaluate whether Nail-based parsers are compatible with good
 performance, we compare the performance of our DNS server to that of ISC
@@ -183,7 +171,7 @@ ZIP file format.
 
 In our full paper~\cite{bangert:nail-osdi14}, we present a study of 15 ZIP parsing bugs.
 11 of these vulnerabilities involved memory corruption during input handling, which generated code
-is immune to by design.
+is immune to by design. We also fuzz-tested our DNS server.
 More interestingly, Nail also protects against parsing inconsistency vulnerabilities like the four others we studied.
 Nail grammars explicitly encode duplicated information such as the redundant length fields in ZIP
 that caused a vulnerability in the Python ZIP library. The other three vulnerabilities exist

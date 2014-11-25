@@ -175,23 +175,3 @@ For example, our Zip transformations are 78 lines of code, compared to 1600 line
    vulnerabilities.  
 
 
-% For example, we imagine the following grammar could be used to represent
-% a sequence of bytes \texttt{data} followed by its CRC32 checksum:
-
-% \begin{verbatim}
-% data many uint8; @checksum uint32
-% raw_depend @checksum data crc32
-% \end{verbatim}
-
-% \noindent
-% where \texttt{crc32} is a function supplied by the application, with
-% the following signature:
-
-% \begin{verbatim}
-% bool crc32(uint32_t *out, uint8_t *in);
-% \end{verbatim}
-
-% Because this feature compromises Nail's security guarantees, it should
-% only be used in limited circumstances and with carefully prepared checksum
-% functions.  This feature is not implemented in the current prototype.
-
