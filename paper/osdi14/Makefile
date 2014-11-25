@@ -1,9 +1,12 @@
 Q=@
-all: main.pdf poster.pdf
+all: main.pdf poster.pdf performance.pdf
+
 main.pdf: $(wildcard *.tex) $(wildcard *.bib) $(wildcard code/*.tex)
 	$(Q)PATH=$$PATH:. latexrun --bibtex-args=-min-crossrefs=100 main.tex
 poster.pdf: $(wildcard *.tex) $(wildcard *.bib) $(wildcard code/*.tex)
 	$(Q)PATH=$$PATH:. latexrun --bibtex-args=-min-crossrefs=100 poster.tex
+performance.pdf: $(wildcard *.tex)
+	$(Q)PATH=$$PATH:. latexrun --bibtex-args=-min-crossrefs=100 performance.tex
 code/fmt.tex:
 	pygmentize -f latex -S default \
 		| grep -vw 'PY@tok@m' \

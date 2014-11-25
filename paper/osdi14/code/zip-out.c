@@ -17,7 +17,7 @@ struct dir_fileheader{
   fileentry contents;
 };/*..*/
 //The programmer calls these generated functions.
-int gen_zip(NailArena *tmp_arena,NailStream *out,zip * val);
+int gen_zip(NailArena *tmp_arena,NailStream *out,zip *val);
 zip*parse_zip(NailArena *arena, 
               const uint8_t *data, size_t size);
 //The programmers implements these two transformation
