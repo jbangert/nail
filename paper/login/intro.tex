@@ -45,10 +45,10 @@ error-prone-- aspects of such formats-- so you'd still have to
 hand-write the riskiest bits of code. For example, existing parser generators cannot conveniently represent size or offset fields and more complex features, such as data compression or checksums cannot be expressed at all.
 
 Furthermore, some parser generators are cumbersome to use when parsing binary data for several
-reasons. First, many parser generators don't directly data structures, but call semantic actions
-that the you write to construct a data structure. Therefore,you must
+reasons. First, many parser generators don't produce convenient data structures, but call
+\emph{semantic actions} that you have to write to build up a data structure your program can use. Therefore,you must
 describe the format up to three times -- in the grammar, the data structure and the semantic
-actions. Second, most parser generators only address parsing inputs, so you'd have to manually
+actions. Second, most parser generators only address parsing inputs, so you have to manually
 construct outputs. Some parser generators, such as 
 Boost.Spirit  allow generating output, but require you to write another set of semantic actions.
 
@@ -56,8 +56,8 @@ Boost.Spirit  allow generating output, but require you to write another set of s
 We address these challenges with Nail, a new parser generator for binary formats.
 First, Nail grammars describe not only a format, but also a data type to represent it within the program.
 Therefore you don't have to write semantic actions and type declarations and you can no longer syntactic validation and semantic processing.
-Second, Nail will also take care of generating output from the same data type, without requiring you
-to write more risky code or think about the format again.
+Second, Nail will also generate output from this data type, without requiring you
+to write more risky code or giving you a chance to introduce ambiguity.
 
 Third,  Nail introduces two abstractions, \emph{dependent fields} and
 \emph{transformations}, to elegantly handle problematic structures,
@@ -65,9 +65,8 @@ such as offset fields or checksums.  Dependent fields capture fields
 in a protocol whose value depends in some way on the value or layout
 of other parts of the format; for example, offset or length fields,
 which specify the position or length of another data structure, fall
-in this category.  Transformations allow you to escape the
-generated code to modify the raw data and interact with dependent fields
-in a controlled manner.
+in this category.  Transformations allow you to write plug-ins, allowing your programs to handle complicated structures, while
+keeping Nail itself small, yet flexible. 
 
 In the rest of this article, we will show some tricky features of real world formats and how to
 handle them with Nail.

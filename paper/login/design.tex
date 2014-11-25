@@ -3,7 +3,7 @@ In this section, we will explain how to handle basic data formats in Nail, how t
 redundancies in the format with dependent fields and how Nail parsers can be extended with
 transformations. 
 
-We will use DNS packets as a leading example, as defined in RFC 1035.  Each DNS packet consists of a
+As a motivating example, we will parse DNS packets, as defined in RFC 1035. Each DNS packet consists of a
 header, a set of question records, and a set of answer records. Domain
 names in both queries and answers are encoded as a sequence of labels,
 terminated by a zero byte.  Labels are Pascal-style strings, consisting
@@ -12,7 +12,7 @@ of a length field followed by that many bytes comprising the label.
 \subsection{Basic Data formats}
 
 \input{fig-dnsfull}
-Let's step through a simplified Nail grammar DNS
+Let's step through a simplified Nail grammar for DNS
 packets, shown in  Figure~\ref{fig:dns-full}.  For this grammar, Nail produces the type declarations
 shown in Figure~\ref{fig:dns-full-struct}, and the parser and
 generator functions shown in Figure~\ref{fig:dns-full-api}.
