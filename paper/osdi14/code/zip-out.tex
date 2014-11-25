@@ -1,0 +1,30 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8}]
+\PY{k}{struct} \PY{n}{zip}\PY{p}{\PYZob{}}
+  \PY{n}{end\PYZus{}of\PYZus{}directory} \PY{n}{contents}\PY{p}{;}
+\PY{p}{\PYZcb{}}\PY{p}{;}
+\PY{k}{struct} \PY{n}{end\PYZus{}of\PYZus{}directory}\PY{p}{\PYZob{}}
+  \PY{k+kt}{uint16\PYZus{}t} \PY{n}{disks}\PY{p}{;}
+  \PY{k+kt}{uint16\PYZus{}t} \PY{n}{directory\PYZus{}disk}\PY{p}{;}\PY{c+cm}{/*...*/}
+  \PY{k}{struct} \PY{p}{\PYZob{}}
+    \PY{n}{dir\PYZus{}fileheader}\PY{o}{*} \PY{n}{elem}\PY{p}{;}
+    \PY{k+kt}{size\PYZus{}t} \PY{n}{count}\PY{p}{;}
+  \PY{p}{\PYZcb{}} \PY{n}{files}\PY{p}{;}
+\PY{p}{\PYZcb{}}\PY{p}{;}
+\PY{k}{struct} \PY{n}{dir\PYZus{}fileheader}\PY{p}{\PYZob{}}
+  \PY{k}{struct} \PY{p}{\PYZob{}}
+    \PY{k+kt}{uint8\PYZus{}t}\PY{o}{*}\PY{n}{elem}\PY{p}{;}
+    \PY{k+kt}{size\PYZus{}t} \PY{n}{count}\PY{p}{;}
+  \PY{p}{\PYZcb{}} \PY{n}{filename}\PY{p}{;}
+  \PY{n}{fileentry} \PY{n}{contents}\PY{p}{;}
+\PY{p}{\PYZcb{}}\PY{p}{;}\PY{c+cm}{/*..*/}
+\PY{c+c1}{//The programmer calls these generated functions.}
+\PY{k+kt}{int} \PY{n+nf}{gen\PYZus{}zip}\PY{p}{(}\PY{n}{NailArena} \PY{o}{*}\PY{n}{tmp\PYZus{}arena}\PY{p}{,}\PY{n}{NailStream} \PY{o}{*}\PY{n}{out}\PY{p}{,}\PY{n}{zip} \PY{o}{*}\PY{n}{val}\PY{p}{)}\PY{p}{;}
+\PY{n}{zip}\PY{o}{*}\PY{n+nf}{parse\PYZus{}zip}\PY{p}{(}\PY{n}{NailArena} \PY{o}{*}\PY{n}{arena}\PY{p}{,} 
+              \PY{k}{const} \PY{k+kt}{uint8\PYZus{}t} \PY{o}{*}\PY{n}{data}\PY{p}{,} \PY{k+kt}{size\PYZus{}t} \PY{n}{size}\PY{p}{)}\PY{p}{;}
+\PY{c+c1}{//The programmers implements these two transformation}
+\PY{c+c1}{//functions and two similar ones for output.}
+\PY{k}{extern} \PY{k+kt}{int} \PY{n+nf}{zip\PYZus{}eod\PYZus{}parse}\PY{p}{(}\PY{n}{NailArena} \PY{o}{*}\PY{n}{tmp}\PY{p}{,}
+ \PY{n}{NailStream} \PY{o}{*}\PY{n}{filestream}\PY{p}{,} \PY{n}{NailStream} \PY{o}{*}\PY{p}{,}\PY{n}{NailStream} \PY{o}{*}\PY{n}{current}\PY{p}{)}\PY{p}{;}
+\PY{k}{extern} \PY{k+kt}{int} \PY{n+nf}{zip\PYZus{}compression\PYZus{}parse}\PY{p}{(}\PY{n}{NailArena} \PY{o}{*}\PY{n}{tmp}\PY{p}{,}
+ \PY{n}{NailStream} \PY{o}{*}\PY{n}{uncomp}\PY{p}{,}\PY{n}{NailStream} \PY{o}{*}\PY{n}{compressed}\PY{p}{,}\PY{k+kt}{uint32\PYZus{}t}\PY{o}{*} \PY{n}{size}\PY{p}{)}\PY{p}{;}
+\end{Verbatim}
