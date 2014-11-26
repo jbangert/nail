@@ -1,4 +1,4 @@
-\section{Evaluation}
+\section{Using Nail}
 \label{s:eval}
 
 % In our evaluation of Nail, we answer four questions:
@@ -20,12 +20,11 @@
 
 \subsection{Real-World Formats}
 \label{s:eval-formats}
-
-First, we'll demonstrate how Nail's features help process real-world protocols. We used Nail to implement grammars
+ We used Nail to implement grammars
 for seven protocols with a range of challenging features.
 Figure~\ref{fig:eval-protocols} summarizes our results.
-We find that despite the challenging aspects of these protocols, Nail is
-able to capture the protocols, by relying on its novel features: dependent
+Despite the challenging aspects of these protocols, Nail is
+able to capture them by relying on its novel features: dependent
 fields, streams, and transforms.  In contrast, state-of-the-art parser
 generators would be unable to fully handle 5 out of the 7 data formats.
 
@@ -55,9 +54,9 @@ C code for protocol-specific transforms (after the +).}
 \label{fig:eval-protocols}
 \end{figure}
 
-\paragraph{DNS} In Section~\ref{s:design}, we introduced Nail's syntax with a grammar
-for DNS packets, shown in Figure~\ref{fig:dns-full}.
-The grammar corresponds almost directly to the diagrams in RFC 1035,
+\paragraph{DNS} Previously, we used a grammar for DNS packets shown in Figure~\ref{fig:dns-full} to
+show how to write Nail grammars.
+This example grammar corresponds almost directly to the diagrams in RFC 1035,
 which defines DNS. Nail's dependent fields handle DNS's count fields, and
 transformations represent label compression. Both of these features are awkward at best to handle
 with existing tools.
@@ -84,9 +83,8 @@ as in the recent Android Master Key bug.
 % they are equal first, as occured in Python bug 20078.
 
 
-Nail avoids these issues by capturing these redundancies with dependent fields and decompressing
-files transparently with transformations, and the programmer
-is presented with a data structure containing the archive contents. Nail even allows parsing the
+Nail captures these redundancies with dependent fields, eliminating the ambiguities. It also  decompresses
+archive contents transparently with transformations, which allows parsing the
 contents of an archive file -- allowing formats based on ZIP, such as Microsoft Office documents, to
 be handled with one grammar.
 
