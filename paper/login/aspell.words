@@ -1,4 +1,4 @@
-personal_ws-1.1 en 253 
+personal_ws-1.1 en 277 
 ACM
 AES
 API
@@ -13,18 +13,23 @@ Bernstein's
 Bogk
 Bohannon
 Bratus
+Broomfield
 Burge
 CNAME
 CORBA
 CSAIL
 CVE
 CVE's
+CVEDetails
 Coq
 DARPA
+DNS's
 Daan
 Danielsson
 DataScript
 Datascript
+EECS
+Edgerton
 Evasi
 Frans
 GitHub
@@ -33,6 +38,7 @@ HD
 HITB
 Hartmut
 Haskell
+HiStar
 Hirsch
 Hotz
 ICMP
@@ -56,6 +62,7 @@ Marlinspike
 McCann
 Meijer
 Mockapetris
+MokaFive
 NOP
 NUL
 NailArena
@@ -66,12 +73,13 @@ Nergal
 Nickolai
 Nils
 OCaml
+OSDI
 Oulu
 PDF
 PDFs
 PEGs
 PKI
-PKWARE
+PKWare
 PLDI
 PNG
 POPL
@@ -79,6 +87,8 @@ PaX
 PacketTypes
 Packrat
 Patteron
+Ph
+ProtoZIP
 Protos
 Pseudocode
 ROP
@@ -96,6 +106,7 @@ Sergey
 Shmoocon
 Shubina
 SlocCount
+Spira
 Srinivasan
 TCP
 Thurston
@@ -116,6 +127,7 @@ abbrvnat
 al
 allocator
 ar
+behaviour
 benchmarked
 bijection
 bool
@@ -128,11 +140,13 @@ combinator
 combinator's
 combinators
 compat
+compr
 conf
 crc
 cryptographic
 cryptosystem
 cve
+datatype
 de
 decomp
 dir
@@ -152,7 +166,9 @@ evasi
 expr
 extensibility
 filename
+filenames
 filestream
+filesystem
 fuzzer
 hashtable
 hoc
@@ -197,6 +213,7 @@ parsers
 pgf
 phrack
 pre
+protozip
 pxtt
 qc
 qclass
@@ -207,9 +224,11 @@ rcode
 rdata
 relocations
 reposition
+reuseable
 rgb
 rlength
 rtype
+runtime
 scalability
 sep
 sepBy
@@ -218,11 +237,14 @@ spargelze
 stderr
 str
 struct
+structs
+substream
 superset
 tc
 th
 tmp
 ttl
+turing
 typedef
 uint
 unambiguity
@@ -235,6 +257,7 @@ validators
 valuelen
 verifier
 versa
+virtualization
 vlan
 whitespace
 writeup
@@ -249,6 +272,7 @@ xmin
 xxxcolor
 yacc
 yticklabels
+zipdir
 zipfile
 zlib
 zonefile

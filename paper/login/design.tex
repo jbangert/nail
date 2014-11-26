@@ -145,7 +145,7 @@ end-to-beginning structure of ProtoZIP files.}
 \label{fig:zip-transform}
 \end{figure}
 When parsing input, this will call \cc{zipdir\_parse}, which takes \cc{\$current} -- an implicit
-identifier always refering to the stream currently being handled -- and returns \cc{\$files} and
+identifier always referring to the stream currently being handled -- and returns \cc{\$files} and
 \cc{\$header}. When generating output, this will call \cc{zipdir\_generate}, which appends
 \cc{\$files} and \cc{\$header} to \cc{\$current}.
 
@@ -153,7 +153,7 @@ identifier always refering to the stream currently being handled -- and returns 
 Line 3 then applies the \cc{dir} rule to  the \cc{\$header} stream, passing it the \cc{\$files}
 stream. Within \cc{dir}, \cc{\$current} is now \cc{\$header} and input is parsed from and output
 generated to that stream. The \cc{dir} rule in turn describes the structure of the directory -- a
-magic number and a count field, followed by that many file descripors. Each file descriptor, is then parsed with two
+magic number and a count field, followed by that many file descriptors. Each file descriptor, is then parsed with two
 transformations, the standard-library \cc{slice} which describes an offset and a size within another
 stream, and the custom \cc{zlib}, which compresses a stream using zlib. Finally, we apply a trivial
 grammar (line 14) to the contents. 
