@@ -1,5 +1,5 @@
 Q=@
-all: main.pdf poster.pdf performance.pdf
+all: main.pdf
 
 main.pdf: $(wildcard *.tex) $(wildcard *.bib) $(wildcard code/*.tex)
 	$(Q)PATH=$$PATH:. latexrun --bibtex-args=-min-crossrefs=100 main.tex
