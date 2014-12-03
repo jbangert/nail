@@ -747,13 +747,14 @@
                   and David L. Dill and Dawson R. Engler},
   title = 	 {{EXE}: Automatically Generating Inputs of Death},
   crossref =     {CCS06},
+  pages =        {322--335},
 }
 
 @InProceedings{callaghan:automounter,
   author =       {Brent Callaghan and Tom Lyon},
   title =        {The Automounter},
   institution =  {Sun Microsystems, Inc.},
-  pages =	 {43-51},
+  pages =	 {43--51},
   crossref =     {USENIX89W}
 }
 
@@ -1060,7 +1061,8 @@
   author = 	 {Dawson R. Engler and M. Frans Kaashoek and James W. O'Toole},
   title = 	 {Exokernel: An Operating System Architecture for
                   Application-Level Resource Management},
-  crossref =	{SOSP15}
+  crossref =	{SOSP15},
+  pages = {251--266},
 }
 
 @Article{epema:flock,
@@ -3656,6 +3658,28 @@ year = 2001
     author	= {Cristian Cadar and Daniel Dunbar and Dawson Engler},
     title	= {{KLEE}: Unassisted and Automatic Generation of High-Coverage Tests for Complex Systems Programs},
     crossref	= {OSDI08},
+    pages       = {209--224},
+}
+
+@inproceedings{guo:r2,
+  author = {Zhenyu Guo and Xi Wang and Jian Tang and Xuezheng Liu and Zhilei Xu and Ming Wu and M. Frans Kaashoek and Zheng Zhang},
+  title = {R2: An Application-Level Kernel for Record and Replay},
+  crossref = {OSDI08},
+  pages = {193--208},
+}
+
+@inproceedings{liu:d3s,
+  author = {Xuezheng Liu and Zhenyu Guo and Xi Wang and Feibo Chen and Xiaochen Lian and Jian Tang and Ming Wu and M. Frans Kaashoek and Zheng Zhang},
+  title = {{D$^3$S}: Debugging Deployed Distributed Systems},
+  crossref = {NSDI08},
+  pages = {423--437},
+}
+
+@inproceedings{wang:hangwiz,
+  author = {Xi Wang and Zhenyu Guo and Xuezheng Liu and Zhilei Xu and Haoxiang Lin and Xiaoge Wang and Zheng Zhang},
+  title = {Hang Analysis: Fighting Responsiveness Bugs},
+  crossref = {EUROSYS08},
+  pages = {177--190},
 }
 
 @InProceedings{yip:resin,
@@ -3715,6 +3739,7 @@ year = 2001
 	     Simon Winwood},
     title = {{seL4}: Formal Verification of an {OS} Kernel},
     crossref = {SOSP22},
+    pages = {207--220},
 }
 
 @InProceedings{nightingale:speculator,
@@ -3745,6 +3770,7 @@ year = 2001
               Marcus Peinado and Periklis Akritidis and Austin Donnelly and
               Paul Barham and Richard Black},
     crossref = {SOSP22},
+    pages = {45--58},
 }
 
 @InProceedings{kadav:tolerating,
@@ -3801,10 +3827,11 @@ year = 2001
 }
 
 @InProceedings{erlingsson:xfi,
-    title = {{XFI}: software guards for system address spaces},
+    title = {{XFI}: Software Guards for System Address Spaces},
     author = {Ulfar Erlingsson and Mart{\'\i}n Abadi and Michael Vrable and
 	      Mihai Budiu and George C. Necula},
     crossref = {OSDI06},
+    pages = {75--88},
 }
 
 @InProceedings{glerum:wer,
@@ -3856,6 +3883,7 @@ year = 2001
     author = {Francis M. David and Ellick M. Chan and Jeffrey C. Carlyle
 	      and Roy H. Campbell},
     crossref = {OSDI08},
+    pages = {59--72},
 }
 
 @InProceedings{boyd-wickizer:o2,
@@ -3969,6 +3997,7 @@ year = 2001
     year = 2009,
     month = jun # {--} # jul,
     address = {Lisbon, Portugal},
+    pages = {33--42},
 }
 
 @InProceedings{kim:tripwire,
@@ -4742,6 +4771,13 @@ year = 2001
   pages = {163--177},
 }
 
+@inproceedings{dejonge:ld,
+   author = {de Jonge, Wiebren and Kaashoek, M. Frans and Hsieh, Wilson C.},
+   title = {The logical disk: a new approach to improving file systems},
+   crossref = {SOSP14},
+   pages = {15--28},
+}
+
 @inproceedings{tucek:delta-execution,
   author = {Joseph Tucek and Weiwei Xiong and Yuanyuan Zhou},
   title = {Efficient Online Validation With Delta Execution},
@@ -5065,7 +5101,7 @@ year = 2001
 @misc{goldwasser:we-eprint,
   author = {Shafi Goldwasser and Yael Kalai and Raluca Ada Popa and
             Vinod Vaikuntanathan and Nickolai Zeldovich},
-  title = {How to Run Turing Machines on Encrypted Data},
+  title = {How to Run {Turing} Machines on Encrypted Data},
   howpublished = {Cryptology ePrint Archive, Report 2013/229},
   month = apr,
   year = 2013,
@@ -5076,7 +5112,7 @@ year = 2001
 @inproceedings{goldwasser:we,
   author = {Shafi Goldwasser and Yael Kalai and Raluca Ada Popa and
             Vinod Vaikuntanathan and Nickolai Zeldovich},
-  title = {How to Run Turing Machines on Encrypted Data},
+  title = {How to Run {Turing} Machines on Encrypted Data},
   crossref = {CRYPTO13},
   pages = {536--553},
   xsort = {a},
@@ -5458,11 +5494,23 @@ year = 2001
 @article{leroy:compcert,
   author = {Xavier Leroy},
   title = {Formal verification of a realistic compiler},
-  journal = {Communications of the ACM},
+  journal = CACM,
   year = 2009,
+  month = jul,
   volume = 52,
   number = 7,
   pages = {107--115},
+}
+
+@article{leroy:compcert-backend,
+  author = {Xavier Leroy},
+  title = {A formally verified compiler back-end},
+  journal = {Journal of Automated Reasoning},
+  year = 2009,
+  month = dec,
+  volume = 43,
+  number = 4,
+  pages = {363--446},
 }
 
 @inproceedings{mccoyd:minvisor,
@@ -5473,6 +5521,7 @@ year = 2001
   address = {Maui, HI},
   month = jan,
   year = 2013,
+  pages = {5069--5078},
 }
 
 @inproceedings{chlipala:bedrock,
@@ -5481,6 +5530,15 @@ year = 2001
            Computational Separation Logic},
   crossref = {PLDI11},
   pages = {234--245},
+}
+
+@inproceedings{chlipala:bedrock2,
+  author = {Adam Chlipala},
+  title = {The {Bedrock} Structured Programming System: Combining
+           Generative Metaprogramming and {Hoare} Logic in an
+           Extensible Program Verifier},
+  crossref = {ICFP13},
+  pages = {391--402},
 }
 
 @inproceedings{sewell:sel4-tv,
@@ -5497,12 +5555,20 @@ year = 2001
   pages = {283--294},
 }
 
+@inproceedings{vu:emi,
+  author = {Vu Le and Mehrdad Afshari and Zhendong Su},
+  title = {Compiler Validation via Equivalence Modulo Inputs},
+  crossref = {PLDI14},
+  pages = {216--226},
+}
+
 @inproceedings{madhavapeddy:unikernels,
   author = {Anil Madhavapeddy and Richard Mortier and Charalampos Rotsos and
             David Scott and Balraj Singh and Thomas Gazagnaire and
             Steven Smith and Steven Hand and Jon Crowcroft},
   title = {Unikernels: Library Operating Systems for the Cloud},
   crossref = {ASPLOS13},
+  pages = {461--472},
 }
 
 @article{lynch:forward-backward,
@@ -5521,7 +5587,7 @@ year = 2001
   title = {Certified Programming with Dependent Types},
   publisher = {MIT Press},
   year = 2013,
-  month = nov,
+  month = dec,
 }
 
 @inproceedings{begel:bpf+,
@@ -5561,6 +5627,7 @@ year = 2001
             Zhong Shao},
   title = {End-to-End Verification of Stack-Space Bounds for {C} Programs},
   crossref = {PLDI14},
+  pages = {270--281},
 }
 
 @inproceedings{mccanne:bpf,
@@ -5575,6 +5642,7 @@ year = 2001
   author = {David Lazar and Haogang Chen and Xi Wang and Nickolai Zeldovich},
   title = {Why does cryptographic software fail?  {A} case study and open problems},
   crossref = {APSYS14},
+  note = {7 pages},
 }
 
 @inproceedings{anderson:why-fail,
@@ -5590,12 +5658,14 @@ year = 2001
   title = {Identifying information disclosure in web applications with
            retroactive auditing},
   crossref = {OSDI14},
+  pages = {555--569},
 }
 
 @inproceedings{bangert:nail,
   author = {Julian Bangert and Nickolai Zeldovich},
   title = {Nail: A practical tool for parsing and generating data formats},
   crossref = {OSDI14},
+  pages = {615--628},
 }
 
 @inproceedings{wang:jitk,
@@ -5603,6 +5673,7 @@ year = 2001
             Adam Chlipala and Zachary Tatlock},
   title = {Jitk: A Trustworthy In-Kernel Interpreter Infrastructure},
   crossref = {OSDI14},
+  pages = {33--47},
 }
 
 @inproceedings{vandenhooff:versum,
@@ -5624,3 +5695,176 @@ year = 2001
   pages = {22--27},
 }
 
+@inproceedings{elphinstone:l4,
+  author = {Kevin Elphinstone and Gernot Heiser},
+  title = {From {L3} to {seL4}: What Have We Learnt in 20 Years of {L4} Microkernels?},
+  crossref = {SOSP24},
+  pages = {133--150},
+}
+
+@techreport{boyd-wickizer:oplog-tr,
+  author = {Silas Boyd-Wickizer and M. Frans Kaashoek and
+            Robert Morris and Nickolai Zeldovich},
+  title = {{OpLog}: a library for scaling update-heavy data structures},
+  institution = {MIT Computer Science and Artificial Intelligence Laboratory},
+  number = {MIT-CSAIL-TR-2014-019},
+  address = {Cambridge, MA},
+  month = sep,
+  year = 2014,
+}
+
+@inproceedings{zheng:torturing-db,
+  author = {Mai Zheng and Joseph Tucek and Dachuan Huang and
+            Feng Qin and Mark Lillibridge and Elizabeth S. Yang and
+            Bill W. Zhao and Shashank Singh},
+  title = {Torturing Databases for Fun and Profit},
+  crossref = {OSDI14},
+  pages = {449--464},
+}
+
+@inproceedings{pillai:appcrash,
+  author = {Thanumalayan Sankaranarayana Pillai and Vijay Chidambaram and
+            Ramnatthan Alagappan and Samer Al-Kiswany and
+            Andrea C. Arpaci-Dusseau and Remzi H. Arpaci-Dusseau},
+  title = {All File Systems Are Not Created Equal:
+           On the Complexity of Crafting Crash-Consistent Applications},
+  crossref = {OSDI14},
+  pages = {433--448},
+}
+
+@inproceedings{yang:exe-disk,
+  author = {Junfeng Yang and Can Sar and Paul Twohey and
+            Cristian Cadar and Dawson Engler},
+  title = {Automatically Generating Malicious Disks using Symbolic Execution},
+  crossref = {IEEESP06},
+  pages = {243--257},
+}
+
+@inproceedings{hawblitzel:ironclad,
+  author = {Chris Hawblitzel and Jon Howell and Jacob R. Lorch and
+            Arjun Narayan and Bryan Parno and Danfeng Zhang and Brian Zill},
+  title = {{Ironclad} {Apps}: End-to-End Security via Automated
+           Full-System Verification},
+  crossref = {OSDI14},
+  pages = {165--181},
+}
+
+@Manual{coq,
+  author =	 {{Coq development team}},
+  title = 	 {Coq Reference Manual, Version 8.4pl5},
+  organization = {INRIA},
+  year =	 2014,
+  month =	 oct,
+  note =         {\url{http://coq.inria.fr/distrib/current/refman/}}
+}
+
+@inproceedings{nightingale:xsyncfs,
+  title = {Rethink the Sync},
+  author = {Edmund B. Nightingale and Kaushik Veeraraghavan and Peter M. Chen and Jason Flinn},
+  crossref = {OSDI06},
+  pages = {1--14},
+}
+
+@inproceedings{chidambaram:optfs,
+  author = {Vijay Chidambaram and Thanumalayan Sankaranarayana Pillai and
+            Andrea C. Arpaci-Dusseau and Remzi H. Arpaci-Dusseau},
+  title = {Optimistic Crash Consistency},
+  crossref = {SOSP13},
+  pages = {228--243},
+}
+
+@inproceedings{yang:verve,
+  author = {Jean Yang and Chris Hawblitzel},
+  title = {Safe to the Last Instruction: Automated Verification of a Type-Safe Operating System},
+  crossref = {PLDI10},
+  pages = {99--110},
+}
+
+@inproceedings{walker:lambdazap,
+  author = {Walker, David and Mackey, Lester and Ligatti, Jay and Reis, George A. and August, David I.},
+  title = {Static Typing for a Faulty {Lambda} Calculus},
+  crossref = {ICFP06},
+}
+
+@inproceedings{perry:asmzap,
+  author = {Perry, Frances and Mackey, Lester and Reis, George A. and Ligatti, Jay and August, David I. and Walker, David},
+  title = {Fault-tolerant Typed Assembly Language},
+  crossref = {PLDI07},
+}
+
+@inproceedings{jang:quark,
+  author = {Dongseok Jang and Zachary Tatlock and Sorin Lerner},
+  title = {Establishing Browser Security Guarantees through Formal Shim Verification},
+  crossref = {USEC12},
+  pages = {113--128},
+}
+
+@inproceedings{ricketts:reflex,
+  author = {Daniel Ricketts and Valentin Robert and Dongseok Jang and Zachary Tatlock and Sorin Lerner},
+  title = {Automating Formal Proofs for Reactive Systems},
+  crossref = {PLDI14},
+  pages = {452--462},
+}
+
+@inproceedings{tatlock:xcert,
+  author = {Tatlock, Zachary and Lerner, Sorin},
+  title = {Bringing Extensibility to Verified Compilers},
+  crossref = {PLDI10}
+}
+
+@inproceedings{kundu:pec,
+  author = {Kundu, Sudipta and Tatlock, Zachary and Lerner, Sorin},
+  title = {Proving Optimizations Correct Using Parameterized Program Equivalence},
+  crossref = {PLDI09}
+}
+
+@inproceedings{tate:eqsat,
+  author = {Tate, Ross and Stepp, Michael and Tatlock, Zachary and Lerner, Sorin},
+  title = {Equality Saturation: A New Approach to Optimization},
+  crossref = {POPL09}
+}
+
+@inproceedings{jang:safedispatch,
+  author = {Jang, Dongseok and Tatlock, Zachary and Lerner, Sorin},
+  title = {Safe{D}ispatch: Securing {C++} Virtual Calls from Memory Corruption Attacks},
+  crossref = {NDSS14}
+}
+
+@inproceedings{tatlock:dtar,
+  author = {Tatlock, Zachary and Tucker, Chris and Shuffelton, David and Jhala, Ranjit and Lerner, Sorin},
+  title = {Deep Typechecking and Refactoring},
+  crossref = {OOPSLA08}
+}
+
+@inproceedings{wang:cito,
+  author = {Peng Wang and Santiago Cuellar and Adam Chlipala},
+  title = {Compiler Verification Meets Cross-Language Linking via Data Abstraction},
+  crossref = {OOPSLA14},
+  pages = {675--690}
+}
+
+@inproceedings{delaware:fiat,
+  author = {Benjamin Delaware and Clément Pit--Claudel and Jason Gross and Adam Chlipala},
+  title = {Fiat: Deductive Synthesis of Abstract Data Types in a Proof Assistant},
+  crossref = {POPL15}
+}
+
+@inproceedings{chlipala:master,
+  author = {Adam Chlipala},
+  title = {From Network Interface to Multithreaded Web Applications: A Case Study in Modular Program Verification},
+  crossref = {POPL15},
+}
+
+@inproceedings{malecha:mirror,
+  title = {Compositional Computational Reflection},
+  author = {Gregory Malecha and Adam Chlipala and Thomas Braibant},
+  crossref = {ITP14},
+  pages = {374--389}
+}
+
+@inproceedings{forst:featherstitch,
+  title = {Generalized File System Dependencies},
+  author = {Christopher Frost and Mike Mammarella and Eddie Kohler and Andrew de los Reyes and Shant Hovsepian and Andrew Matsuoka and Lei Zhang},
+  crossref = {SOSP21},
+  pages = {307--320},
+}

@@ -27,7 +27,7 @@ other parsers, you can imagine rules as C type declarations on steroids
 
 Just like C supports various constructs to build up types, such as structures and unions from pointers and
 elemental types, Nail supports various \emph{combinators} to represent features of a file or protocol. We will present the features we used in implementing
-DNS. A more complete reference can be found in Figure~\ref{fig:syntax}, with detailed rationale in~\cite{bangert:nail-osdi14}.
+DNS. A more complete reference can be found in Figure~\ref{fig:syntax}, with detailed rationale in~\cite{bangert:nail}.
 
 
 
@@ -59,7 +59,7 @@ in the datatype, without introducing another layer of indirection, as shown on l
 
 Nail supports various forms of arrays. Line 40 shows how to parse a domain in a DNS packet with
 \cc{many}, which keeps repeating the \cc{label} rule until it fails.  In the next section, we will
-explain how to handle count fields, and our full paper~\cite{bangert:nail-osdi14} describes how to handle various array
+explain how to handle count fields, and our full paper~\cite{bangert:nail} describes how to handle various array
 representations (such as delimiters or non-empty arrays).
 
 
