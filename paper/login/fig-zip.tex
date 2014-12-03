@@ -6,7 +6,7 @@ protozip = {
   contents apply $header dir($files)
 }
 dir ($files) = {
-  uint32 =  0x00034b50
+  uint32 = 0x00034b50
   @count uint32
   files n_of @count {
     @off uint32

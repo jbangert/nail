@@ -69,7 +69,7 @@ representations (such as delimiters or non-empty arrays).
 
 \input{fig-syntax}
 
-\subsection{Redundant Data}
+\subsection{Redundant data}
 \label{s:dependent}
 Data formats often contain values that are determined by other values or the layout of information,
 such as checksums, duplicated information, or offset and  length fields. Exposing such values risks
@@ -81,13 +81,13 @@ When generating output, Nail inserts the correct value.
 
 In DNS packets, the packet header contains count fields (\cc{qc},
 \cc{ac}, \cc{ns}, and \cc{ar}), which contain the number of questions and answers that follow the
-header, which we represent by dependent fields (line 12-15).
-Dependent fields are defined within a structure like normal fields, but their name starts with an \cc{@} symbol.
+header, which we represent by dependent fields (lines 12--15).
+Dependent fields are defined within a structure like normal fields, but their names start with an \cc{@} symbol.
 A dependent field is in scope and can be referred to by the definition of all subsequent fields in
 the same structure. Dependent fields can be passed to rule invocations as parameters.
 
 
-Nail allows handling count fields with \cc{n\_of}, which parses an exact number of repetitions of a rule. Lines 16-19 in Figure~\ref{fig:dns-full} shows how to use \cc{n_of} to parse the question and
+Nail allows handling count fields with \cc{n\_of}, which parses an exact number of repetitions of a rule. Lines 16--19 in Figure~\ref{fig:dns-full} shows how to use \cc{n_of} to parse the question and
 answer records in a DNS packet.
 Other dependencies, such as offset fields or checksums, are not handled directly by combinators, but
 through  transformations, as we describe next.
@@ -104,19 +104,19 @@ before it can be handled.
 
 For a parser to be useful, it needs to support all these ways of structuring a format. This makes data description languages like
 PADS~\cite{Fisher:2005:PDL:1064978.1065046} contain not just a kitchen sink, but a kitchen store
-full of features -- and a language that can handle all possible formats will be a general
-purpose programming language.  Instead, we keep Nail itself small, and introduce an
+full of features, and a language that can handle all possible formats will be a general-purpose
+programming language.  Instead, we keep Nail itself small, and introduce an
 interface that allows complicated format structures to be handled by  plug-in \emph{transformations} 
-in a general purpose
+in a general-purpose
 language. Of course, we ship Nail with a handy library of common transformations to handle common
 format features, such as offsets,sizes and checksums.
 
 These \emph{transformations} consume and produce
-\emph{streams} -- sequences of bytes -- which can be further passed to other transformations and
+\emph{streams}---sequences of bytes---which can be further passed to other transformations and
 eventually parsed by a Nail rule. Transformations can also access values in dependent fields. 
 Streams can be subsets of other streams, for example the substream starting at an
-offset given in a dependent field to handle pointer fields, or computed at runtime
-, such as by decompressing another stream with zlib.
+offset given in a dependent field to handle pointer fields, or computed at runtime,
+such as by decompressing another stream with zlib.
 
 
 Transformations are two arbitrary functions called during parsing and output generation.
@@ -131,12 +131,13 @@ producing dependent field values and other streams.
 As a concrete example, we will show a grammar for ProtoZIP, a very simple archive format inspired by ZIP in
 Figure~\ref{fig:zip-extract}. ProtoZIP consists of a variable-length end-of-file directory, which
 is a magic number followed by an array of filenames and pointers to compressed files. A grammar for the real ZIP format, which
-has more layers of indirection, is presented in the full paper. 
+has more layers of indirection, is presented in the full paper~\cite{bangert:nail}.
 
- The grammar first calls the zipdir transform on line 2, which finds the magic number and splits the file into
- two streams, one containing the compressed files, the other the directory.  Streams are referred to
- with \cc{\$identifiers}, similar to dependent fields. A C prototype of the \cc{zipdir} transform is
- shown in\ref{fig:zip-transform}. 
+The grammar first calls the \cc{zipdir} transform on line 2, which finds the magic number and splits the file into
+two streams, one containing the compressed files, the other the directory.  Streams are referred to
+with \cc{\$identifiers}, similar to dependent fields. A C prototype of the \cc{zipdir} transform is
+shown in Figure~\ref{fig:zip-transform}. 
+
 \begin{figure}[tb]
 \smaller[0.5]
 \input{code/zip-eod-xform}
@@ -144,22 +145,21 @@ has more layers of indirection, is presented in the full paper.
 end-to-beginning structure of ProtoZIP files.}
 \label{fig:zip-transform}
 \end{figure}
-When parsing input, this will call \cc{zipdir\_parse}, which takes \cc{\$current} -- an implicit
-identifier always referring to the stream currently being handled -- and returns \cc{\$files} and
-\cc{\$header}. When generating output, this will call \cc{zipdir\_generate}, which appends
+When parsing input, line 2 of Figure~\ref{fig:zip-extract} will call \cc{zipdir\_parse}, which takes \cc{\$current} (an implicit
+identifier always referring to the stream currently being handled) and returns \cc{\$files} and
+\cc{\$header}. When generating output, the same line will call \cc{zipdir\_generate}, which appends
 \cc{\$files} and \cc{\$header} to \cc{\$current}.
 
-
-Line 3 then applies the \cc{dir} rule to  the \cc{\$header} stream, passing it the \cc{\$files}
-stream. Within \cc{dir}, \cc{\$current} is now \cc{\$header} and input is parsed from and output
-generated to that stream. The \cc{dir} rule in turn describes the structure of the directory -- a
-magic number and a count field, followed by that many file descriptors. Each file descriptor, is then parsed with two
+Line 3 of Figure~\ref{fig:zip-extract} then applies the \cc{dir} rule to  the \cc{\$header} stream, passing it the \cc{\$files}
+stream as an argument. Within \cc{dir}, \cc{\$current} is now \cc{\$header} and input is parsed from and output
+generated to that stream. The \cc{dir} rule in turn describes the structure of the directory, which consists of a
+magic number and a count field, followed by that many file descriptors. Each file descriptor is then parsed with two
 transformations, the standard-library \cc{slice} which describes an offset and a size within another
 stream, and the custom \cc{zlib}, which compresses a stream using zlib. Finally, we apply a trivial
 grammar (line 14) to the contents. 
 
 In a more complicated example, such as an Office document, we could now specify grammars for each
-entry within an archive.
+file contained within an archive.
 
 
  
