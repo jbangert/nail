@@ -27,7 +27,7 @@ other parsers, you can imagine rules as C type declarations on steroids
 
 Just like C supports various constructs to build up types, such as structures and unions from pointers and
 elemental types, Nail supports various \emph{combinators} to represent features of a file or protocol. We will present the features we used in implementing
-DNS. A more complete reference can be found in Figure~\ref{fig:syntax}, with detailed rationale in~\cite{bangert:nail}.
+DNS\@. A more complete reference can be found in Figure~\ref{fig:syntax}, with detailed rationale in~\cite{bangert:nail}.
 
 
 
@@ -52,7 +52,7 @@ called \texttt{id} with type \texttt{uint1}. Often, Nail grammars have
 structures with just one non-constant field, for example when parsing a fixed header. Nail supports
 this with an alternative form of structures,
 using angle brackets, that contains one unnamed, non-constant field, which is represented directly
-in the datatype, without introducing another layer of indirection, as shown on line 40.
+in the data type, without introducing another layer of indirection, as shown on line 40.
 
 
 \paragraph{Arrays.}
@@ -73,7 +73,7 @@ representations (such as delimiters or non-empty arrays).
 \label{s:dependent}
 Data formats often contain values that are determined by other values or the layout of information,
 such as checksums, duplicated information, or offset and  length fields. Exposing such values risks
-inconsistencies that could trick the program into unsafe behaviour. Therefore, we represent such values using \emph{dependent fields} and handle them transparently during
+inconsistencies that could trick the program into unsafe behavior. Therefore, we represent such values using \emph{dependent fields} and handle them transparently during
 parsing and generation without exposing them to the application. 
 Dependent fields are handled like other fields when parsing input, but only stored temporarily
 instead of in the data type. Their value can be referenced by other parsers until it goes out of scope.
@@ -145,7 +145,7 @@ end-to-beginning structure of ProtoZIP files.}
 \label{fig:zip-transform}
 \end{figure}
 When parsing input, this will call \cc{zipdir\_parse}, which takes \cc{\$current} -- an implicit
-identifier always refering to the stream currently being handled -- and returns \cc{\$files} and
+identifier always referring to the stream currently being handled -- and returns \cc{\$files} and
 \cc{\$header}. When generating output, this will call \cc{zipdir\_generate}, which appends
 \cc{\$files} and \cc{\$header} to \cc{\$current}.
 
@@ -153,7 +153,7 @@ identifier always refering to the stream currently being handled -- and returns 
 Line 3 then applies the \cc{dir} rule to  the \cc{\$header} stream, passing it the \cc{\$files}
 stream. Within \cc{dir}, \cc{\$current} is now \cc{\$header} and input is parsed from and output
 generated to that stream. The \cc{dir} rule in turn describes the structure of the directory -- a
-magic number and a count field, followed by that many file descripors. Each file descriptor, is then parsed with two
+magic number and a count field, followed by that many file descriptors. Each file descriptor, is then parsed with two
 transformations, the standard-library \cc{slice} which describes an offset and a size within another
 stream, and the custom \cc{zlib}, which compresses a stream using zlib. Finally, we apply a trivial
 grammar (line 14) to the contents. 

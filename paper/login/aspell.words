@@ -1,4 +1,4 @@
-personal_ws-1.1 en 253 
+personal_ws-1.1 en 267 
 ACM
 AES
 API
@@ -13,14 +13,17 @@ Bernstein's
 Bogk
 Bohannon
 Bratus
+Broomfield
 Burge
 CNAME
 CORBA
 CSAIL
 CVE
 CVE's
+CVEDetails
 Coq
 DARPA
+DNS's
 Daan
 Danielsson
 DataScript
@@ -66,12 +69,13 @@ Nergal
 Nickolai
 Nils
 OCaml
+OSDI
 Oulu
 PDF
 PDFs
 PEGs
 PKI
-PKWARE
+PKWare
 PLDI
 PNG
 POPL
@@ -79,6 +83,7 @@ PaX
 PacketTypes
 Packrat
 Patteron
+ProtoZIP
 Protos
 Pseudocode
 ROP
@@ -128,7 +133,9 @@ combinator
 combinator's
 combinators
 compat
+compr
 conf
+const
 crc
 cryptographic
 cryptosystem
@@ -152,7 +159,9 @@ evasi
 expr
 extensibility
 filename
+filenames
 filestream
+filesystem
 fuzzer
 hashtable
 hoc
@@ -197,6 +206,7 @@ parsers
 pgf
 phrack
 pre
+protozip
 pxtt
 qc
 qclass
@@ -210,6 +220,7 @@ reposition
 rgb
 rlength
 rtype
+runtime
 scalability
 sep
 sepBy
@@ -218,6 +229,8 @@ spargelze
 stderr
 str
 struct
+structs
+substream
 superset
 tc
 th
@@ -249,6 +262,7 @@ xmin
 xxxcolor
 yacc
 yticklabels
+zipdir
 zipfile
 zlib
 zonefile
