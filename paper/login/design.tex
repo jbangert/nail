@@ -1,6 +1,6 @@
 \section{Design By Example}
 In this section, we will explain how to handle basic data formats in Nail, how to handle
-redundancies in the format with dependent fields and how Nail parsers can be extended with
+redundancies in the format with dependent fields, and how Nail parsers can be extended with
 transformations. 
 
 As a motivating example, we will parse DNS packets, as defined in RFC 1035. Each DNS packet consists of a
@@ -9,36 +9,36 @@ names in both queries and answers are encoded as a sequence of labels,
 terminated by a zero byte.  Labels are Pascal-style strings, consisting
 of a length field followed by that many bytes comprising the label.
 \label{s:design}
-\subsection{Basic Data formats}
+\subsection{Basic data formats}
 
 \input{fig-dnsfull}
 Let's step through a simplified Nail grammar for DNS
 packets, shown in  Figure~\ref{fig:dns-full}.  For this grammar, Nail produces the type declarations
 shown in Figure~\ref{fig:dns-full-struct}, and the parser and
 generator functions shown in Figure~\ref{fig:dns-full-api}.
-Nail grammars are reuseable between applications and we will use this grammar to implement
-both a DNS server and client, which previously would have had two separate hand-written parsers,
-leading to bugs such as  the Android Master Key. 
+Nail grammars are reusable between applications and we will use this grammar to implement
+both a DNS server and a DNS client, which previously would have had two separate hand-written parsers,
+leading to bugs such as the Android ZIP file vulnerability.
 
-A Nail grammar file consists of rule definitions, for example l. 1-20,  which assign a name
-(\texttt{dnspacket}) to a grammar production (2-20). If you are not familiar with
+A Nail grammar file consists of rule definitions, for example lines 1--20,  which assign a name
+(\texttt{dnspacket}) to a grammar production (lines 2--20). If you are not familiar with
 other parsers, you can imagine rules as C type declarations on steroids
 (although our syntax is inspired by Go).
 
 Just like C supports various constructs to build up types, such as structures and unions from pointers and
 elemental types, Nail supports various \emph{combinators} to represent features of a file or protocol. We will present the features we used in implementing
-DNS. A more complete reference can be found in~\ref{fig:syntax}, with detailed rationale in~\cite{bangert:nail-osdi14}.
+DNS. A more complete reference can be found in Figure~\ref{fig:syntax}, with detailed rationale in~\cite{bangert:nail-osdi14}.
 
 
 
-\paragraph{Integers and Constraints}.
+\paragraph{Integers and Constraints.}
 Because Nail is designed to cope with binary formats,
-it handles not only common integer types (such as \texttt{uint16} on l. 16), but bit fields of any
+it handles not only common integer types (such as \texttt{uint16} on line 16), but bit fields of any
 length, such as \texttt{uint1}. These integers are exposed to the programmer as an appropriately
 sized machine integer, e.g. \texttt{uint8\_t}. Nail also supports constraints on integer values,
-limiting the values to either a range (l. 23, \texttt{|1..16}), which can optionally be half-open,
-or a fixed set (l. 24, \texttt{|[1,255]}). Both types of constraint can be combined, e.g. \texttt{|
-  [1..16,255]}. Constant values are also supported, e.g. l. 10: \texttt{uint3=0} represents
+limiting the values to either a range (line 23, \texttt{|1..16}), which can optionally be half-open,
+or a fixed set (line 24, \texttt{|[1,255]}). Both types of constraint can be combined, e.g. \texttt{|
+  [1..16,255]}. Constant values are also supported; for instance, on line 10, \texttt{uint3=0} represents
 three reserved bits that must be 0. Because constant values carry no information, they are not
 represented in the data type.
 
@@ -59,7 +59,7 @@ in the datatype, without introducing another layer of indirection, as shown on l
 
 Nail supports various forms of arrays. Line 40 shows how to parse a domain in a DNS packet with
 \cc{many}, which keeps repeating the \cc{label} rule until it fails.  In the next section, we will
-explain how to handle count fields, and our full paper describes how to handle various array
+explain how to handle count fields, and our full paper~\cite{bangert:nail-osdi14} describes how to handle various array
 representations (such as delimiters or non-empty arrays).
 
 
