@@ -18,7 +18,7 @@
 
 % \end{itemize}
 
-\subsection{Real-World Formats}
+\subsection{Real-world formats}
 \label{s:eval-formats}
 
 First, we'll demonstrate how Nail's features help process real-world protocols. We used Nail to implement grammars
@@ -30,6 +30,7 @@ fields, streams, and transforms.  In contrast, state-of-the-art parser
 generators would be unable to fully handle 5 out of the 7 data formats.
 
 \begin{figure}[tb]
+\smaller[0.5]
 \centering
 \begin{tabular}{lrl}
 \toprule
@@ -55,7 +56,7 @@ C code for protocol-specific transforms (after the +).}
 \label{fig:eval-protocols}
 \end{figure}
 
-\paragraph{DNS} In Section~\ref{s:design}, we introduced Nail's syntax with a grammar
+\paragraph{DNS} In \S\ref{s:design}, we introduced Nail's syntax with a grammar
 for DNS packets, shown in Figure~\ref{fig:dns-full}.
 The grammar corresponds almost directly to the diagrams in RFC 1035,
 which defines DNS\@. Nail's dependent fields handle DNS's count fields, and
@@ -69,14 +70,14 @@ by PKWare. At the end of each ZIP file is an
 located by scanning backwards from the end of the file until a magic number and a valid length field
 is found. Many ZIP implementations disagree on the exact semantics of this, such as when the comment
 contains the magic number~\cite{wolf:berlinsides-zip}.
-This header  contains points to the \emph{ZIP directory}, contains an entry every file
+This header  contains pointers to the \emph{ZIP directory}, which contains an entry for every file
 in the archive.  Each entry stores file metadata in addition to the
 offset of a \emph{local file header}. The local file header duplicates
 most information from the directory entry header and is followed immediately by the compressed
-archive entry.
+file data.
 Duplicating information made sense when ZIP files were stored on floppy
 disks with slow seek times and high fault rates, but nowadays lead to parsers being confused, such
-as in the recent Android Master Key bug.
+as in the Android ZIP file vulnerability described in \S\ref{sec:intro}.
 
 %  However, if attackers craft inconsistent files, hand written parsers fail in interesting ways, e.g. 
 % the length in the central directory is used to allocate memory and the
@@ -85,9 +86,9 @@ as in the recent Android Master Key bug.
 
 
 Nail avoids these issues by capturing these redundancies with dependent fields and decompressing
-files transparently with transformations, and the programmer
+files transparently with transformations; the programmer
 is presented with a data structure containing the archive contents. Nail even allows parsing the
-contents of an archive file -- allowing formats based on ZIP, such as Microsoft Office documents, to
+contents of an archive file, allowing formats based on ZIP, such as Microsoft Office documents, to
 be handled with one grammar.
 
 
@@ -99,10 +100,10 @@ be handled with one grammar.
 %2821 lines
 We implemented two applications---a
 DNS server and an
-\cc{unzip} program---based on the above grammars, and will compare the effort involved and the
+\cc{unzip} program---based on the above grammars, and compare the effort involved and the
 resulting security to similar applications with hand-written parsers and with other parser generators.
-We will use lines of code as a proxy for programmer effort. To evaluate security, we will argue how
-our design avoids classes of vulnerabilities and fuzz-test one of our applications.
+We use lines of code as a proxy for programmer effort. To evaluate security, we argue how
+our design avoids classes of vulnerabilities and we also fuzz-test one of our applications.
 \begin{figure}[tb]
 \centering
 \smaller[0.5]
@@ -163,15 +164,17 @@ We implemented a ZIP file extractor in 50 lines of C code, together with
 92 lines of Nail grammar and 78 lines of C code implementing two stream
 transforms (one for the DEFLATE compression algorithm with the help of
 the zlib library, and one for finding the end-of-directory header).
- The \cc{unzip} utility contains a file \cc{extract.c}, which parses
+
+As a point of comparison, the existing Linux \cc{unzip} utility contains a file \cc{extract.c}, which parses
 ZIP metadata and calls various decompression routines in other files. This
 file measures over 1,600 lines of C, which suggests that Nail is highly
 effective at reducing manual input parsing code, even for the complex
 ZIP file format.
 
 In our full paper~\cite{bangert:nail}, we present a study of 15 ZIP parsing bugs.
-11 of these vulnerabilities involved memory corruption during input handling, which generated code
-is immune to by design. We also fuzz-tested our DNS server.
+11 of these vulnerabilities involved memory corruption during input handling,
+to which our generated code is immune by design.
+We also fuzz-tested our DNS server, finding no bugs.
 More interestingly, Nail also protects against parsing inconsistency vulnerabilities like the four others we studied.
 Nail grammars explicitly encode duplicated information such as the redundant length fields in ZIP
 that caused a vulnerability in the Python ZIP library. The other three vulnerabilities exist
