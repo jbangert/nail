@@ -1,6 +1,6 @@
 \section{Design By Example}
 In this section, we will explain how to handle basic data formats in Nail, how to handle
-redundancies in the format with dependent fields and how Nail parsers can be extended with
+redundancies in the format with dependent fields, and how Nail parsers can be extended with
 transformations. 
 
 As a motivating example, we will parse DNS packets, as defined in RFC 1035. Each DNS packet consists of a
@@ -9,36 +9,36 @@ names in both queries and answers are encoded as a sequence of labels,
 terminated by a zero byte.  Labels are Pascal-style strings, consisting
 of a length field followed by that many bytes comprising the label.
 \label{s:design}
-\subsection{Basic Data formats}
+\subsection{Basic data formats}
 
 \input{fig-dnsfull}
 Let's step through a simplified Nail grammar for DNS
 packets, shown in  Figure~\ref{fig:dns-full}.  For this grammar, Nail produces the type declarations
 shown in Figure~\ref{fig:dns-full-struct}, and the parser and
 generator functions shown in Figure~\ref{fig:dns-full-api}.
-Nail grammars are reuseable between applications and we will use this grammar to implement
-both a DNS server and client, which previously would have had two separate hand-written parsers,
-leading to bugs such as  the Android Master Key. 
+Nail grammars are reusable between applications and we will use this grammar to implement
+both a DNS server and a DNS client, which previously would have had two separate hand-written parsers,
+leading to bugs such as the Android ZIP file vulnerability.
 
-A Nail grammar file consists of rule definitions, for example l. 1-20,  which assign a name
-(\texttt{dnspacket}) to a grammar production (2-20). If you are not familiar with
+A Nail grammar file consists of rule definitions, for example lines 1--20,  which assign a name
+(\texttt{dnspacket}) to a grammar production (lines 2--20). If you are not familiar with
 other parsers, you can imagine rules as C type declarations on steroids
 (although our syntax is inspired by Go).
 
 Just like C supports various constructs to build up types, such as structures and unions from pointers and
 elemental types, Nail supports various \emph{combinators} to represent features of a file or protocol. We will present the features we used in implementing
-DNS. A more complete reference can be found in~\ref{fig:syntax}, with detailed rationale in~\cite{bangert:nail-osdi14}.
+DNS\@. A more complete reference can be found in Figure~\ref{fig:syntax}, with detailed rationale in~\cite{bangert:nail}.
 
 
 
-\paragraph{Integers and Constraints}.
+\paragraph{Integers and Constraints.}
 Because Nail is designed to cope with binary formats,
-it handles not only common integer types (such as \texttt{uint16} on l. 16), but bit fields of any
+it handles not only common integer types (such as \texttt{uint16} on line 16), but bit fields of any
 length, such as \texttt{uint1}. These integers are exposed to the programmer as an appropriately
 sized machine integer, e.g. \texttt{uint8\_t}. Nail also supports constraints on integer values,
-limiting the values to either a range (l. 23, \texttt{|1..16}), which can optionally be half-open,
-or a fixed set (l. 24, \texttt{|[1,255]}). Both types of constraint can be combined, e.g. \texttt{|
-  [1..16,255]}. Constant values are also supported, e.g. l. 10: \texttt{uint3=0} represents
+limiting the values to either a range (line 23, \texttt{|1..16}), which can optionally be half-open,
+or a fixed set (line 24, \texttt{|[1,255]}). Both types of constraint can be combined, e.g. \texttt{|
+  [1..16,255]}. Constant values are also supported; for instance, on line 10, \texttt{uint3=0} represents
 three reserved bits that must be 0. Because constant values carry no information, they are not
 represented in the data type.
 
@@ -52,14 +52,14 @@ called \texttt{id} with type \texttt{uint1}. Often, Nail grammars have
 structures with just one non-constant field, for example when parsing a fixed header. Nail supports
 this with an alternative form of structures,
 using angle brackets, that contains one unnamed, non-constant field, which is represented directly
-in the datatype, without introducing another layer of indirection, as shown on line 40.
+in the data type, without introducing another layer of indirection, as shown on line 40.
 
 
 \paragraph{Arrays.}
 
 Nail supports various forms of arrays. Line 40 shows how to parse a domain in a DNS packet with
 \cc{many}, which keeps repeating the \cc{label} rule until it fails.  In the next section, we will
-explain how to handle count fields, and our full paper describes how to handle various array
+explain how to handle count fields, and our full paper~\cite{bangert:nail} describes how to handle various array
 representations (such as delimiters or non-empty arrays).
 
 
@@ -69,11 +69,11 @@ representations (such as delimiters or non-empty arrays).
 
 \input{fig-syntax}
 
-\subsection{Redundant Data}
+\subsection{Redundant data}
 \label{s:dependent}
 Data formats often contain values that are determined by other values or the layout of information,
 such as checksums, duplicated information, or offset and  length fields. Exposing such values risks
-inconsistencies that could trick the program into unsafe behaviour. Therefore, we represent such values using \emph{dependent fields} and handle them transparently during
+inconsistencies that could trick the program into unsafe behavior. Therefore, we represent such values using \emph{dependent fields} and handle them transparently during
 parsing and generation without exposing them to the application. 
 Dependent fields are handled like other fields when parsing input, but only stored temporarily
 instead of in the data type. Their value can be referenced by other parsers until it goes out of scope.
@@ -81,13 +81,13 @@ When generating output, Nail inserts the correct value.
 
 In DNS packets, the packet header contains count fields (\cc{qc},
 \cc{ac}, \cc{ns}, and \cc{ar}), which contain the number of questions and answers that follow the
-header, which we represent by dependent fields (line 12-15).
-Dependent fields are defined within a structure like normal fields, but their name starts with an \cc{@} symbol.
+header, which we represent by dependent fields (lines 12--15).
+Dependent fields are defined within a structure like normal fields, but their names start with an \cc{@} symbol.
 A dependent field is in scope and can be referred to by the definition of all subsequent fields in
 the same structure. Dependent fields can be passed to rule invocations as parameters.
 
 
-Nail allows handling count fields with \cc{n\_of}, which parses an exact number of repetitions of a rule. Lines 16-19 in Figure~\ref{fig:dns-full} shows how to use \cc{n_of} to parse the question and
+Nail allows handling count fields with \cc{n\_of}, which parses an exact number of repetitions of a rule. Lines 16--19 in Figure~\ref{fig:dns-full} shows how to use \cc{n_of} to parse the question and
 answer records in a DNS packet.
 Other dependencies, such as offset fields or checksums, are not handled directly by combinators, but
 through  transformations, as we describe next.
@@ -104,19 +104,19 @@ before it can be handled.
 
 For a parser to be useful, it needs to support all these ways of structuring a format. This makes data description languages like
 PADS~\cite{Fisher:2005:PDL:1064978.1065046} contain not just a kitchen sink, but a kitchen store
-full of features -- and a language that can handle all possible formats will be a general
-purpose programming language.  Instead, we keep Nail itself small, and introduce an
+full of features, and a language that can handle all possible formats will be a general-purpose
+programming language.  Instead, we keep Nail itself small, and introduce an
 interface that allows complicated format structures to be handled by  plug-in \emph{transformations} 
-in a general purpose
+in a general-purpose
 language. Of course, we ship Nail with a handy library of common transformations to handle common
 format features, such as offsets,sizes and checksums.
 
 These \emph{transformations} consume and produce
-\emph{streams} -- sequences of bytes -- which can be further passed to other transformations and
+\emph{streams}---sequences of bytes---which can be further passed to other transformations and
 eventually parsed by a Nail rule. Transformations can also access values in dependent fields. 
 Streams can be subsets of other streams, for example the substream starting at an
-offset given in a dependent field to handle pointer fields, or computed at runtime
-, such as by decompressing another stream with zlib.
+offset given in a dependent field to handle pointer fields, or computed at runtime,
+such as by decompressing another stream with zlib.
 
 
 Transformations are two arbitrary functions called during parsing and output generation.
@@ -131,12 +131,13 @@ producing dependent field values and other streams.
 As a concrete example, we will show a grammar for ProtoZIP, a very simple archive format inspired by ZIP in
 Figure~\ref{fig:zip-extract}. ProtoZIP consists of a variable-length end-of-file directory, which
 is a magic number followed by an array of filenames and pointers to compressed files. A grammar for the real ZIP format, which
-has more layers of indirection, is presented in the full paper. 
+has more layers of indirection, is presented in the full paper~\cite{bangert:nail}.
 
- The grammar first calls the zipdir transform on line 2, which finds the magic number and splits the file into
- two streams, one containing the compressed files, the other the directory.  Streams are referred to
- with \cc{\$identifiers}, similar to dependent fields. A C prototype of the \cc{zipdir} transform is
- shown in\ref{fig:zip-transform}. 
+The grammar first calls the \cc{zipdir} transform on line 2, which finds the magic number and splits the file into
+two streams, one containing the compressed files, the other the directory.  Streams are referred to
+with \cc{\$identifiers}, similar to dependent fields. A C prototype of the \cc{zipdir} transform is
+shown in Figure~\ref{fig:zip-transform}. 
+
 \begin{figure}[tb]
 \smaller[0.5]
 \input{code/zip-eod-xform}
@@ -144,22 +145,21 @@ has more layers of indirection, is presented in the full paper.
 end-to-beginning structure of ProtoZIP files.}
 \label{fig:zip-transform}
 \end{figure}
-When parsing input, this will call \cc{zipdir\_parse}, which takes \cc{\$current} -- an implicit
-identifier always referring to the stream currently being handled -- and returns \cc{\$files} and
-\cc{\$header}. When generating output, this will call \cc{zipdir\_generate}, which appends
+When parsing input, line 2 of Figure~\ref{fig:zip-extract} will call \cc{zipdir\_parse}, which takes \cc{\$current} (an implicit
+identifier always referring to the stream currently being handled) and returns \cc{\$files} and
+\cc{\$header}. When generating output, the same line will call \cc{zipdir\_generate}, which appends
 \cc{\$files} and \cc{\$header} to \cc{\$current}.
 
-
-Line 3 then applies the \cc{dir} rule to  the \cc{\$header} stream, passing it the \cc{\$files}
-stream. Within \cc{dir}, \cc{\$current} is now \cc{\$header} and input is parsed from and output
-generated to that stream. The \cc{dir} rule in turn describes the structure of the directory -- a
-magic number and a count field, followed by that many file descriptors. Each file descriptor, is then parsed with two
+Line 3 of Figure~\ref{fig:zip-extract} then applies the \cc{dir} rule to  the \cc{\$header} stream, passing it the \cc{\$files}
+stream as an argument. Within \cc{dir}, \cc{\$current} is now \cc{\$header} and input is parsed from and output
+generated to that stream. The \cc{dir} rule in turn describes the structure of the directory, which consists of a
+magic number and a count field, followed by that many file descriptors. Each file descriptor is then parsed with two
 transformations, the standard-library \cc{slice} which describes an offset and a size within another
 stream, and the custom \cc{zlib}, which compresses a stream using zlib. Finally, we apply a trivial
 grammar (line 14) to the contents. 
 
 In a more complicated example, such as an Office document, we could now specify grammars for each
-entry within an archive.
+file contained within an archive.
 
 
  

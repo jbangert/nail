@@ -142,6 +142,7 @@ combinators
 compat
 compr
 conf
+const
 crc
 cryptographic
 cryptosystem
