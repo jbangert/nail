@@ -25,7 +25,7 @@ nail_wrap.c : new_grammar.nail.h nail.i
 
 rbnail.so: nail_wrap.c
 	gcc -c  nail_wrap.c
-nail: main.o mk_parser.o mk_gen.o util.o new_grammar.nail.o parser_template.c.o parser_template.h.o
+nail: main.o mk_parser.o mk_gen.o datatype.o util.o new_grammar.nail.o parser_template.c.o parser_template.h.o
 	clang++ $^ -o $@ $(LDFLAGS)
 
 %.o: %.cc $(wildcard *.h)
