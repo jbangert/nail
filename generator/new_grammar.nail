@@ -46,7 +46,7 @@ constparser = choose{
 }         
 constraintelem = choose {
                RANGE = { min optional intconstant; t(".."); max optional intconstant}
-               VALUE = intconstant
+               INTVALUE = intconstant
 }
 intconstraint  = choose {
                SINGLE = constraintelem

@@ -1,7 +1,7 @@
 COMFLAGS := -I.. -ggdb -Wno-enum-compare
 CFLAGS	 := $(COMFLAGS) -std=gnu11
 CXXFLAGS := $(COMFLAGS) -std=c++11 -Wno-format -Wno-switch
-LDFLAGS	 := -lhammer
+LDFLAGS	 := # -lhammer
 
 .SUFFIXES:
 
@@ -20,6 +20,11 @@ parser_template.c.o: parser_template.c
 parser_template.h.o : parser_template.h
 	ld -r -o $@ --format=binary $<
 
+nail_wrap.c : new_grammar.nail.h nail.i
+	swig -ruby nail.i
+
+rbnail.so: nail_wrap.c
+	gcc -c  nail_wrap.c
 nail: main.o mk_parser.o mk_gen.o util.o new_grammar.nail.o parser_template.c.o parser_template.h.o
 	clang++ $^ -o $@ $(LDFLAGS)
 

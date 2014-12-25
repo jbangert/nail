@@ -1387,11 +1387,11 @@ choice_9_RANGE_out:
         stream_reposition(str_current, back);
         choice = n_tr_memo_choice(trace);
         if(parser_fail(peg_intconstant(tmp_arena,trace,str_current))) {
-            goto choice_9_VALUE_out;
+            goto choice_9_INTVALUE_out;
         }
-        n_tr_pick_choice(trace,choice_begin,VALUE,choice);
+        n_tr_pick_choice(trace,choice_begin,INTVALUE,choice);
         goto choice_9_succ;
-choice_9_VALUE_out:
+choice_9_INTVALUE_out:
         stream_reposition(str_current, back);
         goto fail;
 choice_9_succ:
@@ -3187,7 +3187,7 @@ static int bind_number(NailArena *arena,number*out,NailStream *stream, pos **tra
         save = *(tr++);
         out->elem= (typeof(out->elem))n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
-            return 0;
+            return -1;
         }
         for(pos i1=0; i1<out->count; i1++) {
             out->elem[i1]=read_unsigned_bits(stream,8);
@@ -3205,15 +3205,20 @@ number*parse_number(NailArena *arena, const uint8_t *data, size_t size) {
     pos pos;
     number* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_number(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_number(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_number(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_number(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_varidentifier(NailArena *arena,varidentifier*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -3225,7 +3230,7 @@ static int bind_varidentifier(NailArena *arena,varidentifier*out,NailStream *str
         save = *(tr++);
         out->elem= (typeof(out->elem))n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
-            return 0;
+            return -1;
         }
         for(pos i2=0; i2<out->count; i2++) {
             out->elem[i2]=read_unsigned_bits(stream,8);
@@ -3243,15 +3248,20 @@ varidentifier*parse_varidentifier(NailArena *arena, const uint8_t *data, size_t 
     pos pos;
     varidentifier* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_varidentifier(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_varidentifier(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_varidentifier(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_varidentifier(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_constidentifier(NailArena *arena,constidentifier*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -3263,7 +3273,7 @@ static int bind_constidentifier(NailArena *arena,constidentifier*out,NailStream 
         save = *(tr++);
         out->elem= (typeof(out->elem))n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
-            return 0;
+            return -1;
         }
         for(pos i3=0; i3<out->count; i3++) {
             out->elem[i3]=read_unsigned_bits(stream,8);
@@ -3281,15 +3291,20 @@ constidentifier*parse_constidentifier(NailArena *arena, const uint8_t *data, siz
     pos pos;
     constidentifier* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_constidentifier(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_constidentifier(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_constidentifier(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_constidentifier(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_streamidentifier(NailArena *arena,streamidentifier*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -3303,7 +3318,7 @@ static int bind_streamidentifier(NailArena *arena,streamidentifier*out,NailStrea
         save = *(tr++);
         out->elem= (typeof(out->elem))n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
-            return 0;
+            return -1;
         }
         for(pos i4=0; i4<out->count; i4++) {
             out->elem[i4]=read_unsigned_bits(stream,8);
@@ -3321,15 +3336,20 @@ streamidentifier*parse_streamidentifier(NailArena *arena, const uint8_t *data, s
     pos pos;
     streamidentifier* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_streamidentifier(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_streamidentifier(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_streamidentifier(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_streamidentifier(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_dependencyidentifier(NailArena *arena,dependencyidentifier*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -3343,7 +3363,7 @@ static int bind_dependencyidentifier(NailArena *arena,dependencyidentifier*out,N
         save = *(tr++);
         out->elem= (typeof(out->elem))n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
-            return 0;
+            return -1;
         }
         for(pos i5=0; i5<out->count; i5++) {
             out->elem[i5]=read_unsigned_bits(stream,8);
@@ -3361,15 +3381,20 @@ dependencyidentifier*parse_dependencyidentifier(NailArena *arena, const uint8_t 
     pos pos;
     dependencyidentifier* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_dependencyidentifier(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_dependencyidentifier(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_dependencyidentifier(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_dependencyidentifier(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 
 
@@ -3415,7 +3440,7 @@ static int bind_intconstant(NailArena *arena,intconstant*out,NailStream *stream,
             save = *(tr++);
             out->hex.elem= (typeof(out->hex.elem))n_malloc(arena,out->hex.count* sizeof(*out->hex.elem));
             if(!out->hex.elem) {
-                return 0;
+                return -1;
             }
             for(pos i6=0; i6<out->hex.count; i6++) {
                 switch(*(tr++)) {
@@ -3456,15 +3481,20 @@ intconstant*parse_intconstant(NailArena *arena, const uint8_t *data, size_t size
     pos pos;
     intconstant* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_intconstant(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_intconstant(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_intconstant(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_intconstant(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_intp(NailArena *arena,intp*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -3480,7 +3510,7 @@ static int bind_intp(NailArena *arena,intp*out,NailStream *stream, pos **trace ,
             save = *(tr++);
             out->unsign.elem= (typeof(out->unsign.elem))n_malloc(arena,out->unsign.count* sizeof(*out->unsign.elem));
             if(!out->unsign.elem) {
-                return 0;
+                return -1;
             }
             for(pos i7=0; i7<out->unsign.count; i7++) {
                 out->unsign.elem[i7]=read_unsigned_bits(stream,8);
@@ -3499,7 +3529,7 @@ static int bind_intp(NailArena *arena,intp*out,NailStream *stream, pos **trace ,
             save = *(tr++);
             out->sign.elem= (typeof(out->sign.elem))n_malloc(arena,out->sign.count* sizeof(*out->sign.elem));
             if(!out->sign.elem) {
-                return 0;
+                return -1;
             }
             for(pos i8=0; i8<out->sign.count; i8++) {
                 out->sign.elem[i8]=read_unsigned_bits(stream,8);
@@ -3521,15 +3551,20 @@ intp*parse_intp(NailArena *arena, const uint8_t *data, size_t size) {
     pos pos;
     intp* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_intp(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_intp(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_intp(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_intp(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_constint(NailArena *arena,constint*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -3552,15 +3587,20 @@ constint*parse_constint(NailArena *arena, const uint8_t *data, size_t size) {
     pos pos;
     constint* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_constint(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_constint(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_constint(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_constint(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_arrayvalue(NailArena *arena,arrayvalue*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -3578,7 +3618,7 @@ static int bind_arrayvalue(NailArena *arena,arrayvalue*out,NailStream *stream, p
             save = *(tr++);
             out->string.elem= (typeof(out->string.elem))n_malloc(arena,out->string.count* sizeof(*out->string.elem));
             if(!out->string.elem) {
-                return 0;
+                return -1;
             }
             for(pos i9=0; i9<out->string.count; i9++) {
                 out->string.elem[i9]=read_unsigned_bits(stream,8);
@@ -3599,7 +3639,7 @@ static int bind_arrayvalue(NailArena *arena,arrayvalue*out,NailStream *stream, p
             save = *(tr++);
             out->values.elem= (typeof(out->values.elem))n_malloc(arena,out->values.count* sizeof(*out->values.elem));
             if(!out->values.elem) {
-                return 0;
+                return -1;
             }
             for(pos i10=0; i10<out->values.count; i10++) {
                 if(parser_fail(bind_intconstant(arena,&out->values.elem[i10], stream,&tr,trace_begin))) {
@@ -3625,15 +3665,20 @@ arrayvalue*parse_arrayvalue(NailArena *arena, const uint8_t *data, size_t size) 
     pos pos;
     arrayvalue* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_arrayvalue(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_arrayvalue(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_arrayvalue(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_arrayvalue(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_constarray(NailArena *arena,constarray*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -3658,15 +3703,20 @@ constarray*parse_constarray(NailArena *arena, const uint8_t *data, size_t size) 
     pos pos;
     constarray* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_constarray(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_constarray(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_constarray(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_constarray(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_constfields(NailArena *arena,constfields*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -3676,7 +3726,7 @@ static int bind_constfields(NailArena *arena,constfields*out,NailStream *stream,
         save = *(tr++);
         out->elem= (typeof(out->elem))n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
-            return 0;
+            return -1;
         }
         for(pos i11=0; i11<out->count; i11++) {
             if(i11>0) {
@@ -3700,15 +3750,20 @@ constfields*parse_constfields(NailArena *arena, const uint8_t *data, size_t size
     pos pos;
     constfields* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_constfields(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_constfields(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_constfields(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_constfields(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_constparser(NailArena *arena,constparser*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -3767,7 +3822,7 @@ static int bind_constparser(NailArena *arena,constparser*out,NailStream *stream,
             save = *(tr++);
             out->cunion.elem= (typeof(out->cunion.elem))n_malloc(arena,out->cunion.count* sizeof(*out->cunion.elem));
             if(!out->cunion.elem) {
-                return 0;
+                return -1;
             }
             for(pos i12=0; i12<out->cunion.count; i12++) {
                 stream_reposition(stream,*tr);
@@ -3793,15 +3848,20 @@ constparser*parse_constparser(NailArena *arena, const uint8_t *data, size_t size
     pos pos;
     constparser* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_constparser(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_constparser(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_constparser(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_constparser(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_constraintelem(NailArena *arena,constraintelem*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -3836,10 +3896,10 @@ static int bind_constraintelem(NailArena *arena,constraintelem*out,NailStream *s
             out->range.max= NULL;
         }
         break;
-    case VALUE:
+    case INTVALUE:
         tr = trace_begin + *tr;
-        out->N_type= VALUE;
-        if(parser_fail(bind_intconstant(arena,&out->value, stream,&tr,trace_begin))) {
+        out->N_type= INTVALUE;
+        if(parser_fail(bind_intconstant(arena,&out->intvalue, stream,&tr,trace_begin))) {
             return -1;
         }
         break;
@@ -3857,15 +3917,20 @@ constraintelem*parse_constraintelem(NailArena *arena, const uint8_t *data, size_
     pos pos;
     constraintelem* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_constraintelem(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_constraintelem(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_constraintelem(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_constraintelem(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_intconstraint(NailArena *arena,intconstraint*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -3888,7 +3953,7 @@ static int bind_intconstraint(NailArena *arena,intconstraint*out,NailStream *str
             save = *(tr++);
             out->set.elem= (typeof(out->set.elem))n_malloc(arena,out->set.count* sizeof(*out->set.elem));
             if(!out->set.elem) {
-                return 0;
+                return -1;
             }
             for(pos i13=0; i13<out->set.count; i13++) {
                 if(i13>0) {
@@ -3931,15 +3996,20 @@ intconstraint*parse_intconstraint(NailArena *arena, const uint8_t *data, size_t 
     pos pos;
     intconstraint* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_intconstraint(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_intconstraint(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_intconstraint(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_intconstraint(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_constrainedint(NailArena *arena,constrainedint*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -3971,15 +4041,20 @@ constrainedint*parse_constrainedint(NailArena *arena, const uint8_t *data, size_
     pos pos;
     constrainedint* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_constrainedint(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_constrainedint(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_constrainedint(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_constrainedint(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_transform(NailArena *arena,transform*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -3989,7 +4064,7 @@ static int bind_transform(NailArena *arena,transform*out,NailStream *stream, pos
         save = *(tr++);
         out->left.elem= (typeof(out->left.elem))n_malloc(arena,out->left.count* sizeof(*out->left.elem));
         if(!out->left.elem) {
-            return 0;
+            return -1;
         }
         for(pos i14=0; i14<out->left.count; i14++) {
             if(i14>0) {
@@ -4015,7 +4090,7 @@ static int bind_transform(NailArena *arena,transform*out,NailStream *stream, pos
         save = *(tr++);
         out->right.elem= (typeof(out->right.elem))n_malloc(arena,out->right.count* sizeof(*out->right.elem));
         if(!out->right.elem) {
-            return 0;
+            return -1;
         }
         for(pos i15=0; i15<out->right.count; i15++) {
             if(parser_fail(bind_parameter(arena,&out->right.elem[i15], stream,&tr,trace_begin))) {
@@ -4038,15 +4113,20 @@ transform*parse_transform(NailArena *arena, const uint8_t *data, size_t size) {
     pos pos;
     transform* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_transform(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_transform(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_transform(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_transform(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_structparser(NailArena *arena,structparser*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -4058,7 +4138,7 @@ static int bind_structparser(NailArena *arena,structparser*out,NailStream *strea
         save = *(tr++);
         out->elem= (typeof(out->elem))n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
-            return 0;
+            return -1;
         }
         for(pos i16=0; i16<out->count; i16++) {
             if(i16>0) {
@@ -4128,15 +4208,20 @@ structparser*parse_structparser(NailArena *arena, const uint8_t *data, size_t si
     pos pos;
     structparser* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_structparser(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_structparser(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_structparser(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_structparser(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_wrapparser(NailArena *arena,wrapparser*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -4152,7 +4237,7 @@ static int bind_wrapparser(NailArena *arena,wrapparser*out,NailStream *stream, p
             save = *(tr++);
             out->constbefore[0].elem= (typeof(out->constbefore[0].elem))n_malloc(arena,out->constbefore[0].count* sizeof(*out->constbefore[0].elem));
             if(!out->constbefore[0].elem) {
-                return 0;
+                return -1;
             }
             for(pos i17=0; i17<out->constbefore[0].count; i17++) {
                 if(i17>0) {
@@ -4191,7 +4276,7 @@ static int bind_wrapparser(NailArena *arena,wrapparser*out,NailStream *stream, p
             save = *(tr++);
             out->constafter[0].elem= (typeof(out->constafter[0].elem))n_malloc(arena,out->constafter[0].count* sizeof(*out->constafter[0].elem));
             if(!out->constafter[0].elem) {
-                return 0;
+                return -1;
             }
             for(pos i18=0; i18<out->constafter[0].count; i18++) {
                 if(i18>0) {
@@ -4223,15 +4308,20 @@ wrapparser*parse_wrapparser(NailArena *arena, const uint8_t *data, size_t size) 
     pos pos;
     wrapparser* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_wrapparser(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_wrapparser(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_wrapparser(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_wrapparser(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_choiceparser(NailArena *arena,choiceparser*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -4245,7 +4335,7 @@ static int bind_choiceparser(NailArena *arena,choiceparser*out,NailStream *strea
         save = *(tr++);
         out->elem= (typeof(out->elem))n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
-            return 0;
+            return -1;
         }
         for(pos i19=0; i19<out->count; i19++) {
             if(parser_fail(bind_constidentifier(arena,&out->elem[i19].tag, stream,&tr,trace_begin))) {
@@ -4277,15 +4367,20 @@ choiceparser*parse_choiceparser(NailArena *arena, const uint8_t *data, size_t si
     pos pos;
     choiceparser* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_choiceparser(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_choiceparser(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_choiceparser(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_choiceparser(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_arrayparser(NailArena *arena,arrayparser*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -4362,15 +4457,20 @@ arrayparser*parse_arrayparser(NailArena *arena, const uint8_t *data, size_t size
     pos pos;
     arrayparser* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_arrayparser(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_arrayparser(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_arrayparser(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_arrayparser(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_parameter(NailArena *arena,parameter*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -4403,15 +4503,20 @@ parameter*parse_parameter(NailArena *arena, const uint8_t *data, size_t size) {
     pos pos;
     parameter* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_parameter(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_parameter(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_parameter(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_parameter(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_parameterlist(NailArena *arena,parameterlist*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -4423,7 +4528,7 @@ static int bind_parameterlist(NailArena *arena,parameterlist*out,NailStream *str
         save = *(tr++);
         out->elem= (typeof(out->elem))n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
-            return 0;
+            return -1;
         }
         for(pos i20=0; i20<out->count; i20++) {
             if(i20>0) {
@@ -4450,15 +4555,20 @@ parameterlist*parse_parameterlist(NailArena *arena, const uint8_t *data, size_t 
     pos pos;
     parameterlist* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_parameterlist(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_parameterlist(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_parameterlist(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_parameterlist(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_parameterdefinition(NailArena *arena,parameterdefinition*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -4498,15 +4608,20 @@ parameterdefinition*parse_parameterdefinition(NailArena *arena, const uint8_t *d
     pos pos;
     parameterdefinition* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_parameterdefinition(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_parameterdefinition(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_parameterdefinition(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_parameterdefinition(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_parameterdefinitionlist(NailArena *arena,parameterdefinitionlist*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -4518,7 +4633,7 @@ static int bind_parameterdefinitionlist(NailArena *arena,parameterdefinitionlist
         save = *(tr++);
         out->elem= (typeof(out->elem))n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
-            return 0;
+            return -1;
         }
         for(pos i21=0; i21<out->count; i21++) {
             if(i21>0) {
@@ -4545,15 +4660,20 @@ parameterdefinitionlist*parse_parameterdefinitionlist(NailArena *arena, const ui
     pos pos;
     parameterdefinitionlist* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_parameterdefinitionlist(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_parameterdefinitionlist(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_parameterdefinitionlist(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_parameterdefinitionlist(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_parserinvocation(NailArena *arena,parserinvocation*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -4583,15 +4703,20 @@ parserinvocation*parse_parserinvocation(NailArena *arena, const uint8_t *data, s
     pos pos;
     parserinvocation* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_parserinvocation(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_parserinvocation(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_parserinvocation(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_parserinvocation(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_parserinner(NailArena *arena,parserinner*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -4703,7 +4828,7 @@ static int bind_parserinner(NailArena *arena,parserinner*out,NailStream *stream,
             save = *(tr++);
             out->nunion.elem= (typeof(out->nunion.elem))n_malloc(arena,out->nunion.count* sizeof(*out->nunion.elem));
             if(!out->nunion.elem) {
-                return 0;
+                return -1;
             }
             for(pos i22=0; i22<out->nunion.count; i22++) {
                 stream_reposition(stream,*tr);
@@ -4749,15 +4874,20 @@ parserinner*parse_parserinner(NailArena *arena, const uint8_t *data, size_t size
     pos pos;
     parserinner* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_parserinner(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_parserinner(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_parserinner(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_parserinner(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_parser(NailArena *arena,parser*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -4794,15 +4924,20 @@ parser*parse_parser(NailArena *arena, const uint8_t *data, size_t size) {
     pos pos;
     parser* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_parser(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_parser(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_parser(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_parser(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_definition(NailArena *arena,definition*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -4885,15 +5020,20 @@ definition*parse_definition(NailArena *arena, const uint8_t *data, size_t size) 
     pos pos;
     definition* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_definition(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_definition(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_definition(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_definition(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 static int bind_grammar(NailArena *arena,grammar*out,NailStream *stream, pos **trace ,  pos * trace_begin) {
     pos *tr = *trace;
@@ -4903,7 +5043,7 @@ static int bind_grammar(NailArena *arena,grammar*out,NailStream *stream, pos **t
         save = *(tr++);
         out->elem= (typeof(out->elem))n_malloc(arena,out->count* sizeof(*out->elem));
         if(!out->elem) {
-            return 0;
+            return -1;
         }
         for(pos i23=0; i23<out->count; i23++) {
             if(parser_fail(bind_definition(arena,&out->elem[i23], stream,&tr,trace_begin))) {
@@ -4926,15 +5066,20 @@ grammar*parse_grammar(NailArena *arena, const uint8_t *data, size_t size) {
     pos pos;
     grammar* retval;
     n_trace_init(&trace,4096,4096);
-    tr_ptr = trace.trace;
-    if(parser_fail(peg_grammar(&tmp_arena,&trace,&stream))) return NULL;
-    if(stream.pos != stream.size) return NULL;
+    if(parser_fail(peg_grammar(&tmp_arena,&trace,&stream))) goto fail;
+    if(stream.pos != stream.size) goto fail;
     retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));
-    if(!retval) return NULL;
+    if(!retval) goto fail;
     stream.pos = 0;
-    if(bind_grammar(arena,retval,&stream,&tr_ptr,trace.trace) < 0) return NULL;
+    tr_ptr = trace.trace;
+    if(bind_grammar(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;
+out:
     n_trace_release(&trace);
+    NailArena_release(&tmp_arena);
     return retval;
+fail:
+    retval = NULL;
+    goto out;
 }
 int gen_number(NailArena *tmp_arena,NailStream *out,number * val);
 int gen_varidentifier(NailArena *tmp_arena,NailStream *out,varidentifier * val);
@@ -5233,8 +5378,8 @@ int gen_constraintelem(NailArena *tmp_arena,NailStream *str_current,constraintel
             stream_reposition(str_current, end_of_struct);
         }
         break;
-    case VALUE:
-        if(parser_fail(gen_intconstant(tmp_arena,str_current,&val->value))) {
+    case INTVALUE:
+        if(parser_fail(gen_intconstant(tmp_arena,str_current,&val->intvalue))) {
             return -1;
         }
         break;

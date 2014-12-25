@@ -77,8 +77,8 @@ std::string typedef_type(const parser &p, std::string name, std::string *post){
 //Negative of a constraint. 
 void constraint(std::ostream &out,std::string val, constraintelem &e){
   switch(e.N_type){
-  case VALUE:
-    out << val << "!="<< intconstant_value(e.value);
+  case INTVALUE:
+    out << val << "!="<< intconstant_value(e.intvalue);
     break;
   case RANGE:
     out << "(";
