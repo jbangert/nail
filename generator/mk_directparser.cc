@@ -261,13 +261,13 @@ public:
       ValExpr iexpr(iter);
       ArrayElemExpr elem(&data,&iexpr);
 
-      out << iexpr << "= 0;\n";
+      out << "pos " << iexpr << "= 0;\n";
       if(separator != NULL)
         out << "goto start_repeat_"<< this_many << ";\n";
-      out  << "succ_repeat_" << this_many << ":\n";
+      out  << "succ_repeat_" << this_many << ":;\n";
       if(separator != NULL){
         p_const(*separator,gotofail);
-        out << "start_repeat_" << this_many <<":\n";
+        out << "start_repeat_" << this_many <<":;\n";
       }
       out << "NailArenaPos back_arena = n_arena_save(arena);\n";
       parser(i->pr,elem,gotofail, scope );
@@ -279,6 +279,7 @@ public:
         out << "if("<<iexpr<<"==0){"<< fail << "}\n";
       }
       out << count << "= "<<iexpr<<";\n";
+      out << "}";
       break;
     }
     case FIXEDARRAY:
@@ -291,7 +292,7 @@ public:
       ValExpr iexpr(iter);
       ArrayElemExpr elem(&data,&iexpr);
       out << "pos "<<iter<<" = 0 ;\n";
-      out << "for(;"<<iter<<"<"<<mk_str(p.length.length)<<";"<<iter<<"++){";
+      out << "for(;"<<iter<<"<dep_"<<mk_str(p.length.length)<<";"<<iter<<"++){";
       parser(p.length.parser->pr,elem,fail,scope);
       out << "}\n";
       break;
@@ -363,11 +364,32 @@ public:
           << "fail:\n return -1;\n";
       out << "}\n";
       forward_declarations << "static pos peg_" << mk_str(def->parser.name) <<"(NailArena *arena,"<<mk_str(def->parser.name) << " *out,NailStream *str_current"<<params<<");\n";
+      if(!def->parser.parameters || def->parser.parameters->count==0){
+        //XXX: Parameter pass thru
+        //XXX: n_malloc
+        out << name << "* parse_"<<name << "(NailArena *arena, NailStream *stream){\n"
+            << name << "*retval = n_malloc(arena, sizeof(*retval));"
+            << "if(!retval) return NULL;\n"
+            << "if(parser_fail(peg_"<<name<<"(arena, retval, stream))){"
+            << "goto fail;"
+            << "}"
+            <<" if(!stream_check(str_current,1)) {goto fail;}"
+            << "return retval;\n"
+            << " fail: " // XXX: Memory leak on failed?
+            << "return NULL;"
+            <<"}";
+          }
     }  else if(def->N_type == CONSTANTDEF){
+      std::string name = mk_str(def->constantdef.name);
+      out << "static pos peg_" << name << "(NailStream *str_current){\n";
+      p_const(def->constantdef.definition, "goto fail;");
+      out << "return 0;\n"
+          << "fail: return -1;\n"
+          << "}";
+      forward_declarations << "static pos peg_" << mk_str(def->constantdef.name) <<"(NailStream *str_current);\n";
     }
 
     }
-    //XXX: Create parse_ API 
     out << std::endl;
     final << header.str() << forward_declarations.str() << out.str() << std::endl;
     hdr << header.str() << std::endl;

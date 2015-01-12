@@ -298,6 +298,11 @@ typedef struct NailArenaPool{
         struct NailArenaPool *next;
 } NailArenaPool;
 
+// free on backtrack?
+typedef struct {
+        struct NailArenaPool *next;
+        char *iter;
+} NailArenaPos;
 void *n_malloc(NailArena *arena, size_t size)
 {
         void *retval;

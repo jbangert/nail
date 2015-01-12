@@ -90,8 +90,8 @@ int dns_respond(NailStream *stream,NailArena * arena,struct dnspacket *query, zo
         response.aa = 1;
         response.ra = 0; /* We don't do recursion*/
         response.questions  = query->questions;
-        response.additionalcount=0;
-        response.authoritycount=0;
+        response.additional.count = 0;
+        response.authority.count = 0;
         response.rcode = 0;
         narray_alloc(response.responses,arena,query->questions.count);
         for(int i=0;i<query->questions.count;i++){
