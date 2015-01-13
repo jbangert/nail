@@ -1,5 +1,5 @@
 
-CFLAGS+= -I../../include  -ggdb  -std=gnu99
+CFLAGS+= -I../../include  -std=gnu99 -O3 # -ggdb 
 all: server  # resolver
 
 server:  server.o dns.nail.o dns.o
