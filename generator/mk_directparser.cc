@@ -18,7 +18,11 @@ class CDirectParser {
   Endian End;
 
   void check_int(unsigned int width, const std::string &fail){
-    out << "if(parser_fail(stream_check(str_current,"<<width<<"))) {"<<fail<<"}\n";
+    //  if(option::templates){
+    //  out << "if(parser_fail(str_current.check("<<width<<"))){ "<<fail<<"}\n";
+    //} else {
+      out << "if(parser_fail(stream_check(str_current,"<<width<<"))) {"<<fail<<"}\n";
+      //}
   }
   std::string int_expr(const char * stream,unsigned int width){
     if(width>=64){
@@ -118,7 +122,6 @@ public:
       val << lval;
       constraint(out,val.str(),*c.constraint);
       out << "){"
-          << "stream_backup(str_current,"<<width<<");"
           <<fail
           <<"}\n";
     }
