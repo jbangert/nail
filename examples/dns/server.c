@@ -86,8 +86,10 @@ int dns_respond(NailStream *stream,NailArena * arena,struct dnspacket *query, zo
 
         response.id = query->id;
         response.qr = 1;
+        response.opcode = 0;
         response.rd = query->rd;
         response.aa = 1;
+        response.tc = 0; /*XXX: TODO: Do truncation*/
         response.ra = 0; /* We don't do recursion*/
         response.questions  = query->questions;
         response.additional.count = 0;
@@ -147,8 +149,13 @@ int dns_respond(NailStream *stream,NailArena * arena,struct dnspacket *query, zo
         return gen_dnspacket(arena, stream,&response);
 }
 #define ZONESIZ 4096*1024
+void memstream(NailStream *str, char *buf,size_t size){
+        str->data = buf;
+        str->size = size;
+        str->pos = 0;
+        str->bit_offset =0;
+}
 int main(int argc, char** argv) {
-  int sock = start_listening();
   uint8_t packet[8192]; // static buffer for simplicity
   ssize_t packet_size;
   struct sockaddr_in remote;
@@ -160,12 +167,15 @@ int main(int argc, char** argv) {
   NailArena_init(&permanent,4096);
   if(!zonebuf || !zonefil) exit(-1);
   remote_len = fread(zonebuf,1,ZONESIZ,zonefil);
-  zone * zon = parse_zone(&permanent,zonebuf,remote_len);
+  NailStream zonestream;
+  memstream(&zonestream,zonebuf,remote_len);
+  zone * zon = parse_zone(&permanent,&zonestream);
   if(!zon) {fprintf(stderr,"Cannot parse zone\n"); exit(-1);}
   free(zonebuf);
   fclose(zonefil);
   printf("Parsed zone;\n");
   struct hashentry *hashtable = zone_hashtable(zon);
+  int sock = start_listening();
   while (1) {
           NailArena arena,tmp_arena;
           NailStream out;
@@ -178,7 +188,9 @@ int main(int argc, char** argv) {
           NailArena_init(&arena,4096);
           NailArena_init(&tmp_arena,4096);
           NailOutStream_init(&out,4096);
-          message = parse_dnspacket(&arena,packet, packet_size);
+          NailStream packetstream;
+          memstream(&packetstream, packet,packet_size);
+          message = parse_dnspacket(&arena,&packetstream);
           if (!message) {
                   printf("Invalid packet; ignoring\n");
                   continue;

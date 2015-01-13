@@ -8,7 +8,7 @@ typedef struct{
         pos *trace;
         pos capacity,iter,grow;
 } n_trace; 
-#define parser_fail(i) __builtin_expect(i<0,0)
+#define parser_fail(i) __builtin_expect(i,0)
 static uint64_t read_unsigned_bits_littleendian(NailStream *stream, unsigned count) {
     uint64_t retval = 0;
     unsigned int out_idx=0;
@@ -178,7 +178,7 @@ typedef struct{
 //        p_hash *memo;
         unsigned lg_size; // How large is the hashtable - make it a power of two 
 } n_hashtable;
-
+#if 0 
 static int  n_trace_init(n_trace *out,pos size,pos grow){
         if(size <= 1){
                 return -1;
@@ -292,6 +292,7 @@ static int n_tr_const(n_trace *trace,NailStream *stream){
         trace->trace[trace->iter++] = newoff;
         return 0;
 }
+#endif
 #define n_tr_offset n_tr_const
 typedef struct NailArenaPool{
         char *iter;char *end;
@@ -300,9 +301,18 @@ typedef struct NailArenaPool{
 
 // free on backtrack?
 typedef struct {
-        struct NailArenaPool *next;
+        struct NailArenaPool *pool;
         char *iter;
 } NailArenaPos;
+static NailArenaPos n_arena_save(NailArena *arena){
+        NailArenaPos retval = {.pool = arena->current, .iter = arena->current->iter};
+        return retval;
+}
+static void n_arena_restore(NailArena *arena, NailArenaPos p){
+        arena->current = p.pool;
+        arena->current->iter = p.iter;
+        //memory will remain linked
+}
 void *n_malloc(NailArena *arena, size_t size)
 {
         void *retval;

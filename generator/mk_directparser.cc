@@ -5,6 +5,9 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <list>
 
+/* XXX: We need to get rid of NailStream. Find some way of statically determining which NailStream
+   some transform will create and inline calls to that.
+   Then implement a coroutine based parser */
 class CDirectParser {
   std::ostream &final;
   std::ostream &hdr;
@@ -72,7 +75,7 @@ public:
     }
       break;
     case CREF:
-      out <<"if(parser_fail(parse_" << mk_str(c.cref) << "(str_current))){\n"
+      out <<"if(parser_fail(peg_" << mk_str(c.cref) << "(str_current))){\n"
           <<fail <<  "}\n";
 
       break;
@@ -82,7 +85,7 @@ public:
       }
       break;
     case CUNION:{
-      out << "{\n"
+      out << "{/*CUNION*/\n"
           <<"NailStreamPos back = stream_getpos(str_current);";
       int thischoice = num_iters++;
       std::string succ_label = boost::str(boost::format("cunion_%d_succ") % thischoice);
@@ -108,19 +111,18 @@ public:
   {
     int width = boost::lexical_cast<int>(mk_str(c.parser.unsign));
     check_int(width,fail);
+    out << "{\n " << lval << " = " << int_expr("str_current",width) << ";\n";
     if(c.constraint != NULL){
-      out << "{\n " << lval << " = " << int_expr("str_current",width) << ";\n";
       out << "if(";
       std::stringstream val;
       val << lval;
       constraint(out,val.str(),*c.constraint);
       out << "){"
           << "stream_backup(str_current,"<<width<<");"
-          <<fail<<"}\n";
-      out << "}\n";
-    } else {
-      out << "stream_advance(str_current,"<<width<<");\n";
+          <<fail
+          <<"}\n";
     }
+    out << "}\n";
   }
   void p_struct(const structparser &s, Expr &lval, const std::string fail, Scope &scope)
   {
@@ -157,7 +159,7 @@ public:
         // If declaration occurs right a label, we need an empty statement
       }
       out << "if(";
-      out << mk_str(field->transform.cfunction) << "_parse(tmp_arena"; //TODO: use temp arena
+      out << mk_str(field->transform.cfunction) << "_parse(tmparena"; //TODO: use temp arena
 
       FOREACH(stream, field->transform.left){           
         header << ",NailStream *str_" << mk_str(*stream);
@@ -213,7 +215,7 @@ public:
     case CHOICE:
       {
         int this_choice = num_iters++;
-        out << "{NailStreamPos back = stream_getpos(str_current);\n";
+        out << "{/*CHOICE*/NailStreamPos back = stream_getpos(str_current);\n";
         out << "NailArenaPos back_arena = n_arena_save(arena);";
           std::string success_label = (boost::format("choice_%d_succ") % this_choice).str();
     
@@ -230,6 +232,10 @@ public:
           out << "n_arena_restore(arena, back_arena);\n";
           out << "stream_reposition(str_current, back);\n";
         }
+        out << fail << "\n";
+        out << success_label <<": ;\n";
+        out << "}";
+
         break;
       }
     case ARRAY:{
@@ -238,6 +244,7 @@ public:
       bool min = false;
       int this_many = num_iters++;
       std::string gotofail=(boost::format("goto fail_repeat_%d;") % this_many).str();
+      std::string gotofailsep=(boost::format("goto fail_repeat_sep_%d;") % this_many).str();
       ValExpr count("count", &lval);
       ValExpr data("elem", &lval);
       switch(p.array.N_type){
@@ -257,28 +264,47 @@ public:
         break;
       }
       out << "{\n";
+      std::string temp = boost::str(boost::format("tmp_%d") % this_many);
       std::string iter = boost::str(boost::format("count_%d") % this_many);
       ValExpr iexpr(iter);
       ArrayElemExpr elem(&data,&iexpr);
-
+      DerefExpr linkedlist = DerefExpr(ValExpr(temp));
+      ValExpr tmpexpr("elem",&linkedlist);
       out << "pos " << iexpr << "= 0;\n";
+      out << "struct { typeof("<<elem<<") elem; void *prev;} *"<< temp << " = NULL;\n";
       if(separator != NULL)
         out << "goto start_repeat_"<< this_many << ";\n";
       out  << "succ_repeat_" << this_many << ":;\n";
+      out << "NailStreamPos posrep_" << this_many << "= stream_getpos(str_current);"; 
+      out << "NailArenaPos back_arena = n_arena_save(arena);\n";
       if(separator != NULL){
-        p_const(*separator,gotofail);
+        p_const(*separator,gotofailsep); // Skip backtracking temp when failing the separator
         out << "start_repeat_" << this_many <<":;\n";
       }
-      out << "NailArenaPos back_arena = n_arena_save(arena);\n";
-      parser(i->pr,elem,gotofail, scope );
+      out << "typeof("<<temp<<") prev_"<<temp<<"= "<<temp<<";\n"  
+          << temp << " = n_malloc(tmparena,sizeof(*"<<temp<<"));\n"
+          << "if(parser_fail(!"<<temp<<")) {return -1;}"
+          << temp << "->prev = prev_"<<temp<<";\n";
+      parser(i->pr,tmpexpr,gotofail, scope );
       out << iter << "++;\n";
       out << " goto succ_repeat_"<< this_many << ";\n";
       out << "fail_repeat_" << this_many << ":\n";
+      out << temp << "= "<<temp<<"->prev;\n";
+      out << "fail_repeat_sep_" << this_many << ":\n";
       out << "n_arena_restore(arena, back_arena);\n";
+      out << "stream_reposition(str_current, posrep_"<<this_many<<");\n";
       if(min){
         out << "if("<<iexpr<<"==0){"<< fail << "}\n";
       }
+      
       out << count << "= "<<iexpr<<";\n";
+      out << data << "= n_malloc(arena,sizeof("<<elem<<")*"<<count <<");\n"
+          << "if(parser_fail(!"<<data<<")){ return -1;}";
+      out << "while("<<iter<<"){"
+          << iter<< "--;\n"
+          << "memcpy(&"<<elem <<",&"<<temp<<"->elem,sizeof("<<elem<<"));"
+          <<  temp << " = " << temp << "->prev;\n"
+          << "}";
       out << "}";
       break;
     }
@@ -292,7 +318,10 @@ public:
       ValExpr iexpr(iter);
       ArrayElemExpr elem(&data,&iexpr);
       out << "pos "<<iter<<" = 0 ;\n";
-      out << "for(;"<<iter<<"<dep_"<<mk_str(p.length.length)<<";"<<iter<<"++){";
+      out << count << "= dep_"<<mk_str(p.length.length) << ";\n";
+      out << data << " = n_malloc(arena,"<<count<<"*sizeof("<<elem<<"));";
+      out << "if(parser_fail(!"<<data<<")){return -1;}\n";
+      out << "for(;"<<iter<<"<"<<count<<";"<<iter<<"++){";
       parser(p.length.parser->pr,elem,fail,scope);
       out << "}\n";
       break;
@@ -306,11 +335,11 @@ public:
       parser (p.apply.inner->pr, lval,(boost::format("goto fail_apply_%d;") % this_many).str(), scope);
       out << "goto succ_apply_" << this_many << ";\n";
       out << "fail_apply_" << this_many << ":\n";
-      out << "str_current = orig_str; \n"
+      out << "str_current = origstr_"<<this_many<<"; \n"
           << "stream_reposition(str_current, back_"<<this_many<<");\n"
           << fail << "\n";
       out << "succ_apply_" << this_many << ":\n"
-          << "str_current = orig_str;\n";      
+          << "str_current = origstr_"<<this_many<<";\n";      
       out << "}\n";
       break;
     }
@@ -335,15 +364,18 @@ public:
       std::string parameters =   parameter_invocation(p.ref.parameters,scope);
       out << lval << "= (typeof("<<lval<<")) n_malloc("<<arena<<",sizeof(*"<<lval<<"));\n";
       out << "if(!"<<lval<<"){return -1;}\n";
-      out << "if(parser_fail(peg_"<<mk_str(p.name.name)<<"(arena, "<<lval<<",str_current, "<<parameters<<"))) { return -1;}\n";
+      out << "if(parser_fail(peg_"<<mk_str(p.name.name)<<"(arena,tmparena, "<<lval<<",str_current "<<parameters<<"))) { "<<fail<<"}\n";
       break;
     }
       
     case NAME:{
       std::string parameters =   parameter_invocation(p.ref.parameters,scope);
-      out << "if(parser_fail(peg_"<<mk_str(p.name.name)<<"(arena, &"<<lval<<",str_current, "<<parameters<<"))) { return -1;}\n";
+      out << "if(parser_fail(peg_"<<mk_str(p.name.name)<<"(arena,tmparena, &"<<lval<<",str_current "<<parameters<<"))) { "<<fail<<"}\n";
       break;
     }
+    default:
+      std::cerr << "BUG"<< std::endl;
+      exit(-1);
     }
   }
   void emit_parser(grammar &gram){
@@ -356,26 +388,30 @@ public:
       std::string name = mk_str(def->parser.name);
       scope.add_stream_parameter("current");
       std::string params = parameter_definition(*def,scope);
-      out <<"static pos peg_" << name <<"(NailArena *arena,"<<mk_str(def->parser.name) << " *out,NailStream *str_current"<<params<<"){\n";
+      out <<"static pos peg_" << name <<"(NailArena *arena,NailArena *tmparena,"<<mk_str(def->parser.name) << " *out,NailStream *str_current"<<params<<"){\n";
       out << "pos i;\n"; //Used in name and ref as temp variables
       ValExpr outexpr("out",NULL,1);
       parser( def->parser.definition.pr,outexpr, "goto fail;",scope);
       out << "return 0;\n"
           << "fail:\n return -1;\n";
       out << "}\n";
-      forward_declarations << "static pos peg_" << mk_str(def->parser.name) <<"(NailArena *arena,"<<mk_str(def->parser.name) << " *out,NailStream *str_current"<<params<<");\n";
+      forward_declarations << "static pos peg_" << mk_str(def->parser.name) <<"(NailArena *arena,NailArena *tmparena,"<<mk_str(def->parser.name) << " *out,NailStream *str_current"<<params<<");\n";
       if(!def->parser.parameters || def->parser.parameters->count==0){
         //XXX: Parameter pass thru
         //XXX: n_malloc
         out << name << "* parse_"<<name << "(NailArena *arena, NailStream *stream){\n"
             << name << "*retval = n_malloc(arena, sizeof(*retval));"
+            << "NailArena tmparena;"
+            <<"NailArena_init(&tmparena, 4096);"
             << "if(!retval) return NULL;\n"
-            << "if(parser_fail(peg_"<<name<<"(arena, retval, stream))){"
+            << "if(parser_fail(peg_"<<name<<"(arena, &tmparena,retval, stream))){"
             << "goto fail;"
             << "}"
-            <<" if(!stream_check(str_current,1)) {goto fail;}"
+            <<" if(!stream_check(stream,8)) {goto fail;}"
+            << "NailArena_release(&tmparena);"
             << "return retval;\n"
-            << " fail: " // XXX: Memory leak on failed?
+            << " fail: " // Undo memory allocations on failed arena? 
+            << "NailArena_release(&tmparena);"
             << "return NULL;"
             <<"}";
           }

@@ -1,6 +1,6 @@
 
 CFLAGS+= -I../../include  -ggdb  -std=gnu99
-all: server   resolver
+all: server  # resolver
 
 server:  server.o dns.nail.o dns.o
 resolver: resolver.o dns.nail.o dns.o
@@ -8,7 +8,8 @@ resolver: resolver.o dns.nail.o dns.o
 server.o: dns.nail.h
 resolver.o: dns.nail.h
 
-
+clean:
+	rm dns.nail.* *.o
 dns.nail.h dns.nail.c: dns.nail
 	../../generator/nail $< 
 	astyle dns.nail.h

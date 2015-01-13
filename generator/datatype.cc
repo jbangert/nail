@@ -193,7 +193,7 @@ void emit_header(std::ostream *out, grammar *grammar){
   FOREACH(def, *grammar){
     if(def->N_type == PARSER){
       std::string name= mk_str(def->parser.name);
-      *out << name << "*parse_" << name << "(NailArena *arena, const uint8_t *data, size_t size);\n";
+      *out << name << "*parse_" << name << "(NailArena *arena, NailStream *data);\n";
     }
   }
 

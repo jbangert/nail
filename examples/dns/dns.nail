@@ -41,7 +41,7 @@ dnspacket = {
 WHITE = many || uint8 = ' ' || uint8 = '\n'
 number = many uint8 | '0'..'9'
 ipaddr = sepBy1 uint8='.' number //This is ugly, text parsing needs improvement!
-alnum = ||  uint8 | 'a'..'z' || uint8 | '0'..'9'
+alnum = uint8 | ['a'..'z', '0'..'9']
 domain = sepBy1 uint8='.' many1 alnum
 #define literal(x) many uint8= #x
 #define rr(type,parser) type = <literal(:type:); domain>

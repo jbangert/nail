@@ -37,6 +37,8 @@ void domainresponse(NailArena *arena,answer *a){
 void wait_reply(NailArena *arena,int sockfd,int id){
         char buf[1024];
         size_t siz = recv(sockfd,buf,sizeof buf,0);
+        NailStream packet;
+        memstream(&packet,buf,size);
         dnspacket *dns  = parse_dnspacket(arena,buf,siz);
         if(!dns){
                 fprintf(stderr,"Received bad reply\n");
