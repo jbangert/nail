@@ -1,6 +1,7 @@
 #include "nailtool.h"
 #include <cstdio>
 #include <fstream>
+
 #define error(...) {fprintf(stderr,__VA_ARGS__); exit(-1);}
 FILE *infile(int argc,char **argv){
         char commandbuffer[1024];
@@ -13,6 +14,10 @@ FILE *infile(int argc,char **argv){
         infile = popen(commandbuffer,"r");
         if(!infile) error ("Cannot open pipe\n");
         return infile;
+}
+namespace option{
+  bool cpp = true;
+  bool templates = true;
 }
 int main(int argc, char**argv)
 {

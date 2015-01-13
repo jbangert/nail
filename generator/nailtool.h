@@ -10,9 +10,12 @@
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/foreach.hpp>
+
+namespace option {
+        extern bool templates;
+        extern bool cpp;
+}
 extern "C"{
-#include <hammer/hammer.h>
-#include <hammer/glue.h>
 
 
   extern char parser_template_start[] asm("_binary_parser_template_c_start"); 
