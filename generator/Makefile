@@ -13,7 +13,8 @@ regen-nail-grammar: new_grammar.nail nail
 	./nail $<
 	astyle $<.c
 	astyle $<.h
-
+parser_template.cc.o: parser_template.cc
+	ld -r -o $@ --format=binary $<
 parser_template.c.o: parser_template.c 
 	ld -r -o $@ --format=binary $<
 
@@ -25,7 +26,7 @@ nail_wrap.c : new_grammar.nail.h nail.i
 
 rbnail.so: nail_wrap.c
 	gcc -c  nail_wrap.c
-nail: main.o mk_parser.o mk_gen.o datatype.o util.o new_grammar.nail.o parser_template.c.o mk_directparser.o parser_template.h.o
+nail: main.o mk_parser.o mk_gen.o datatype.o util.o new_grammar.nail.o parser_template.c.o mk_directparser.o parser_template.h.o parser_template.cc.o
 	clang++ $^ -o $@ $(LDFLAGS)
 
 %.o: %.cc $(wildcard *.h)

@@ -17,7 +17,7 @@ FILE *infile(int argc,char **argv){
 }
 namespace option{
   bool cpp = true;
-  bool templates = false;
+  bool templates = true;
 }
 int main(int argc, char**argv)
 {
@@ -42,14 +42,15 @@ int main(int argc, char**argv)
     
      std::string headerfilename = std::string(argv[1]) + ".h";
      std::string implfilename = std::string(argv[1]) + ".c";
-     std::string templatesfilename = std::string(argv[1]) + ".hpp";
      if(!result){
        error("Syntax error in grammar\n");
        return 1;
      }
      try {
-       if(option::templates)
-         headerfilename = templatesfilename;
+       if(option::templates){
+         headerfilename += "h";
+         implfilename += "c";
+       }
        std::ofstream header(headerfilename);
        std::ofstream impl(implfilename);
        std::stringstream discard;
@@ -58,10 +59,11 @@ int main(int argc, char**argv)
        if(!impl.is_open())
          error("Cannot open output file %s\n",implfilename.c_str());
        emit_header(&header,result);
-       impl << "#include \""<< headerfilename << "\""<<std::endl;
+       if(!option::templates)
+         impl << "#include \""<< headerfilename << "\""<<std::endl;
        emit_directparser(&impl,&header,result);
        // emit_parser(&impl,&header,result);
-       emit_generator(&impl,&header,result);
+       // emit_generator(&impl,&header,result);
        impl << std::endl;
        header << std::endl;       
        return 0;

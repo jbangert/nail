@@ -19,7 +19,7 @@ class CDirectParser {
 
   void check_int(unsigned int width, const std::string &fail){
     if(option::templates){
-     out << "if(parser_fail(str_current.check("<<width<<"))){ "<<fail<<"}\n";
+      out << "if(parser_fail(str_current->check("<<width<<"))){ "<<fail<<"}\n";
     } else {
       out << "if(parser_fail(stream_check(str_current,"<<width<<"))) {"<<fail<<"}\n";
     }
@@ -30,12 +30,12 @@ class CDirectParser {
     }
     if(option::templates){
       if(End == Big){
-        return boost::str(boost::format("%s.read_unsigned_big(%d)")%stream % width);
+        return boost::str(boost::format("%s->read_unsigned_big(%d)")%stream % width);
       } else { 
-        return boost::str(boost::format("%s.read_unsigned_little(%d)")%stream % width);
+        return boost::str(boost::format("%s->read_unsigned_little(%d)")%stream % width);
       }
     }else{
-    //TODO: Support little endian?
+      //TODO: Support little endian?
       if(End == Big){
         return boost::str(boost::format("read_unsigned_bits(%s,%d)")%stream % width);
       } else { 
@@ -98,9 +98,9 @@ public:
     case CUNION:{
       out << "{/*CUNION*/\n";
       if(option::templates){
-        out <<"strt_current::pos back = str_current.getpos();\n";
+        out <<"typename strt_current::pos back = str_current->getpos();";
       } else {
-        out << "NailStreamPos back = stream_getpos(str_current);\n";
+        out << "NailStreamPos back = stream_getpos(str_current);";
       }
       int thischoice = num_iters++;
       std::string succ_label = boost::str(boost::format("cunion_%d_succ") % thischoice);
@@ -167,55 +167,69 @@ public:
         newscope.add_dependency_definition(name,type);
         break;
       }
-    case TRANSFORM:{
-      header << "extern int " << mk_str(field->transform.cfunction) << "_parse(NailArena *tmp";
-      FOREACH(stream, field->transform.left){
-        std::string streamname = mk_str(*stream);
-        if(option::templates)
-          out << ";\nstrt_" << streamname <<" str_"<<streamname<<";\n";
-        else
-          out << ";\nNailStream str_" << mk_str(*stream) <<";\n";
-        // If declaration occurs right a label, we need an empty statement
-      }
-      out << "if(";
-      out << mk_str(field->transform.cfunction) << "_parse(tmparena"; //TODO: use temp arena
-
-      FOREACH(stream, field->transform.left){
-        std::string streamstr = mk_str(*stream);
-        if(option::templates){
-          header << ", strt_"<< streamstr<<" *str_" << streamstr ;
-          out << ", &str_"  << streamstr;
-        } else {
-          header << ",NailStream *str_" << streamstr;
-          out << ", &str_"  << streamstr;
+      case TRANSFORM:{
+        std::string name = mk_str(field->transform.cfunction) ;
+        std::string templ = name + "_parse";
+        bool first = true;
+        FOREACH(param, field->transform.right){
+          if(PSTREAM == param->N_type){
+            templ+= first? "<":",";
+            templ += "strt_";
+            templ += mk_str(param->pstream);
+            first = false;
+          }
         }
-      }      
-      FOREACH(param, field->transform.right){
-        switch(param->N_type){
-        case PDEPENDENCY:{
-          std::string name (mk_str(param->pdependency));
-          out << "," << newscope.dependency_ptr(name); 
-          header << "," << newscope.dependency_type(name) << "* " << name;
-          break;
-        }
-        case PSTREAM:{
-          std::string name = mk_str(param->pstream);
-          out << "," <<  newscope.stream_ptr(name);
+        if(!first) templ += ">";
+        
+        std::stringstream decl;
+        decl << "int " << name << "_parse(NailArena *tmp";
+        FOREACH(stream, field->transform.left){
+          std::string streamname = mk_str(*stream);
           if(option::templates)
-            header << ",strt_"<<name<<" *" << name;
+            out << ";\n typename "<<templ<<"::"<< streamname <<" str_"<<streamname<<";\n";
           else
-            header << ",NailStream *" << name;
-          break;
+            out << ";\nNailStream str_" << mk_str(*stream) <<";\n";
+          // If declaration occurs right a label, we need an empty statement
         }
+        if(option::templates){
+          out << "if(" <<templ << "::f(tmparena";
+        }else {
+          out << "if(" <<name << "_parse(tmparena"; //TODO: use temp arena
+        } 
+        FOREACH(stream, field->transform.left){
+          std::string streamstr = mk_str(*stream);
+          decl << ",NailStream *str_" << streamstr;
+          out << ", &str_"  << streamstr;
+        }      
+        FOREACH(param, field->transform.right){
+          switch(param->N_type){
+          case PDEPENDENCY:{
+            std::string name (mk_str(param->pdependency));
+            out << "," << newscope.dependency_ptr(name); 
+            decl << "," << newscope.dependency_type(name) << "* " << name;
+            break;
+          }
+          case PSTREAM:{
+            std::string name = mk_str(param->pstream);
+            out << "," <<  newscope.stream_ptr(name);
+            if(option::templates)
+              decl<< ",strt_"<<name<<" *" << name;
+            else
+              decl << ",NailStream *" << name;
+            break;
+          }
+          }
         }
+        out << ")) {" << fail << "}";
+        decl << ");\n";
+        FOREACH(stream, field->transform.left){
+          newscope.add_stream_definition(mk_str(*stream));
+        }
+        if(!option::templates){
+          header << decl.str();
+        }
+        break;
       }
-      out << ")) {" << fail << "}";
-      header << ");\n";
-      FOREACH(stream, field->transform.left){
-        newscope.add_stream_definition(mk_str(*stream));
-      }
-      break;
-    }
       }
     }
   }
@@ -246,12 +260,12 @@ public:
       {
         int this_choice = num_iters++;
         if(option::templates){
-          out << "{/*CHOICE*/strt_current::pos back = str_current.getpos();\n";
+          out << "{/*CHOICE*/typename strt_current::pos back = str_current->getpos();\n";
         } else {
           out << "{/*CHOICE*/NailStreamPos back = stream_getpos(str_current);\n";
         }
         out << "NailArenaPos back_arena = n_arena_save(arena);";
-          std::string success_label = (boost::format("choice_%d_succ") % this_choice).str();
+        std::string success_label = (boost::format("choice_%d_succ") % this_choice).str();
     
         FOREACH(c, p.choice){
           std::string tag (mk_str(c->tag));
@@ -308,21 +322,27 @@ public:
       ArrayElemExpr elem(&data,&iexpr);
       DerefExpr linkedlist = DerefExpr(ValExpr(temp));
       ValExpr tmpexpr("elem",&linkedlist);
-      out << "pos " << iexpr << "= 0;\n";
+      out << "int32_t " << iexpr << "= 0;\n";
       out << "struct { typeof("<<elem<<") elem; void *prev;} *"<< temp << " = NULL;\n";
+      out << "NailArenaPos back_arena = n_arena_save(arena);";
+      out << "typeof("<<temp<<") prev_"<<temp<<";";
+      if(option::templates)
+        out << "typename strt_current::pos posrep_" << this_many << "= str_current->getpos();";
+      else
+        out << "NailStreamPos posrep_" << this_many << "= stream_getpos(str_current);"; 
       if(separator != NULL)
         out << "goto start_repeat_"<< this_many << ";\n";
       out  << "succ_repeat_" << this_many << ":;\n";
       if(option::templates)
-        out << "strt_current::pos posrep_" << this_many << "= str_current.getpos();";
+        out << "posrep_" << this_many << "= str_current->getpos();";
       else
-        out << "NailStreamPos posrep_" << this_many << "= stream_getpos(str_current);"; 
-      out << "NailArenaPos back_arena = n_arena_save(arena);\n";
+        out << "posrep_" << this_many << "= stream_getpos(str_current);"; 
+      out << "back_arena = n_arena_save(arena);\n";
       if(separator != NULL){
         p_const(*separator,gotofailsep); // Skip backtracking temp when failing the separator
         out << "start_repeat_" << this_many <<":;\n";
       }
-      out << "typeof("<<temp<<") prev_"<<temp<<"= "<<temp<<";\n"  
+      out << "prev_"<<temp<<"= "<<temp<<";\n"  
           << temp << " = n_malloc(tmparena,sizeof(*"<<temp<<"));\n"
           << "if(parser_fail(!"<<temp<<")) {return -1;}"
           << temp << "->prev = prev_"<<temp<<";\n";
@@ -361,12 +381,14 @@ public:
       ValExpr data("elem", &lval);
       ValExpr iexpr(iter);
       ArrayElemExpr elem(&data,&iexpr);
-      out << "pos "<<iter<<" = 0 ;\n";
+      out << "{";
+      out << "int32_t "<<iter<<" = 0 ;\n";
       out << count << "= dep_"<<mk_str(p.length.length) << ";\n";
       out << data << " = n_malloc(arena,"<<count<<"*sizeof("<<elem<<"));";
       out << "if(parser_fail(!"<<data<<")){return -1;}\n";
       out << "for(;"<<iter<<"<"<<count<<";"<<iter<<"++){";
       parser(p.length.parser->pr,elem,fail,scope);
+      out << "}\n";
       out << "}\n";
       break;
     }
@@ -375,7 +397,7 @@ public:
       out << "{/*APPLY*/";
       if(option::templates){
         out << "strt_current * origstr_"<< this_many <<" = str_current;\n";
-        out << "strt_current::pos *back_"<<this_many <<        "=str_current.getpos();";
+        out << "typename strt_current::pos *back_"<<this_many <<        "=str_current->getpos();";
       }
       else{
         out << "NailStream * origstr_"<< this_many <<" = str_current;\n";
@@ -403,11 +425,11 @@ public:
       int this_many = num_iters++;
       out << "{/*Optional*/\n";
       if(option::templates)
-        out << "strt_current back_"<< this_many<<"= str_current.getpos();";
+        out << "typename strt_current::pos back_"<< this_many<<"= str_current->getpos();";
       else
         out << "NailStreamPos back_"<< this_many<<"= stream_getpos(str_current);";
       out << "NailArenaPos back_"<<this_many<<" = n_arena_save(arena);";
-        parser(p.optional->pr,deref, (boost::format("goto fail_optional_%d;") % this_many).str(), scope);
+      parser(p.optional->pr,deref, (boost::format("goto fail_optional_%d;") % this_many).str(), scope);
       out << " goto succ_optional_" << this_many <<  ";\n";
       out << "fail_optional_" << this_many << ":\n";
       out << "n_arena_restore(arena,back_"<<this_many<<");\n";
@@ -442,78 +464,85 @@ public:
   void emit_parser(grammar &gram){
     std::stringstream forward_declarations;
     FOREACH(def,gram){
-    if(def->N_type == ENDIAN){  
-      End = def->endian.N_type == BIG ? Big : Little;
-    } else if (def->N_type == PARSER){
-      Scope scope;
-      std::string name = mk_str(def->parser.name);
-      scope.add_stream_parameter("current");
-      std::string params = parameter_definition(*def,scope);
-      if(option::templates){
-        std::string templatepar = parameter_template(*def,scope);
-        forward_declarations << "template <"<<templatepar<<"> static pos peg_"
-                             << mk_str(def->parser.name)
-                             <<"(NailArena *arena,NailArena *tmparena,"<<mk_str(def->parser.name)
-                             << " *out,strt_current *str_current"<<params<<");\n";
-        out << "template <"<<templatepar<<"> static pos peg_"
-                             << mk_str(def->parser.name)
-                             <<"(NailArena *arena,NailArena *tmparena,"<<mk_str(def->parser.name)
-                             << " *out,strt_current *str_current"<<params<<"){\n";
-      } else {
-        forward_declarations << "static pos peg_" << mk_str(def->parser.name) <<"(NailArena *arena,NailArena *tmparena,"<<mk_str(def->parser.name) << " *out,NailStream *str_current"<<params<<");\n";
-        out <<"static pos peg_" << name <<"(NailArena *arena,NailArena *tmparena,"<<mk_str(def->parser.name) << " *out,NailStream *str_current"<<params<<"){\n";
-      }
+      if(def->N_type == ENDIAN){  
+        End = def->endian.N_type == BIG ? Big : Little;
+      } else if (def->N_type == PARSER){
+        Scope scope;
+        std::string name = mk_str(def->parser.name);
+        scope.add_stream_parameter("current");
+        std::string params = parameter_definition(*def,scope);
+        if(option::templates){
+          std::string templatepar = parameter_template(*def,scope);
+          forward_declarations << "template <"<<templatepar<<"> static int32_t peg_"
+                               << mk_str(def->parser.name)
+                               <<"(NailArena *arena,NailArena *tmparena,"<<mk_str(def->parser.name)
+                               << " *out,strt_current *str_current"<<params<<");\n";
+          out << "template <"<<templatepar<<"> static int32_t peg_"
+              << mk_str(def->parser.name)
+              <<"(NailArena *arena,NailArena *tmparena,"<<mk_str(def->parser.name)
+              << " *out,strt_current *str_current"<<params<<"){\n";
+        } else {
+          forward_declarations << "static int32_t peg_" << mk_str(def->parser.name) <<"(NailArena *arena,NailArena *tmparena,"<<mk_str(def->parser.name) << " *out,NailStream *str_current"<<params<<");\n";
+          out <<"static int32_t peg_" << name <<"(NailArena *arena,NailArena *tmparena,"<<mk_str(def->parser.name) << " *out,NailStream *str_current"<<params<<"){\n";
+        }
         
-      out << "pos i;\n"; //Used in name and ref as temp variables
-      ValExpr outexpr("out",NULL,1);
-      parser( def->parser.definition.pr,outexpr, "goto fail;",scope);
-      out << "return 0;\n"
-          << "fail:\n return -1;\n";
-      out << "}\n";
-      if(!def->parser.parameters || def->parser.parameters->count==0){
-        //XXX: Parameter pass thru
-        //XXX: n_malloc
-        if(option::templates)
-          out << "template <typename stream_t> "<<name << "* parse_"<<name << "(NailArena *arena, stream_t *stream){\n";
-        else
-          out << name << "* parse_"<<name << "(NailArena *arena, NailStream *stream){\n";
-        out << name << "*retval = n_malloc(arena, sizeof(*retval));"
-            << "NailArena tmparena;"
-            <<"NailArena_init(&tmparena, 4096);"
-            << "if(!retval) return NULL;\n"
-            << "if(parser_fail(peg_"<<name<<"(arena, &tmparena,retval, stream))){"
-            << "goto fail;"
+        out << "int32_t i;\n"; //Used in name and ref as temp variables
+        ValExpr outexpr("out",NULL,1);
+        parser( def->parser.definition.pr,outexpr, "goto fail;",scope);
+        out << "return 0;\n"
+            << "fail:\n return -1;\n";
+        out << "}\n";
+        if(!def->parser.parameters || def->parser.parameters->count==0){
+          //XXX: Parameter pass thru
+          //XXX: n_malloc
+          if(option::templates)
+            out << "template <typename stream_t> "<<name << "* parse_"<<name << "(NailArena *arena, stream_t *stream){\n";
+          else
+            out << name << "* parse_"<<name << "(NailArena *arena, NailStream *stream){\n";
+          out << name << "*retval = n_malloc(arena, sizeof(*retval));"
+              << "NailArena tmparena;"
+              <<"NailArena_init(&tmparena, 4096);"
+              << "if(!retval) return NULL;\n"
+              << "if(parser_fail(peg_"<<name<<"(arena, &tmparena,retval, stream))){"
+              << "goto fail;"
+              << "}";
+          if(option::templates)
+            out <<" if(stream->check(8)) {goto fail;}";
+          else
+            out <<" if(!stream_check(stream,8)) {goto fail;}";
+        
+          out << "NailArena_release(&tmparena);"
+              << "return retval;\n"
+              << " fail: " // Undo memory allocations on failed arena? 
+              << "NailArena_release(&tmparena);"
+              << "return NULL;"
+              <<"}";
+        }
+      }  else if(def->N_type == CONSTANTDEF){
+        std::string name = mk_str(def->constantdef.name);
+        if(option::templates){
+          out << "template <typename strt_current> static  int32_t peg_" << name << "(strt_current *str_current){\n";
+          forward_declarations << "template <typename strt_current> static int32_t peg_" << name << "(strt_current *str_current);";
+        }else{
+          out << "static int32_t peg_" << name << "(NailStream *str_current){\n";
+          forward_declarations << "static int32_t peg_" << mk_str(def->constantdef.name) <<"(NailStream *str_current);\n";
+        }
+        p_const(def->constantdef.definition, "goto fail;");
+        out << "return 0;\n"
+            << "fail: return -1;\n"
             << "}";
-        if(option::templates)
-          out <<" if(stream.check(8)) {goto fail;}";
-        else
-          out <<" if(!stream_check(stream,8)) {goto fail;}";
-        
-        out << "NailArena_release(&tmparena);"
-            << "return retval;\n"
-            << " fail: " // Undo memory allocations on failed arena? 
-            << "NailArena_release(&tmparena);"
-            << "return NULL;"
-            <<"}";
-          }
-    }  else if(def->N_type == CONSTANTDEF){
-      std::string name = mk_str(def->constantdef.name);
-      out << "static pos peg_" << name << "(NailStream *str_current){\n";
-      p_const(def->constantdef.definition, "goto fail;");
-      out << "return 0;\n"
-          << "fail: return -1;\n"
-          << "}";
-      forward_declarations << "static pos peg_" << mk_str(def->constantdef.name) <<"(NailStream *str_current);\n";
-    }
+      }
 
     }
     out << std::endl;
+#if 0
     if(option::templates)
-      hdr << header.str() << forward_declarations.str() << out.str() << std::endl;
-    else{
+      hdr << "/*Nailhdr*/"<<header.str() << "/*Naildecls*/"<<forward_declarations.str() << out.str() << std::endl;
+    else{*/
+#endif
       final << header.str() << forward_declarations.str() << out.str() << std::endl;
       hdr << header.str() << std::endl;
-    }
+    /*}*/
   }
   CDirectParser(std::ostream *os, std::ostream *hedr): final(*os), hdr(*hedr), nr_dep(0), num_iters(1), End(Big){
   }
@@ -521,7 +550,11 @@ public:
 };
 void emit_directparser(std::ostream *out, std::ostream *header, grammar *grammar){
   CDirectParser p(out,header);
+  std::string impl_template(parser_template_start,parser_template_end - parser_template_start);
+  std::string cpp_template(cpp_template_start,cpp_template_end - cpp_template_start);
   
-  *out << std::string(parser_template_start,parser_template_end - parser_template_start);
+  *out << cpp_template;
+  
+  //  *out << impl_template;
   p.emit_parser(*grammar);
 }
