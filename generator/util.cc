@@ -123,13 +123,28 @@ void constraint(std::ostream &out,std::string val,  intconstraint &c){
     break;
   }
 }
+std::string parameter_template(const definition &def,Scope &scope){
+  std::stringstream params;
+  params << "typename strt_current";
+  if(def.parser.parameters){
+        FOREACH(param, *def.parser.parameters){
+          if(DSTREAM != param->N_type)
+            continue;
+          params << ",typename strt_"<<mk_str(param->dstream);
+        }
+  }
+  return params.str();
+}
 std::string parameter_definition(const definition &def, Scope &scope){
   std::stringstream params;
   if(def.parser.parameters){
         FOREACH(param, *def.parser.parameters){
           switch(param->N_type){
           case DSTREAM:
-            params << ",NailStream *str_" << mk_str(param->dstream);
+            if(option::templates)
+              params << ", strt_"<<mk_str(param->dstream) << " *str_" << mk_str(param->dstream);
+            else
+              params << ",NailStream *str_" << mk_str(param->dstream);
             scope.add_stream_parameter(mk_str(param->dstream));
             break;
           case DDEPENDENCY:{

@@ -119,7 +119,7 @@ std::string int_type(const intp &intp );
 std::string typedef_type(const parser &p, std::string name, std::string *post);
 std::string parameter_definition(const definition &def, Scope &scope );
 std::string parameter_invocation(const parameterlist *parameters, const Scope &scope);
-
+std::string parameter_template(const definition &def, Scope &scope);
 void constraint(std::ostream &out,std::string val,  intconstraint &c);
 
 typedef enum {Big, Little} Endian;

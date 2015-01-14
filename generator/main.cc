@@ -17,7 +17,7 @@ FILE *infile(int argc,char **argv){
 }
 namespace option{
   bool cpp = true;
-  bool templates = true;
+  bool templates = false;
 }
 int main(int argc, char**argv)
 {
@@ -39,15 +39,20 @@ int main(int argc, char**argv)
     //    result = parse_grammar(input,inputsize);
     //    if(result)
     //      print_grammar(result, stderr,0);    exit(1);
+    
      std::string headerfilename = std::string(argv[1]) + ".h";
      std::string implfilename = std::string(argv[1]) + ".c";
+     std::string templatesfilename = std::string(argv[1]) + ".hpp";
      if(!result){
        error("Syntax error in grammar\n");
        return 1;
      }
      try {
+       if(option::templates)
+         headerfilename = templatesfilename;
        std::ofstream header(headerfilename);
        std::ofstream impl(implfilename);
+       std::stringstream discard;
        if(!header.is_open())
          error("Cannot open output file %s\n",headerfilename.c_str());
        if(!impl.is_open())
