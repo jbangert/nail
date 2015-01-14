@@ -18,21 +18,27 @@ class CDirectParser {
   Endian End;
 
   void check_int(unsigned int width, const std::string &fail){
-    //  if(option::templates){
-    //  out << "if(parser_fail(str_current.check("<<width<<"))){ "<<fail<<"}\n";
-    //} else {
+    if(option::templates){
+     out << "if(parser_fail(str_current.check("<<width<<"))){ "<<fail<<"}\n";
+    } else {
       out << "if(parser_fail(stream_check(str_current,"<<width<<"))) {"<<fail<<"}\n";
-      //}
+    }
   }
   std::string int_expr(const char * stream,unsigned int width){
     if(width>=64){
       throw std::runtime_error("More than 64 bits in integer");
     }
+    if(option::termplates){
+      if(End == Big){
+        return boost::str(boost::format("%s.read_unsigned_big(%d)")%stream % width);
+      } else { 
+        return boost::str(boost::format("%s.read_unsigned_little(%d)")%stream % width);
+    }else{
     //TODO: Support little endian?
-    if(End == Big){
-      return boost::str(boost::format("read_unsigned_bits(%s,%d)")%stream % width);
-    } else { 
-      return boost::str(boost::format("read_unsigned_bits_littleendian(%s,%d)")%stream % width);    
+      if(End == Big){
+        return boost::str(boost::format("read_unsigned_bits(%s,%d)")%stream % width);
+      } else { 
+        return boost::str(boost::format("read_unsigned_bits_littleendian(%s,%d)")%stream % width);     }
     }
   }
 public:
@@ -89,8 +95,12 @@ public:
       }
       break;
     case CUNION:{
-      out << "{/*CUNION*/\n"
-          <<"NailStreamPos back = stream_getpos(str_current);";
+      out << "{/*CUNION*/\n";
+      if(option::templates){
+          <<"strt_current::pos back = str_current.getpos();";
+      } else {
+        out << "stream_reposition(str_current, back);\n";
+      }
       int thischoice = num_iters++;
       std::string succ_label = boost::str(boost::format("cunion_%d_succ") % thischoice);
       int n_option = 1;
@@ -100,16 +110,17 @@ public:
         p_const(*option,failopt);
         out << "goto " << succ_label << ";\n";
         out << fallthrough_label << ":\n";
-        out << "stream_reposition(str_current,back);\n";
+        if(option::templates)
+          out << "str_current.rewind(back);\n";
+        else
+          out << "stream_reposition(str_current,back);\n";
       }
       out << fail << "\n";
       out << succ_label << ":;\n";
       out << "}\n";
     }
-      
       break;
     }
-
   }
   void p_int(const constrainedint &c, Expr &lval, const std::string fail)
   {
@@ -156,17 +167,27 @@ public:
         break;
       }
     case TRANSFORM:{
+      std::string streamname = mk_str(*stream);
       header << "extern int " << mk_str(field->transform.cfunction) << "_parse(NailArena *tmp";
       FOREACH(stream, field->transform.left){
-        out << ";\nNailStream str_" << mk_str(*stream) <<";\n";
+        if(option::templates)
+          out << ";\nstrt_" << streamname <<" str_"<<streamname<<";\n";
+        else
+          out << ";\nNailStream str_" << mk_str(*stream) <<";\n";
         // If declaration occurs right a label, we need an empty statement
       }
       out << "if(";
       out << mk_str(field->transform.cfunction) << "_parse(tmparena"; //TODO: use temp arena
 
-      FOREACH(stream, field->transform.left){           
-        header << ",NailStream *str_" << mk_str(*stream);
-        out << ", &str_"  << mk_str(*stream);
+      FOREACH(stream, field->transform.left){
+        std::string streamstr = mk_str(*stream);
+        if(option::templates){
+          header << ", strt_"<< streamstr" *str_" << streamstr ;
+          out << ", &str_"  << streamstr;
+        } else {
+          header << ",NailStream *str_" << streamstr;
+          out << ", &str_"  << streamstr;
+        }
       }      
       FOREACH(param, field->transform.right){
         switch(param->N_type){
@@ -176,10 +197,15 @@ public:
           header << "," << newscope.dependency_type(name) << "* " << name;
           break;
         }
-        case PSTREAM:
-          out << "," <<  newscope.stream_ptr(mk_str(param->pstream));  
-          header << ",NailStream *" << mk_str(param->pstream);
+        case PSTREAM:{
+          std::string name = mk_str(param->pstream);
+          out << "," <<  newscope.stream_ptr(name);
+          if(option::templates)
+            header << ",strt_"<<name<<" *" << name;
+          else
+            header << ",NailStream *" << name;
           break;
+        }
         }
       }
       out << ")) {" << fail << "}";
@@ -218,7 +244,11 @@ public:
     case CHOICE:
       {
         int this_choice = num_iters++;
-        out << "{/*CHOICE*/NailStreamPos back = stream_getpos(str_current);\n";
+        if(option::templates){
+          out << "{/*CHOICE*/strt_current::pos back = str_current.getpos();\n";
+        } else {
+          out << "{/*CHOICE*/NailStreamPos back = stream_getpos(str_current);\n";
+        }
         out << "NailArenaPos back_arena = n_arena_save(arena);";
           std::string success_label = (boost::format("choice_%d_succ") % this_choice).str();
     
@@ -233,7 +263,11 @@ public:
           out << "goto " << success_label<< ";\n";
           out << fallthrough_memo << ":\n";
           out << "n_arena_restore(arena, back_arena);\n";
-          out << "stream_reposition(str_current, back);\n";
+          if(option::templates){
+            out << "str_current.rewind(back);\n";
+          }else {
+            out << "stream_reposition(str_current, back);\n";
+          }
         }
         out << fail << "\n";
         out << success_label <<": ;\n";
@@ -278,7 +312,10 @@ public:
       if(separator != NULL)
         out << "goto start_repeat_"<< this_many << ";\n";
       out  << "succ_repeat_" << this_many << ":;\n";
-      out << "NailStreamPos posrep_" << this_many << "= stream_getpos(str_current);"; 
+      if(option::template)
+        out << "strt_current::pos posrep_" << this_many << "= str_current.getpos();";
+      else
+        out << "NailStreamPos posrep_" << this_many << "= stream_getpos(str_current);"; 
       out << "NailArenaPos back_arena = n_arena_save(arena);\n";
       if(separator != NULL){
         p_const(*separator,gotofailsep); // Skip backtracking temp when failing the separator
@@ -295,7 +332,10 @@ public:
       out << temp << "= "<<temp<<"->prev;\n";
       out << "fail_repeat_sep_" << this_many << ":\n";
       out << "n_arena_restore(arena, back_arena);\n";
-      out << "stream_reposition(str_current, posrep_"<<this_many<<");\n";
+      if(option::templates)
+        out << "str_current.rewind(posrep_"<<this_many<<");\n";
+      else
+        out << "stream_reposition(str_current, posrep_"<<this_many<<");\n";
       if(min){
         out << "if("<<iexpr<<"==0){"<< fail << "}\n";
       }
@@ -332,15 +372,24 @@ public:
     case APPLY:{
       int this_many = num_iters++;
       out << "{/*APPLY*/";
-      out << "NailStream * origstr_"<< this_many <<" = str_current;\n";
-      out << "NailStreamPos back_"<<this_many <<        "= stream_getpos(str_current);";
+      if(option::templates){
+        out << "strt_current * origstr_"<< this_many <<" = str_current;\n";
+        out << "strt_current::pos *back_"<<this_many <<        "=str_current.getpos();";
+      }
+      else{
+        out << "NailStream * origstr_"<< this_many <<" = str_current;\n";
+        out << "NailStreamPos back_"<<this_many <<        "= stream_getpos(str_current);";
+      }
       out << "str_current = " << scope.stream_ptr(mk_str(p.apply.stream)) << ";\n";
       parser (p.apply.inner->pr, lval,(boost::format("goto fail_apply_%d;") % this_many).str(), scope);
       out << "goto succ_apply_" << this_many << ";\n";
       out << "fail_apply_" << this_many << ":\n";
-      out << "str_current = origstr_"<<this_many<<"; \n"
-          << "stream_reposition(str_current, back_"<<this_many<<");\n"
-          << fail << "\n";
+      out << "str_current = origstr_"<<this_many<<"; \n";
+      if(option::templates)
+        out << "str_current.rewind(back_"<<this_many<<");\n";
+      else
+        out << "stream_reposition(str_current, back_"<<this_many<<");\n"
+      out << fail << "\n";
       out << "succ_apply_" << this_many << ":\n"
           << "str_current = origstr_"<<this_many<<";\n";      
       out << "}\n";
@@ -352,13 +401,20 @@ public:
       DerefExpr deref(lval);
       int this_many = num_iters++;
       out << "{/*Optional*/\n";
-      out << "NailStreamPos back_"<< this_many<<"= stream_getpos(str_current);";
+      if(option::templates).
+        out << "strt_current back_"<< this_many<<"= str_current.getpos();";
+      else
+        out << "NailStreamPos back_"<< this_many<<"= stream_getpos(str_current);";
       out << "NailArenaPos back_"<<this_many<<" = n_arena_save(arena);";
         parser(p.optional->pr,deref, (boost::format("goto fail_optional_%d;") % this_many).str(), scope);
       out << " goto succ_optional_" << this_many <<  ";\n";
       out << "fail_optional_" << this_many << ":\n";
       out << "n_arena_restore(arena,back_"<<this_many<<");\n";
       out << lval << "= NULL;";
+      if(option::templates).
+        out << "str_current.rewind(back_"<<this_many<<");";
+      else
+        out << "stream_reposition(str_current,back_"<< this_many<<");\n";
       out << "succ_optional_" << this_many << ":\n";
       out << "}";
     }
@@ -381,7 +437,9 @@ public:
       exit(-1);
     }
   }
+  //XXX::We will need templates here!
   void emit_parser(grammar &gram){
+    DONT_COMPILE_NEED_TEMPLATES_HERE
     std::stringstream forward_declarations;
     FOREACH(def,gram){
     if(def->N_type == ENDIAN){  
