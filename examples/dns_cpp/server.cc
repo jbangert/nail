@@ -63,7 +63,7 @@ void domain_response(NailArena *tmp_arena,answer *rr, domain *dom){
         labels *l =(labels *)dom;
         NailStream stream;
         NailOutStream_init(&stream,256); // TODO: Allocate streams from arena, and/or free this one somewhere!
-        //        gen_labels(tmp_arena,&stream,l);
+        gen_labels(tmp_arena,&stream,l);
         size_t count;
         rr->rdata.elem = (uint8_t*)NailOutStream_buffer(&stream, &count);
         rr->rdata.count = count;
@@ -146,7 +146,7 @@ int dns_respond(NailStream *stream,NailArena * arena,struct dnspacket *query, zo
                 break;
         success:;
         }
-        return NULL;//gen_dnspacket(arena, stream,&response);
+        return gen_dnspacket(arena, stream,&response);
 }
 #define ZONESIZ 4096*1024
 int main(int argc, char** argv) {

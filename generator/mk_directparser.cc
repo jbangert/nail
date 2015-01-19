@@ -393,28 +393,29 @@ public:
       break;
     }
     case APPLY:{
+      auto stream_ptr  = scope.stream_ptr(mk_str(p.apply.stream));
       int this_many = num_iters++;
       out << "{/*APPLY*/";
+      //XXX: These rewinds are not be necessary if name != current. Produce an error in that case?
       if(option::templates){
-        out << "strt_current * origstr_"<< this_many <<" = str_current;\n";
-        out << "typename strt_current::pos_t back_"<<this_many <<        "=str_current->getpos();";
+        out << "typeof("<<stream_ptr<<") str_current = "<< stream_ptr<<";";
       }
       else{
         out << "NailStream * origstr_"<< this_many <<" = str_current;\n";
         out << "NailStreamPos back_"<<this_many <<        "= stream_getpos(str_current);";
+      out << "str_current = " << stream_ptr << ";\n";
       }
-      out << "str_current = " << scope.stream_ptr(mk_str(p.apply.stream)) << ";\n";
       parser (p.apply.inner->pr, lval,(boost::format("goto fail_apply_%d;") % this_many).str(), scope);
       out << "goto succ_apply_" << this_many << ";\n";
       out << "fail_apply_" << this_many << ":\n";
-      out << "str_current = origstr_"<<this_many<<"; \n";
-      if(option::templates)
-        out << "str_current->rewind(back_"<<this_many<<");\n";
-      else
+      if(!option::templates){
+        out << "str_current = origstr_"<<this_many<<"; \n";
         out << "stream_reposition(str_current, back_"<<this_many<<");\n";
+      }
       out << fail << "\n";
-      out << "succ_apply_" << this_many << ":\n"
-          << "str_current = origstr_"<<this_many<<";\n";      
+      out << "succ_apply_" << this_many << ":;\n";
+      if(!option::templates)
+        out   << "str_current = origstr_"<<this_many<<";\n";      
       out << "}\n";
       break;
     }
