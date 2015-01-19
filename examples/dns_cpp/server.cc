@@ -149,26 +149,19 @@ int dns_respond(NailStream *stream,NailArena * arena,struct dnspacket *query, zo
         return NULL;//gen_dnspacket(arena, stream,&response);
 }
 #define ZONESIZ 4096*1024
-void memstream(NailStream *str, uint8_t *buf,size_t size){
-  str->data = buf;
-  str->size = size;
-  str->pos = 0;
-  str->bit_offset =0;
-}
 int main(int argc, char** argv) {
   uint8_t packet[8192]; // static buffer for simplicity
   ssize_t packet_size;
   struct sockaddr_in remote;
   socklen_t remote_len;
   if(argc<2) exit(-1);
-  char *zonebuf = (char *)malloc(ZONESIZ);
+  uint8_t *zonebuf = (uint8_t *)malloc(ZONESIZ);
   FILE *zonefil = fopen(argv[1],"r");
   NailArena permanent;
   NailArena_init(&permanent,4096);
   if(!zonebuf || !zonefil) exit(-1);
   remote_len = fread(zonebuf,1,ZONESIZ,zonefil);
-  NailStream zonestream;
-  memstream(&zonestream,(uint8_t*)zonebuf,remote_len);
+  NailMemStream zonestream(zonebuf, remote_len);
   zone * zon = parse_zone(&permanent,&zonestream);
   if(!zon) {fprintf(stderr,"Cannot parse zone\n"); exit(-1);}
   free(zonebuf);
@@ -188,8 +181,7 @@ int main(int argc, char** argv) {
           NailArena_init(&arena,4096);
           NailArena_init(&tmp_arena,4096);
           NailOutStream_init(&out,4096);
-          NailStream packetstream;
-          memstream(&packetstream, packet,packet_size);
+          NailMemStream packetstream(packet, packet_size);
           message = parse_dnspacket(&arena,&packetstream);
           if (!message) {
                   printf("Invalid packet; ignoring\n");
@@ -201,7 +193,9 @@ int main(int argc, char** argv) {
           NailArena_release(&arena);
           NailArena_release(&tmp_arena);
           NailOutStream_release(&out);
-}
+  }
+
+
 return 0;
 }
 

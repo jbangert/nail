@@ -1,13 +1,16 @@
+extern "C"{
 #include <sys/socket.h>
 #include <netinet/in.h>
+       
 #include <err.h>
+}
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 
 
-#include "dns.nail.hh"
+#include "dns.cc"
 #define TYPE_CNAME 5
 #define TYPE_A 1
 #define TYPE_NS 2

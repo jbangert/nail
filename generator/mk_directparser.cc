@@ -98,7 +98,7 @@ public:
     case CUNION:{
       out << "{/*CUNION*/\n";
       if(option::templates){
-        out <<"typename strt_current::pos back = str_current->getpos();";
+        out <<"typename strt_current::pos_t back = str_current->getpos();";
       } else {
         out << "NailStreamPos back = stream_getpos(str_current);";
       }
@@ -112,7 +112,7 @@ public:
         out << "goto " << succ_label << ";\n";
         out << fallthrough_label << ":\n";
         if(option::templates)
-          out << "str_current.rewind(back);\n";
+          out << "str_current->rewind(back);\n";
         else
           out << "stream_reposition(str_current,back);\n";
       }
@@ -260,7 +260,7 @@ public:
       {
         int this_choice = num_iters++;
         if(option::templates){
-          out << "{/*CHOICE*/typename strt_current::pos back = str_current->getpos();\n";
+          out << "{/*CHOICE*/typename strt_current::pos_t back = str_current->getpos();\n";
         } else {
           out << "{/*CHOICE*/NailStreamPos back = stream_getpos(str_current);\n";
         }
@@ -279,7 +279,7 @@ public:
           out << fallthrough_memo << ":\n";
           out << "n_arena_restore(arena, back_arena);\n";
           if(option::templates){
-            out << "str_current.rewind(back);\n";
+            out << "str_current->rewind(back);\n";
           }else {
             out << "stream_reposition(str_current, back);\n";
           }
@@ -327,7 +327,7 @@ public:
       out << "NailArenaPos back_arena = n_arena_save(arena);";
       out << "typeof("<<temp<<") prev_"<<temp<<";";
       if(option::templates)
-        out << "typename strt_current::pos posrep_" << this_many << "= str_current->getpos();";
+        out << "typename strt_current::pos_t posrep_" << this_many << "= str_current->getpos();";
       else
         out << "NailStreamPos posrep_" << this_many << "= stream_getpos(str_current);"; 
       if(separator != NULL)
@@ -343,18 +343,18 @@ public:
         out << "start_repeat_" << this_many <<":;\n";
       }
       out << "prev_"<<temp<<"= "<<temp<<";\n"  
-          << temp << " = n_malloc(tmparena,sizeof(*"<<temp<<"));\n"
+          << temp << " = (typeof("<<temp<<"))n_malloc(tmparena,sizeof(*"<<temp<<"));\n"
           << "if(parser_fail(!"<<temp<<")) {return -1;}"
           << temp << "->prev = prev_"<<temp<<";\n";
       parser(i->pr,tmpexpr,gotofail, scope );
       out << iter << "++;\n";
       out << " goto succ_repeat_"<< this_many << ";\n";
       out << "fail_repeat_" << this_many << ":\n";
-      out << temp << "= "<<temp<<"->prev;\n";
+      out << temp << "= (typeof("<<temp<<"))"<<temp<<"->prev;\n";
       out << "fail_repeat_sep_" << this_many << ":\n";
       out << "n_arena_restore(arena, back_arena);\n";
       if(option::templates)
-        out << "str_current.rewind(posrep_"<<this_many<<");\n";
+        out << "str_current->rewind(posrep_"<<this_many<<");\n";
       else
         out << "stream_reposition(str_current, posrep_"<<this_many<<");\n";
       if(min){
@@ -362,12 +362,12 @@ public:
       }
       
       out << count << "= "<<iexpr<<";\n";
-      out << data << "= n_malloc(arena,sizeof("<<elem<<")*"<<count <<");\n"
+      out << data << "= (typeof("<<data<<"))n_malloc(arena,sizeof("<<elem<<")*"<<count <<");\n"
           << "if(parser_fail(!"<<data<<")){ return -1;}";
       out << "while("<<iter<<"){"
           << iter<< "--;\n"
           << "memcpy(&"<<elem <<",&"<<temp<<"->elem,sizeof("<<elem<<"));"
-          <<  temp << " = " << temp << "->prev;\n"
+          <<  temp << " = (typeof("<<temp<<"))" << temp << "->prev;\n"
           << "}";
       out << "}";
       break;
@@ -384,7 +384,7 @@ public:
       out << "{";
       out << "int32_t "<<iter<<" = 0 ;\n";
       out << count << "= dep_"<<mk_str(p.length.length) << ";\n";
-      out << data << " = n_malloc(arena,"<<count<<"*sizeof("<<elem<<"));";
+      out << data << " = (typeof("<<data<<"))n_malloc(arena,"<<count<<"*sizeof("<<elem<<"));";
       out << "if(parser_fail(!"<<data<<")){return -1;}\n";
       out << "for(;"<<iter<<"<"<<count<<";"<<iter<<"++){";
       parser(p.length.parser->pr,elem,fail,scope);
@@ -397,7 +397,7 @@ public:
       out << "{/*APPLY*/";
       if(option::templates){
         out << "strt_current * origstr_"<< this_many <<" = str_current;\n";
-        out << "typename strt_current::pos *back_"<<this_many <<        "=str_current->getpos();";
+        out << "typename strt_current::pos_t back_"<<this_many <<        "=str_current->getpos();";
       }
       else{
         out << "NailStream * origstr_"<< this_many <<" = str_current;\n";
@@ -409,7 +409,7 @@ public:
       out << "fail_apply_" << this_many << ":\n";
       out << "str_current = origstr_"<<this_many<<"; \n";
       if(option::templates)
-        out << "str_current.rewind(back_"<<this_many<<");\n";
+        out << "str_current->rewind(back_"<<this_many<<");\n";
       else
         out << "stream_reposition(str_current, back_"<<this_many<<");\n";
       out << fail << "\n";
@@ -425,7 +425,7 @@ public:
       int this_many = num_iters++;
       out << "{/*Optional*/\n";
       if(option::templates)
-        out << "typename strt_current::pos back_"<< this_many<<"= str_current->getpos();";
+        out << "typename strt_current::pos_t back_"<< this_many<<"= str_current->getpos();";
       else
         out << "NailStreamPos back_"<< this_many<<"= stream_getpos(str_current);";
       out << "NailArenaPos back_"<<this_many<<" = n_arena_save(arena);";
@@ -435,7 +435,7 @@ public:
       out << "n_arena_restore(arena,back_"<<this_many<<");\n";
       out << lval << "= NULL;";
       if(option::templates)
-        out << "str_current.rewind(back_"<<this_many<<");";
+        out << "str_current->rewind(back_"<<this_many<<");";
       else
         out << "stream_reposition(str_current,back_"<< this_many<<");\n";
       out << "succ_optional_" << this_many << ":\n";
@@ -499,7 +499,7 @@ public:
             out << "template <typename stream_t> "<<name << "* parse_"<<name << "(NailArena *arena, stream_t *stream){\n";
           else
             out << name << "* parse_"<<name << "(NailArena *arena, NailStream *stream){\n";
-          out << name << "*retval = n_malloc(arena, sizeof(*retval));"
+          out << name << "*retval = ("<<name<<"*)n_malloc(arena, sizeof(*retval));"
               << "NailArena tmparena;"
               <<"NailArena_init(&tmparena, 4096);"
               << "if(!retval) return NULL;\n"
@@ -507,7 +507,7 @@ public:
               << "goto fail;"
               << "}";
           if(option::templates)
-            out <<" if(stream->check(8)) {goto fail;}";
+            out <<" if(!stream->check(8)) {goto fail;}";
           else
             out <<" if(!stream_check(stream,8)) {goto fail;}";
         
@@ -555,6 +555,6 @@ void emit_directparser(std::ostream *out, std::ostream *header, grammar *grammar
   
   *out << cpp_template;
   
-  //  *out << impl_template;
+  *out << impl_template;
   p.emit_parser(*grammar);
 }

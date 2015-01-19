@@ -1,11 +1,11 @@
-
-CFLAGS+= -I../../include  -std=gnu99 -O3 # -ggdb 
-CXXFLAGS+= -I../../include  -std=gnu99 -O3 # -ggdb 
+CXX=clang++
+CFLAGS+= -I../../include  -std=gnu99  -ggdb 
+CXXFLAGS+= -I../../include  -std=gnu++11  -ggdb 
 all: server  # resolver
 
-dns.o: dns.cc dns.nail.cc
-server:  server.o  dns.o
-resolver: resolver.o  dns.o
+server.o:server.cc dns.cc dns.nail.cc
+server:  server.o  
+resolver: resolver.o  
 
 server.o: dns.nail.hh
 resolver.o: dns.nail.hh
