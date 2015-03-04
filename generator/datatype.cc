@@ -45,6 +45,22 @@ class CDataModel{
     case WRAP:
       emit_type(*p.wrap.parser);
       break;
+    case SELECTP:{
+      out << "struct " << name << "{\n";
+      FOREACH(option, p.selectp.options){
+        global_enum.push_front(mk_str(option->tag));
+      }
+      out<< "enum N_types N_type;\n";
+      out << "union {\n";
+      FOREACH(option, p.choice){
+        std::string tag = mk_str(option->tag);
+        boost::algorithm::to_lower(tag);
+        emit_type(*option->parser);
+        out << " "<< tag << ";\n";
+      }
+      out<< "};\n}";
+      
+    }
     case CHOICE:{
       out << "struct " << name<< "{\n";
       if(0){//TODO: global enum option 

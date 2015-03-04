@@ -269,6 +269,7 @@ public:
     
         FOREACH(c, p.choice){
           std::string tag (mk_str(c->tag));
+
           boost::algorithm::to_lower(tag);
           std::string fallthrough_memo  =  (boost::format("choice_%u_%s_out") % this_choice % tag).str();
           std::string fallthrough_goto = boost::str(boost::format("goto %s;") % fallthrough_memo);
@@ -288,6 +289,22 @@ public:
         out << success_label <<": ;\n";
         out << "}";
 
+        break;
+      }
+    case SELECTP:
+      {
+        out<< "switch(dep_"<<mk_str(p.selectp.dep)<<"){";
+        FOREACH(c, p.selectp.options){
+          std::string tag (mk_str(c->tag));
+          boost::algorithm::to_lower(tag);
+          ValExpr expr(tag,&lval);
+          out << "case " << intconstant_value(c->value) << ":{\n";
+          out << ValExpr("N_type", &lval) << "= "<< mk_str(c->tag) <<";\n";
+          parser(c->parser->pr,expr, fail,scope);
+          out << "break;";
+
+        }
+        out <<"default: "<< fail<<"break; }";
         break;
       }
     case ARRAY:{

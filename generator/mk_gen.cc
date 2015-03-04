@@ -200,6 +200,22 @@ class GenGenerator{
         out << "}";
       }      
       break;
+    case SELECTP:{
+      
+        out << "switch("<< ValExpr("N_type",&val)<<"){\n";
+        FOREACH(c, p.selectp.options){
+          std::string tag = mk_str(c->tag);
+          std::string enum_tag = tag;
+          boost::algorithm::to_lower(tag);
+          out << "case " << enum_tag << ":\n";
+          ValExpr expr(tag,&val);
+          out << "dep_" << mk_str(p.selectp.dep) << "=" << intconstant_value(c->value) << ";";
+          generator(c->parser->pr, expr, scope );
+          out << "break;\n";
+        }
+        out << "}";
+    }
+      
     case NUNION:
       {
         //What to do with UNION? Is union a bijection - 
