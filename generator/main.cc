@@ -34,6 +34,11 @@ int main(int argc, char**argv)
     //fwrite(input, 1, inputsize, stderr);  
     // print_parser_invocation(parse_parser_invocation(input,inputsize),stdout,0);
     // exit(0);
+    if(std::string(argv[0]) == "cnail")
+      {
+        option::cpp = false;
+        option::templates = false;
+      }
     NailArena_init(&arena, 4096);
     result =  parse_grammar(&arena,input,inputsize);
     //    result = parse_grammar(input,inputsize);
@@ -46,6 +51,7 @@ int main(int argc, char**argv)
        error("Syntax error in grammar\n");
        return 1;
      }
+
      try {
        if(option::templates){
          headerfilename += "h";
@@ -61,8 +67,11 @@ int main(int argc, char**argv)
        emit_header(&header,result);
        if(!option::templates)
          impl << "#include \""<< headerfilename << "\""<<std::endl;
-       emit_directparser(&impl,&header,result);
-       // emit_parser(&impl,&header,result);
+       if(!option::cpp)
+         emit_parser(&impl,&header,result);
+       else
+         emit_directparser(&impl,&header,result);
+
        emit_generator(&impl,&header,result);
        impl << std::endl;
        header << std::endl;       
