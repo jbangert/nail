@@ -71,6 +71,7 @@ wrapparser = {t("<"); constbefore optional <sepBy1 SEPERATOR constparser; SEPERA
                       t(">") }
 // choiceidentifier = || varidentifier || constidentifier                      
 choiceparser = < t("choose"); t("{"); many {tag  constidentifier; t("="); parser  *parser }; t("}") >
+selectparser = {  t("select"); t("(") dep dependencyidentifier; t(")") t("{"); options many {tag constidentifier; t("="); value intconstant; parser *parser }; t("}")}
 arrayparser =   choose{         
                 MANYONE= < t("many1"); *parser>
                 MANY=  < t("many"); *parser>  
@@ -96,6 +97,7 @@ parserinner =  choose {// because we don't do left recursive grammars yet
                 STRUCTURE= structparser
                 WRAP = wrapparser
                 CHOICE= choiceparser
+                SELECTP = selectparser
                 ARRAY = arrayparser
                 FIXEDARRAY = { t("["); length intconstant; t("]"); inner *parser}
                 LENGTH = <t("n_of") { length dependencyidentifier; parser *parser}>
