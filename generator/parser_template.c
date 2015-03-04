@@ -8,7 +8,7 @@ typedef struct{
         pos *trace;
         pos capacity,iter,grow;
 } n_trace; 
-#define parser_fail(i) __builtin_expect(i,0)
+#define parser_fail(i) __builtin_expect(i<0,0)
 static uint64_t read_unsigned_bits_littleendian(NailStream *stream, unsigned count) {
     uint64_t retval = 0;
     unsigned int out_idx=0;
@@ -102,7 +102,7 @@ static int stream_reposition(NailStream *stream, NailStreamPos p)
         return 0;
 }
 static NailStreamPos   stream_getpos(NailStream *stream){
-        return (stream->pos << 3) + stream->bit_offset; //TODO: Overflow potential!
+        return stream->pos << 3 + stream->bit_offset; //TODO: Overflow potential!
 }
 
 int NailOutStream_init(NailStream *out,size_t siz){
@@ -115,7 +115,7 @@ int NailOutStream_init(NailStream *out,size_t siz){
         return 0;
 }
 void NailOutStream_release(NailStream *out){
-        free((void*)out->data);
+        free(out->data);
         out->data = NULL;
 }
 const uint8_t * NailOutStream_buffer(NailStream *str,size_t *siz){
@@ -126,11 +126,11 @@ const uint8_t * NailOutStream_buffer(NailStream *str,size_t *siz){
 }
 //TODO: Perhaps use a separate structure for output streams?
 int NailOutStream_grow(NailStream *stream, size_t count){
-        if(stream->pos + (count>>3) + 1 >= stream->size){
+        if(stream->pos + count>>3 + 1 >= stream->size){
                 //TODO: parametrize stream growth
-                int alloc_size = stream->pos + (count>>3) + 1;
+                int alloc_size = stream->pos + count>>3 + 1;
                 if(4096+stream->size>alloc_size) alloc_size = 4096+stream->size;
-                stream->data = (const uint8_t *)realloc((void *)stream->data,alloc_size);
+                stream->data = realloc((void *)stream->data,alloc_size);
                 stream->size = alloc_size;
                 if(!stream->data)
                         return -1;
@@ -178,7 +178,7 @@ typedef struct{
 //        p_hash *memo;
         unsigned lg_size; // How large is the hashtable - make it a power of two 
 } n_hashtable;
-#if 0 
+
 static int  n_trace_init(n_trace *out,pos size,pos grow){
         if(size <= 1){
                 return -1;
@@ -292,7 +292,54 @@ static int n_tr_const(n_trace *trace,NailStream *stream){
         trace->trace[trace->iter++] = newoff;
         return 0;
 }
-#endif
+#define n_tr_offset n_tr_const
+typedef struct NailArenaPool{
+        char *iter;char *end;
+        struct NailArenaPool *next;
+} NailArenaPool;
+
+void *n_malloc(NailArena *arena, size_t size)
+{
+        void *retval;
+        if(arena->current->end - arena->current->iter <= size){
+                size_t siz = arena->blocksize;
+                if(size>siz)
+                        siz = size + sizeof(NailArenaPool);
+                NailArenaPool *newpool  = (NailArenaPool *)malloc(siz);
+                if(!newpool) return NULL;
+                newpool->end = (char *)((char *)newpool + siz);
+                newpool->iter = (char*)(newpool+1);
+                newpool->next = arena->current;
+                arena->current= newpool;
+        }
+        retval = (void *)arena->current->iter;
+        arena->current->iter += size;
+        memset(retval,0,size);
+        return retval;
+}
+
+int NailArena_init(NailArena *arena, size_t blocksize){
+        if(blocksize< 2*sizeof(NailArena))
+                blocksize = 2*sizeof(NailArena);
+        arena->current = (NailArenaPool*)malloc(blocksize);
+        if(!arena->current) return 0;
+        arena->current->next = NULL;
+        arena->current->iter = (char *)(arena->current + 1);
+        arena->current->end = (char *) arena->current + blocksize;
+        arena->blocksize = blocksize;
+        return 1;
+}
+int NailArena_release(NailArena *arena){
+        NailArenaPool *p;
+        while((p= arena->current) ){
+                arena->current = p->next;
+                free(p);
+        }
+        arena->blocksize = 0;
+        return 0;
+}
+//Returns the pointer where the taken choice is supposed to go.
+
 
 
 
