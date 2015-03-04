@@ -301,7 +301,7 @@ public:
           out << "case " << intconstant_value(c->value) << ":{\n";
           out << ValExpr("N_type", &lval) << "= "<< mk_str(c->tag) <<";\n";
           parser(c->parser->pr,expr, fail,scope);
-          out << "break;";
+          out << "break;}";
 
         }
         out <<"default: "<< fail<<"break; }";

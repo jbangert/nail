@@ -1,4 +1,78 @@
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <assert.h>
+#define parser_fail(i) __builtin_expect(i<0,0)
 
+static int stream_reposition(NailStream *stream, NailStreamPos p)
+{
+        stream->pos = p >> 3;
+        stream->bit_offset = p & 7;
+        return 0;
+}
+static NailStreamPos   stream_getpos(NailStream *stream){
+        return stream->pos << 3 + stream->bit_offset; //TODO: Overflow potential!
+}
+
+int NailOutStream_init(NailStream *out,size_t siz){
+        out->data = (const uint8_t *)malloc(siz);
+        if(!out->data)
+                return -1;
+        out->pos = 0;
+        out->bit_offset = 0;
+        out->size = siz;
+        return 0;
+}
+void NailOutStream_release(NailStream *out){
+  free((void *)out->data);
+        out->data = NULL;
+}
+const uint8_t * NailOutStream_buffer(NailStream *str,size_t *siz){
+        if(str->bit_offset)
+                return NULL;
+        *siz =  str->pos;
+        return str->data;
+}
+//TODO: Perhaps use a separate structure for output streams?
+int NailOutStream_grow(NailStream *stream, size_t count){
+        if(stream->pos + count>>3 + 1 >= stream->size){
+                //TODO: parametrize stream growth
+                int alloc_size = stream->pos + count>>3 + 1;
+                if(4096+stream->size>alloc_size) alloc_size = 4096+stream->size;
+                stream->data = (uint8_t *)realloc((void *)stream->data,alloc_size);
+                stream->size = alloc_size;
+                if(!stream->data)
+                        return -1;
+        }
+        return 0;
+}
+static int stream_output(NailStream *stream,uint64_t data, size_t count){
+        if(parser_fail(NailOutStream_grow(stream, count))){
+                return -1;
+        }
+        uint8_t *streamdata = (uint8_t *)stream->data;
+        while(count>0){
+                if(stream->bit_offset == 0 && (count & 7) == 0){
+                        count -= 8;
+                        streamdata[stream->pos] = (data >> count );
+                        stream->pos++;
+                }
+                else{
+                        count--;
+                        if((data>>count)&1)
+                                streamdata[stream->pos] |= 1 << (7-stream->bit_offset);
+                        else 
+                                streamdata[stream->pos] &= ~(1<< (7-stream->bit_offset));
+                        stream->bit_offset++;
+                        if(stream->bit_offset>7){
+                                stream->pos++;
+                                stream->bit_offset= 0;
+                        }
+                }
+        }
+        return 0;
+}
 typedef struct NailArenaPool{
         char *iter;char *end;
         struct NailArenaPool *next;

@@ -1,6 +1,10 @@
-test: test.nail.hh test.nail.cc harness.cc
-	c++ -o $@ harness.cc
-test.nail.hh test.nail.cc: test.nail
-	../../generator/nail $< 
+all: test
+clean:
+	-rm -f test.nail.* test 
+test.nail.cc test.nail.hh: test.nail
+	../../generator/nail test.nail
 	astyle test.nail.hh
-	astyle test.nail.cc
+	astyle test.nail.cc			
+test: test.nail.cc harness.cc
+	c++ -I../../include -ggdb -o $@ harness.cc
+
