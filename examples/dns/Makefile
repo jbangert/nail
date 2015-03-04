@@ -11,7 +11,7 @@ resolver.o: dns.nail.h
 clean:
 	rm dns.nail.* *.o
 dns.nail.h dns.nail.c: dns.nail
-	../../generator/nail $< 
+	../../generator/cnail $< 
 	astyle dns.nail.h
 	astyle dns.nail.c
 dns.nail: 

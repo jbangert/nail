@@ -167,9 +167,7 @@ int main(int argc, char** argv) {
   NailArena_init(&permanent,4096);
   if(!zonebuf || !zonefil) exit(-1);
   remote_len = fread(zonebuf,1,ZONESIZ,zonefil);
-  NailStream zonestream;
-  memstream(&zonestream,zonebuf,remote_len);
-  zone * zon = parse_zone(&permanent,&zonestream);
+  zone * zon = parse_zone(&permanent,zonebuf, remote_len);
   if(!zon) {fprintf(stderr,"Cannot parse zone\n"); exit(-1);}
   free(zonebuf);
   fclose(zonefil);
@@ -188,9 +186,7 @@ int main(int argc, char** argv) {
           NailArena_init(&arena,4096);
           NailArena_init(&tmp_arena,4096);
           NailOutStream_init(&out,4096);
-          NailStream packetstream;
-          memstream(&packetstream, packet,packet_size);
-          message = parse_dnspacket(&arena,&packetstream);
+          message = parse_dnspacket(&arena,packet, packet_size);
           if (!message) {
                   printf("Invalid packet; ignoring\n");
                   continue;
