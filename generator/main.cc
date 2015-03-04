@@ -34,7 +34,7 @@ int main(int argc, char**argv)
     //fwrite(input, 1, inputsize, stderr);  
     // print_parser_invocation(parse_parser_invocation(input,inputsize),stdout,0);
     // exit(0);
-    if(std::string(argv[0]) == "cnail")
+    if(std::string(argv[0]).find("cnail") != std::string::npos)
       {
         option::cpp = false;
         option::templates = false;
