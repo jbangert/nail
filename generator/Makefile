@@ -10,7 +10,7 @@ all: nail
 util.o: util.cc *.h *.hpp
 # %.nail.c %.nail.h: %.nail nail
 regen-nail-grammar: new_grammar.nail nail
-	./nail $<
+	./cnail $<
 	astyle $<.c
 	astyle $<.h
 parser_template.cc.o: parser_template.cc
