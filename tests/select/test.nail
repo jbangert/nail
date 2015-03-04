@@ -1,0 +1,7 @@
+foo = { @choice uint8;
+         test select(@choice) {
+              A='a' uint8
+              B='b' uint16
+         }
+      }
+         
