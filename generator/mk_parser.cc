@@ -26,7 +26,7 @@ std::string intconstant_value(const intconstant &val){
 }
 
 static std::string int_expr(const char * stream,unsigned int width,Endian endian){
-  if(width>=64){
+  if(width>64){
     throw std::runtime_error("More than 64 bits in integer");
   }
   //TODO: Support little endian?

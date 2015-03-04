@@ -25,7 +25,7 @@ class CDirectParser {
     }
   }
   std::string int_expr(const char * stream,unsigned int width){
-    if(width>=64){
+    if(width>64){
       throw std::runtime_error("More than 64 bits in integer");
     }
     if(option::templates){
