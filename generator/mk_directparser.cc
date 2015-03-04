@@ -573,6 +573,6 @@ void emit_directparser(std::ostream *out, std::ostream *header, grammar *grammar
   
   *out << cpp_template;
   
-  *out << impl_template;
+  //  *out << impl_template;
   p.emit_parser(*grammar);
 }

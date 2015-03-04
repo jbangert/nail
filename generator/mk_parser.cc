@@ -705,6 +705,8 @@ void emit_parser(std::ostream *out, std::ostream *header,grammar *grammar){
   CPrimitiveParser p(out,header);
   CAction a(out,"arena");
   *out << std::string(parser_template_start,parser_template_end - parser_template_start);
+  *out << std::string(cpp_template_start,cpp_template_end - cpp_template_start);
+  
   p.emit_parser(*grammar);
   a.emit_action(*grammar);
 }

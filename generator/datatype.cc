@@ -52,14 +52,14 @@ class CDataModel{
       }
       out<< "enum N_types N_type;\n";
       out << "union {\n";
-      FOREACH(option, p.choice){
+      FOREACH(option, p.selectp.options){
         std::string tag = mk_str(option->tag);
         boost::algorithm::to_lower(tag);
         emit_type(*option->parser);
         out << " "<< tag << ";\n";
       }
       out<< "};\n}";
-      
+      break;
     }
     case CHOICE:{
       out << "struct " << name<< "{\n";

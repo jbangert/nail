@@ -214,6 +214,7 @@ class GenGenerator{
           out << "break;\n";
         }
         out << "}";
+        break;
     }
       
     case NUNION:
