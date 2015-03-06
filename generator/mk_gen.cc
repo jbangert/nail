@@ -209,7 +209,7 @@ class GenGenerator{
           boost::algorithm::to_lower(tag);
           out << "case " << enum_tag << ":\n";
           ValExpr expr(tag,&val);
-          out << "dep_" << mk_str(p.selectp.dep) << "=" << intconstant_value(c->value) << ";";
+          out <<"*" <<scope.dependency_ptr(mk_str(p.selectp.dep)) << "=" << intconstant_value(c->value) << ";";
           generator(c->parser->pr, expr, scope );
           out << "break;\n";
         }

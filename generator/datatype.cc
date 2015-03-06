@@ -152,6 +152,7 @@ class CDataModel{
     case STRUCTURE:
     case ARRAY:
     case CHOICE:
+    case SELECTP:
       emit_type(p,name);
       out << ";" << std::endl;
       break;

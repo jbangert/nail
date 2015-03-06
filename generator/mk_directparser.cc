@@ -183,10 +183,11 @@ public:
         
         std::stringstream decl;
         decl << "int " << name << "_parse(NailArena *tmp";
+        int i =1;
         FOREACH(stream, field->transform.left){
           std::string streamname = mk_str(*stream);
           if(option::templates)
-            out << ";\n typename "<<templ<<"::"<< streamname <<" str_"<<streamname<<";\n";
+            out << ";\n typename "<<templ<<"::out_"<<i<<"_t str_"<<streamname<<";\n";
           else
             out << ";\nNailStream str_" << mk_str(*stream) <<";\n";
           // If declaration occurs right a label, we need an empty statement
