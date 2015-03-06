@@ -187,7 +187,7 @@ public:
         FOREACH(stream, field->transform.left){
           std::string streamname = mk_str(*stream);
           if(option::templates)
-            out << ";\n typename "<<templ<<"::out_"<<i<<"_t str_"<<streamname<<";\n";
+            out << ";\n typename "<<templ<<"::out_"<<i<<"_t *str_"<<streamname<<";\n";
           else
             out << ";\nNailStream str_" << mk_str(*stream) <<";\n";
           // If declaration occurs right a label, we need an empty statement
@@ -200,7 +200,10 @@ public:
         FOREACH(stream, field->transform.left){
           std::string streamstr = mk_str(*stream);
           decl << ",NailStream *str_" << streamstr;
-          out << ", &str_"  << streamstr;
+          if(option::templates)
+            out << ", str_"  << streamstr;
+          else
+            out << ", &str_"  << streamstr;
         }      
         FOREACH(param, field->transform.right){
           switch(param->N_type){
@@ -224,7 +227,10 @@ public:
         out << ")) {" << fail << "}";
         decl << ");\n";
         FOREACH(stream, field->transform.left){
-          newscope.add_stream_definition(mk_str(*stream));
+          if(option::templates)
+            newscope.add_stream_definition(mk_str(*stream));
+          else
+            newscope.add_stream_parameter(mk_str(*stream));
         }
         if(!option::templates){
           header << decl.str();

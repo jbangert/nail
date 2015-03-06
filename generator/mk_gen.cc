@@ -22,7 +22,7 @@ class GenGenerator{
   std::stringstream out, header;
   int num_iters;
   void constint(int width, std::string value){
-    out << "if(parser_fail(stream_output(str_current," << value << "," << width << "))) return -1;";
+    out << "if(parser_fail(NailOutStream_write(str_current," << value << "," << width << "))) return -1;";
   }
   void generator(constarray &c){ 
     switch(c.value.N_type){
@@ -75,14 +75,14 @@ class GenGenerator{
         constraint(out,valstr.str(),*p.integer.constraint);
         out << "){return -1;}";
       }
-      out << "if(parser_fail(stream_output(str_current,"<<val<<","<< width << "))) return -1;";
+      out << "if(parser_fail(NailOutStream_write(str_current,"<<val<<","<< width << "))) return -1;";
       break;
     }
     case STRUCTURE:{
       std::stringstream fixup;
       std::list<std::string> transform_invocations;
       Scope newscope(scope);
-      fixup << "{/*Context-rewind*/\n NailStreamPos  end_of_struct= stream_getpos(str_current);\n";
+      fixup << "{/*Context-rewind*/\n NailOutStreamPos  end_of_struct= NailOutStream_getpos(str_current);\n";
       FOREACH(field, p.structure){
         switch(field->N_type){
         case CONSTANT:
@@ -106,25 +106,26 @@ class GenGenerator{
           out << type  << " dep_"<< name << ";";
           newscope.add_dependency_definition(name,type);
           assert(post == "");
-          out << "NailStreamPos rewind_"<< name << "=stream_getpos(str_current);";
-          out << "stream_output(str_current,0,"<<width<<");";
-          fixup << "stream_reposition(str_current, rewind_"<<name<<");";
-          fixup << "stream_output(str_current,dep_"<<name<<","<<width<<");";
+          out << "NailOutStreamPos rewind_"<< name << "=NailOutStream_getpos(str_current);";
+          out << "NailOutStream_write(str_current,0,"<<width<<");";
+          fixup << "NailOutStream_reposition(str_current, rewind_"<<name<<");";
+          fixup << "NailOutStream_write(str_current,dep_"<<name<<","<<width<<");";
           break;
         }
         case TRANSFORM:{ 
           std::string cfunction = mk_str(field->transform.cfunction);
+          std::stringstream declaration;
           FOREACH(stream, field->transform.left){
-            out << "NailStream str_" << mk_str(*stream) <<";\n";
+            out << "NailOutStream str_" << mk_str(*stream) <<";\n";
             out << "if(parser_fail(NailOutStream_init(&str_"<<mk_str(*stream)<<",4096))) {return -1;}\n";
             fixup << "NailOutStream_release(&str_"<<mk_str(*stream)<<");"; 
           }
           //Transforms need to be processed in reverse order
           std::stringstream invocation;
           invocation << "if(parser_fail("<< cfunction << "_generate(tmp_arena";
-          header << "extern  int " << cfunction << "_generate(NailArena *tmp_arena";
+          declaration << "extern  int " << cfunction << "_generate(NailArena *tmp_arena";
           FOREACH(stream, field->transform.left){           
-            header  << ",NailStream *str_" << mk_str(*stream);
+            declaration  << ",NailOutStream *str_" << mk_str(*stream);
             invocation << ", &str_"  << mk_str(*stream);
           }      
           FOREACH(param, field->transform.right){
@@ -132,16 +133,18 @@ class GenGenerator{
             case PDEPENDENCY:{
               std::string name (mk_str(param->pdependency));
               invocation << "," << newscope.dependency_ptr(name); 
-              header << "," << newscope.dependency_type(name) << "* " << name;
+              declaration << "," << newscope.dependency_type(name) << "* " << name;
             }
               break;
             case PSTREAM:
               invocation << "," <<  newscope.stream_ptr(mk_str(param->pstream));  
-              header << ",NailStream *str_" << mk_str(param->pstream);
+              declaration << ",NailOutStream *str_" << mk_str(param->pstream);
               break;
             }
           }
-          header << ");";
+          declaration << ");";
+          if(!option::templates)
+            header << declaration.str();
           invocation << "))){return -1;}";
           FOREACH(stream, field->transform.left){
             newscope.add_stream_definition(mk_str(*stream));
@@ -154,7 +157,7 @@ class GenGenerator{
       for(auto &transform: transform_invocations){
         out << transform;
       }
-      fixup <<  "stream_reposition(str_current, end_of_struct);";
+      fixup <<  "NailOutStream_reposition(str_current, end_of_struct);";
       //TODO:  We need to properly interleave APPLY and TRANSFORM when generating! Transform at the
       //end is wrong in some cases (when the applied parser relies on a context from the transform)
       out << fixup.str();
@@ -163,7 +166,7 @@ class GenGenerator{
       break;
     case APPLY:{              
       out << "{/*APPLY*/";
-      out << "NailStream  * orig_str = str_current;\n";
+      out << "NailOutStream  * orig_str = str_current;\n";
       std::string name = mk_str(p.apply.stream);
       out << "str_current =" << scope.stream_ptr(name) << ";";
       generator(p.apply.inner->pr,val,scope);
@@ -300,8 +303,8 @@ public:
 
       if(definition->N_type == CONSTANTDEF){
         std::string name = mk_str(definition->constantdef.name);
-        header<<"int gen_"<<name<<"(NailStream* str_current);";
-        out<<"int gen_"<<name<<"(NailStream* str_current){\n";
+        header<<"int gen_"<<name<<"(NailOutStream* str_current);";
+        out<<"int gen_"<<name<<"(NailOutStream* str_current){\n";
         generator(definition->constantdef.definition);
         out << "return 0;";
         out << "}";
@@ -310,8 +313,8 @@ public:
         Scope scope;
         std::string name = mk_str(definition->parser.name);
         std::string params =  parameter_definition(*definition,scope);    
-        header << "int gen_" << (name)<<"(NailArena *tmp_arena,NailStream *out,"<< name << " * val"<<params<<");" << std::endl;
-        out << "int gen_" << (name)<<"(NailArena *tmp_arena,NailStream *str_current,"<< name << " * val"<<params<<"){";
+        header << "int gen_" << (name)<<"(NailArena *tmp_arena,NailOutStream *out,"<< name << " * val"<<params<<");" << std::endl;
+        out << "int gen_" << (name)<<"(NailArena *tmp_arena,NailOutStream *str_current,"<< name << " * val"<<params<<"){";
         scope.add_stream_parameter("current");
         ValExpr outval("val",NULL,1);
         generator(definition->parser.definition.pr,outval,scope);
