@@ -6,5 +6,5 @@ test.nail.cc test.nail.hh: test.nail
 	astyle test.nail.hh
 	astyle test.nail.cc			
 test: test.nail.cc harness.cc
-	c++ -I../../include -ggdb -o $@ harness.cc
+	clang++ -I../../include -ggdb -o $@ harness.cc
 

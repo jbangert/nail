@@ -18,10 +18,10 @@ static int NailOutStream_reposition(NailOutStream *stream, NailOutStreamPos p)
         return 0;
 }
 static NailStreamPos   stream_getpos(NailStream *stream){
-        return stream->pos << 3 + stream->bit_offset; //TODO: Overflow potential!
+  return (stream->pos << 3) + stream->bit_offset; //TODO: Overflow potential!
 }
 static NailOutStreamPos   NailOutStream_getpos(NailOutStream *stream){
-        return stream->pos << 3 + stream->bit_offset; //TODO: Overflow potential!
+  return (stream->pos << 3) + stream->bit_offset; //TODO: Overflow potential!
 }
 
 
@@ -46,9 +46,9 @@ const uint8_t * NailOutStream_buffer(NailOutStream *str,size_t *siz){
 }
 //TODO: Perhaps use a separate structure for output streams?
 int NailOutStream_grow(NailOutStream *stream, size_t count){
-        if(stream->pos + count>>3 + 1 >= stream->size){
+  if(stream->pos + (count>>3) + 1 >= stream->size){
                 //TODO: parametrize stream growth
-                int alloc_size = stream->pos + count>>3 + 1;
+    int alloc_size = stream->pos + (count>>3) + 1;
                 if(4096+stream->size>alloc_size) alloc_size = 4096+stream->size;
                 stream->data = (uint8_t *)realloc((void *)stream->data,alloc_size);
                 stream->size = alloc_size;
@@ -127,6 +127,17 @@ int NailArena_release(NailArena *arena){
         }
         arena->blocksize = 0;
         return 0;
+}
+
+NailArenaPos n_arena_save(NailArena *arena)
+{
+    NailArenaPos retval = {.pool = arena->current, .iter = arena->current->iter};
+    return retval;
+}
+void n_arena_restore(NailArena *arena, NailArenaPos p) {
+    arena->current = p.pool;
+    arena->current->iter = p.iter;
+    //memory will remain linked
 }
 //Returns the pointer where the taken choice is supposed to go.
 

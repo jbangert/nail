@@ -4,6 +4,13 @@ typedef struct NailArena_ {
     struct NailArenaPool *current;
     size_t blocksize;
 } NailArena ;
+typedef struct {
+        struct NailArenaPool *pool;
+        char *iter;
+} NailArenaPos;
+NailArenaPos n_arena_save(NailArena *arena);
+void n_arena_restore(NailArena *arena, NailArenaPos p);
+
 extern int NailArena_init(NailArena *arena,size_t blocksize);
 extern int NailArena_release(NailArena *arena);
 extern void *n_malloc(NailArena *arena, size_t size);
