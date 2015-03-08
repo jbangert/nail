@@ -300,7 +300,7 @@ public:
       }
     case SELECTP:
       {
-        out<< "switch(dep_"<<mk_str(p.selectp.dep)<<"){";
+        out<< "switch(*"<<scope.dependency_ptr(mk_str(p.selectp.dep))<<"){";
         FOREACH(c, p.selectp.options){
           std::string tag (mk_str(c->tag));
           boost::algorithm::to_lower(tag);

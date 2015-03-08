@@ -1,0 +1,8 @@
+udp = {
+    source      uint16 
+    destination uint16 
+    @length      uint16 
+    checksum uint16 
+    $content transform size(@length $current)
+    payload apply $content (many uint8)
+}

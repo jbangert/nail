@@ -1,0 +1,26 @@
+ipfour = {
+       $ippacket transform tail($current)
+       packet  apply $ippacket {
+              uint4 = 4 //version 
+              @ihl uint4
+              dscp uint6
+              ecn  uint2 
+              @totallength uint16
+              ident uint16
+              uint1 = 0
+              df uint1 
+              mf uint1
+              fragmentoff uint13
+              ttl uint8
+              protocol uint8  | [17]
+              @hdrchecksum uint16
+              source uint32
+              dest uint32
+              $options transform ip_header($current @ihl)     
+
+              $header transform head($current)
+              transform ip_checksum($header @hdrchecksum)
+              payload udp // This really needs fixing       
+              transform check_offset($current @totallength)
+        }
+}

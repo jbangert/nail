@@ -210,11 +210,11 @@ class GenGenerator{
           std::string tag = mk_str(c->tag);
           std::string enum_tag = tag;
           boost::algorithm::to_lower(tag);
-          out << "case " << enum_tag << ":\n";
+          out << "case " << enum_tag << ":{\n";
           ValExpr expr(tag,&val);
           out <<"*" <<scope.dependency_ptr(mk_str(p.selectp.dep)) << "=" << intconstant_value(c->value) << ";";
           generator(c->parser->pr, expr, scope );
-          out << "break;\n";
+          out << "break;}\n";
         }
         out << "}";
         break;

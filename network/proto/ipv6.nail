@@ -1,0 +1,80 @@
+/*
+icmpv6($addrstream, @length, @nextheader)  = select(@type) {
+                       @type uint8
+                       select(@type) {
+                                     ICMP_NOROUTE = 6 {
+                                     }
+                       }
+}
+*/
+ip6contents (@type uint8) =  select(@type) {
+
+                   HOPBYHOP = 0 {
+                   }
+                   ICMP = 1 {
+                   }
+                   UDP = 17 {
+                       source      uint16 
+                       destination uint16 
+                       @length      uint16 
+                       checksum uint16 
+                       $content transform size($current @length)
+                       payload apply $content (many uint8)
+                   }
+                   /*
+                   TCP = 17 {
+                       source      uint16 
+                       destination uint16
+                       seqno         uint32
+                       ackno         uint32
+                       @headersize uint4
+                       uint3 = 0
+                       ns uint1
+                       cwr uint1
+                       ece uint1
+                       urg uint1
+                       ack uint1
+                       psh uint1
+                       rst uint1
+                       syn uint1
+                       fin uint1
+                       window uint16
+                       checksum uint16
+                       urgno uint16
+                       $options transform tcp_header($current)
+                       options apply $options options 
+                   } */
+                   ROUTING = 43 {
+                           many uint8 = "FAIL"
+                   }
+                FRAGMENT = 44 {
+                /*
+                            $unfragmented transform head($current) // everything up to here
+                            @next_header uint8
+                            reserved uint8
+                            @offset uint13
+                            res uint2
+                            @more uint1
+                            @ident uint32
+                            transform ip_fragment($unfragmented $current @next_header)
+                            */
+                   }
+                   
+     }
+
+ip6addr = {
+        net uint64
+        host uint64
+}
+ip6packet = {
+          uint4 = 6
+          diffserv uint6
+          ecn uint2
+          flow uint20
+          @payload_len uint16
+          @next_header uint8
+          hops uint8
+          saddr ip6addr
+          daddr ip6addr
+          $payload transform size($current @payload_len)
+}

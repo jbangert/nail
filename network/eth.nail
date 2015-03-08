@@ -1,0 +1,34 @@
+icmp = {
+     type uint8 
+     code uint8
+     checksum uint16 // TODO: Compute UDP checksum 
+     data uint32
+}
+ethernet = { 
+           dest macaddr
+           src  macaddr
+           vlan optional {
+                uint16 = 0x8100
+                pcp uint3
+                dei uint1
+                vid uint12
+                }
+           payload choose { 
+              ICMP = <uint16= 1; icmp>   
+              ARP = <uint16= 0x0806; arpfour> 
+              IPFOUR = <uint16= 0x0800; ipfour>
+           }               
+}
+macaddr = [6]uint8
+arpfour = {
+    uint16 = 1//HTYPE = ETHERNET
+    uint16 = 0x0800 //ProtocolType = IPv4
+    uint8 = 6 // hardware length  = Mac addr len
+    uint8 = 4 //protocol length = Hardware length
+    operation uint16 | [1,2]
+    senderhost macaddr
+    senderip   uint32
+    targethost macaddr
+    targetip   uint32    
+}
+

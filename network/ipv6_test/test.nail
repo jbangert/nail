@@ -1,0 +1,26 @@
+#include "../proto/ipv6.nail"
+ethernet = { 
+           dest uint48
+           src  uint48
+           ethertype uint16
+           ip ip6packet
+}
+!LITTLE-ENDIAN
+foo = { // PCAP file
+    uint32 =  0xa1b2c3d4
+    major uint16
+    minor uint16
+    zone uint32
+    figs uint32
+    snaplen uint32
+    network uint32
+    packets many {
+            sec uint32
+            usec uint32
+            @length uint32
+            @orig_len uint32
+            //transform check_equal @length @orig_len
+            $pstream transform size($current @length)
+            packet ethernet
+            }   
+}
