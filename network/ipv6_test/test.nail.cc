@@ -193,10 +193,10 @@ template <typename strt_current> static int32_t peg_ip6contents(NailArena *arena
             out->udp.checksum = str_current->read_unsigned_big(16);
         }
         ;
-        typename size_parse<strt_current>::out_1_t *str_content;
-        if(size_parse<strt_current>::f(tmparena, str_content,str_current,&dep_length)) {
+        typename total_size_parse<strt_current>::out_1_t *str_content;
+        if(total_size_parse<strt_current>::f(tmparena, &str_content,str_current,&dep_length)) {
             goto fail;
-        }{/*APPLY*/typeof(&str_content) str_current = &str_content;
+        }{/*APPLY*/typeof(str_content) str_current = str_content;
             {
                 int32_t count_2= 0;
                 struct {
@@ -377,8 +377,17 @@ template <typename strt_current> static int32_t peg_ip6packet(NailArena *arena,N
     }
     ;
     typename size_parse<strt_current>::out_1_t *str_payload;
-    if(size_parse<strt_current>::f(tmparena, str_payload,str_current,&dep_payload_len)) {
+    if(size_parse<strt_current>::f(tmparena, &str_payload,str_current,&dep_payload_len)) {
         goto fail;
+    }{/*APPLY*/typeof(str_payload) str_current = str_payload;
+        if(parser_fail(peg_ip6contents(arena,tmparena, &out->payload,str_current ,&dep_next_header))) {
+            goto fail_apply_3;
+        }
+        goto succ_apply_3;
+fail_apply_3:
+        goto fail;
+succ_apply_3:
+        ;
     }
     return 0;
 fail:
@@ -490,74 +499,80 @@ template <typename strt_current> static int32_t peg_foo(NailArena *arena,NailAre
         out->network = str_current->read_unsigned_little(32);
     }
     {
-        int32_t count_3= 0;
+        int32_t count_4= 0;
         struct {
-            typeof(out->packets.elem[count_3]) elem;
+            typeof(out->packets.elem[count_4]) elem;
             void *prev;
-        } *tmp_3 = NULL;
+        } *tmp_4 = NULL;
         NailArenaPos back_arena = n_arena_save(arena);
-        typeof(tmp_3) prev_tmp_3;
-        typename strt_current::pos_t posrep_3= str_current->getpos();
-succ_repeat_3:
+        typeof(tmp_4) prev_tmp_4;
+        typename strt_current::pos_t posrep_4= str_current->getpos();
+succ_repeat_4:
         ;
-        posrep_3= str_current->getpos();
+        posrep_4= str_current->getpos();
         back_arena = n_arena_save(arena);
-        prev_tmp_3= tmp_3;
-        tmp_3 = (typeof(tmp_3))n_malloc(tmparena,sizeof(*tmp_3));
-        if(parser_fail(!tmp_3)) {
+        prev_tmp_4= tmp_4;
+        tmp_4 = (typeof(tmp_4))n_malloc(tmparena,sizeof(*tmp_4));
+        if(parser_fail(!tmp_4)) {
             return -1;
         }
-        tmp_3->prev = prev_tmp_3;
+        tmp_4->prev = prev_tmp_4;
         if(parser_fail(str_current->check(32))) {
-            goto fail_repeat_3;
+            goto fail_repeat_4;
         }
         {
-            tmp_3[0].elem.sec = str_current->read_unsigned_little(32);
+            tmp_4[0].elem.sec = str_current->read_unsigned_little(32);
         }
         if(parser_fail(str_current->check(32))) {
-            goto fail_repeat_3;
+            goto fail_repeat_4;
         }
         {
-            tmp_3[0].elem.usec = str_current->read_unsigned_little(32);
+            tmp_4[0].elem.usec = str_current->read_unsigned_little(32);
         }
         uint32_t dep_length;
         if(parser_fail(str_current->check(32))) {
-            goto fail_repeat_3;
+            goto fail_repeat_4;
         }
         {
             dep_length = str_current->read_unsigned_little(32);
         }
         uint32_t dep_orig_len;
         if(parser_fail(str_current->check(32))) {
-            goto fail_repeat_3;
+            goto fail_repeat_4;
         }
         {
             dep_orig_len = str_current->read_unsigned_little(32);
         }
         ;
         typename size_parse<strt_current>::out_1_t *str_pstream;
-        if(size_parse<strt_current>::f(tmparena, str_pstream,str_current,&dep_length)) {
-            goto fail_repeat_3;
+        if(size_parse<strt_current>::f(tmparena, &str_pstream,str_current,&dep_length)) {
+            goto fail_repeat_4;
+        }{/*APPLY*/typeof(str_pstream) str_current = str_pstream;
+            if(parser_fail(peg_ethernet(arena,tmparena, &tmp_4[0].elem.packet,str_current ))) {
+                goto fail_apply_5;
+            }
+            goto succ_apply_5;
+fail_apply_5:
+            goto fail_repeat_4;
+succ_apply_5:
+            ;
         }
-        if(parser_fail(peg_ethernet(arena,tmparena, &tmp_3[0].elem.packet,str_current ))) {
-            goto fail_repeat_3;
-        }
-        count_3++;
-        goto succ_repeat_3;
-fail_repeat_3:
-        tmp_3= (typeof(tmp_3))tmp_3->prev;
-fail_repeat_sep_3:
+        count_4++;
+        goto succ_repeat_4;
+fail_repeat_4:
+        tmp_4= (typeof(tmp_4))tmp_4->prev;
+fail_repeat_sep_4:
         n_arena_restore(arena, back_arena);
-        str_current->rewind(posrep_3);
-        out->packets.count= count_3;
-        out->packets.elem= (typeof(out->packets.elem))n_malloc(arena,sizeof(out->packets.elem[count_3])*out->packets.count);
+        str_current->rewind(posrep_4);
+        out->packets.count= count_4;
+        out->packets.elem= (typeof(out->packets.elem))n_malloc(arena,sizeof(out->packets.elem[count_4])*out->packets.count);
         if(parser_fail(!out->packets.elem)) {
             return -1;
         }
-        while(count_3) {
-            count_3--;
-            memcpy(&out->packets.elem[count_3],&tmp_3->elem,sizeof(out->packets.elem[count_3]));
-            tmp_3 = (typeof(tmp_3))tmp_3->prev;
+        while(count_4) {
+            count_4--;
+            memcpy(&out->packets.elem[count_4],&tmp_4->elem,sizeof(out->packets.elem[count_4]));
+            tmp_4 = (typeof(tmp_4))tmp_4->prev;
         }
     }
     return 0;
@@ -624,7 +639,7 @@ int gen_ip6contents(NailArena *tmp_arena,NailOutStream *str_current,ip6contents 
             }
             str_current = orig_str;
         }
-        if(parser_fail(size_generate(tmp_arena, &str_content,str_current,&dep_length))) {
+        if(parser_fail(total_size_generate(tmp_arena, &str_content,str_current,&dep_length))) {
             return -1;
         }{/*Context-rewind*/
             NailOutStreamPos  end_of_struct= NailOutStream_getpos(str_current);
@@ -689,6 +704,13 @@ int gen_ip6packet(NailArena *tmp_arena,NailOutStream *str_current,ip6packet * va
     if(parser_fail(NailOutStream_init(&str_payload,4096))) {
         return -1;
     }
+    {   /*APPLY*/NailOutStream  * orig_str = str_current;
+        str_current =&str_payload;
+        if(parser_fail(gen_ip6contents(tmp_arena,str_current,&val->payload,&dep_next_header))) {
+            return -1;
+        }
+        str_current = orig_str;
+    }
     if(parser_fail(size_generate(tmp_arena, &str_payload,str_current,&dep_payload_len))) {
         return -1;
     }{/*Context-rewind*/
@@ -735,8 +757,12 @@ int gen_foo(NailArena *tmp_arena,NailOutStream *str_current,foo * val) {
         if(parser_fail(NailOutStream_init(&str_pstream,4096))) {
             return -1;
         }
-        if(parser_fail(gen_ethernet(tmp_arena,str_current,&val->packets.elem[i1].packet))) {
-            return -1;
+        {   /*APPLY*/NailOutStream  * orig_str = str_current;
+            str_current =&str_pstream;
+            if(parser_fail(gen_ethernet(tmp_arena,str_current,&val->packets.elem[i1].packet))) {
+                return -1;
+            }
+            str_current = orig_str;
         }
         if(parser_fail(size_generate(tmp_arena, &str_pstream,str_current,&dep_length))) {
             return -1;

@@ -46,6 +46,7 @@ struct ip6packet {
     uint8_t hops;
     ip6addr saddr;
     ip6addr daddr;
+    ip6contents payload;
 }
 ;
 struct ethernet {

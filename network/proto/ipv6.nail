@@ -1,15 +1,22 @@
-/*
-icmpv6($addrstream, @length, @nextheader)  = select(@type) {
+
+icmpv6($addrstream, @length, @nextheader) =  {
                        @type uint8
-                       select(@type) {
-                                     ICMP_NOROUTE = 6 {
-                                     }
+                       code uint8
+                       contents select(@type) {
+                                HOPBYHOP = 0 {
+                                }
+                                ROUTING = 43 {
+                                }
                        }
 }
-*/
-ip6contents (@type uint8) =  select(@type) {
+ip6fragm (@type uint8) =  select(@type) {
 
                    HOPBYHOP = 0 {
+                            @nextheader uint8
+                            @nextlen uint8
+                            $tlv transform tlv($current @nextlen)
+                            options apply $tlv  hopbyhop
+                            $fragmented 
                    }
                    ICMP = 1 {
                    }
@@ -18,7 +25,7 @@ ip6contents (@type uint8) =  select(@type) {
                        destination uint16 
                        @length      uint16 
                        checksum uint16 
-                       $content transform size($current @length)
+                       $content transform total_size($current @length)
                        payload apply $content (many uint8)
                    }
                    /*
@@ -48,7 +55,6 @@ ip6contents (@type uint8) =  select(@type) {
                            many uint8 = "FAIL"
                    }
                 FRAGMENT = 44 {
-                /*
                             $unfragmented transform head($current) // everything up to here
                             @next_header uint8
                             reserved uint8
@@ -56,16 +62,15 @@ ip6contents (@type uint8) =  select(@type) {
                             res uint2
                             @more uint1
                             @ident uint32
-                            transform ip_fragment($unfragmented $current @next_header)
-                            */
+                            transform ip_fragment($unfragmented $current @next_header @offset @more @ident)
                    }
                    
      }
-
 ip6addr = {
         net uint64
         host uint64
 }
+
 ip6packet = {
           uint4 = 6
           diffserv uint6
@@ -76,5 +81,7 @@ ip6packet = {
           hops uint8
           saddr ip6addr
           daddr ip6addr
-          $payload transform size($current @payload_len)
+          $unfragmented transform ipv6_fragmentation 
+          $payload transform size($unfragmented @payload_len)
+          payload apply $payload ip6contents(@next_header)
 }

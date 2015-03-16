@@ -21,6 +21,6 @@ foo = { // PCAP file
             @orig_len uint32
             //transform check_equal @length @orig_len
             $pstream transform size($current @length)
-            packet ethernet
+            packet apply $pstream ethernet
             }   
 }
