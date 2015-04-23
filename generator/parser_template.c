@@ -87,6 +87,9 @@ static void stream_advance(NailStream *stream, unsigned count){
                 stream->bit_offset-=8;
         }
 }
+static NailStreamPos   stream_getpos(NailStream *stream){
+  return (stream->pos << 3) + stream->bit_offset; //TODO: Overflow potential!
+}
 static void stream_backup(NailStream *stream, unsigned count){
         stream->pos -= count >> 3;
         stream->bit_offset -= count & 7;

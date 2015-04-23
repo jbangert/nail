@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#define parser_fail(i) __builtin_expect((i)!=0,0)
+#define parser_fail(i) __builtin_expect((i)<0,0)
 
 static int stream_reposition(NailStream *stream, NailStreamPos p)
 {
@@ -16,9 +16,6 @@ static int NailOutStream_reposition(NailOutStream *stream, NailOutStreamPos p)
         stream->pos = p >> 3;
         stream->bit_offset = p & 7;
         return 0;
-}
-static NailStreamPos   stream_getpos(NailStream *stream){
-  return (stream->pos << 3) + stream->bit_offset; //TODO: Overflow potential!
 }
 static NailOutStreamPos   NailOutStream_getpos(NailOutStream *stream){
   return (stream->pos << 3) + stream->bit_offset; //TODO: Overflow potential!

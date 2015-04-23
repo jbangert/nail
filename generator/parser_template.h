@@ -28,7 +28,7 @@ struct NailOutStream {
   signed char bit_offset;
 };
 typedef struct NailStream NailStream;
-typedef struct NailOutStream NailStream;
+typedef struct NailOutStream NailOutStream;
 typedef size_t NailStreamPos;
 typedef size_t NailOutStreamPos;
 static NailStream * NailStream_alloc(NailArena *arena) {

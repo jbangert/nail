@@ -56,7 +56,7 @@ int dnscompress_parse(NailArena *tmp,NailStream *str_decompressed, NailStream *c
         return 0;
 }
 
-int dnscompress_generate(NailArena *tmp,NailStream *str_compressed, NailStream *current){
+int dnscompress_generate(NailArena *tmp,NailOutStream *str_compressed, NailOutStream *current){
         if(NailOutStream_grow(current, 8*str_compressed->pos)) return -1;
         memcpy(current->data + current->pos, str_compressed->data, str_compressed->pos);
         current->pos += str_compressed->pos;
