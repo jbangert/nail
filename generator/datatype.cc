@@ -206,7 +206,7 @@ public:
 void emit_header(std::ostream *out, grammar *grammar){
   CDataModel data(out);
   data.emit_parser(grammar);
-  *out  <<   std::string(header_template_start,header_template_end - header_template_start);
+  *out  <<   std::string((char *)parser_template_h,parser_template_h_len);
   FOREACH(def, *grammar){
     if(def->N_type == PARSER){
       std::string name= mk_str(def->parser.name);

@@ -572,8 +572,8 @@ public:
 };
 void emit_directparser(std::ostream *out, std::ostream *header, grammar *grammar){
   CDirectParser p(out,header);
-  std::string impl_template(parser_template_start,parser_template_end - parser_template_start);
-  std::string cpp_template(cpp_template_start,cpp_template_end - cpp_template_start);
+  std::string impl_template((char *)parser_template_c,parser_template_c_len);
+  std::string cpp_template((char *)parser_template_cc, parser_template_cc_len);
   
   *out << cpp_template;
   

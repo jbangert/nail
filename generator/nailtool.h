@@ -15,20 +15,10 @@ namespace option {
         extern bool templates;
         extern bool cpp;
 }
-extern "C"{
-
-
-  extern char parser_template_start[] asm("_binary_parser_template_c_start"); 
-  extern char parser_template_end[] asm("_binary_parser_template_c_end");
-
-
-
-  extern char cpp_template_start[] asm("_binary_parser_template_cc_start"); 
-  extern char cpp_template_end[] asm("_binary_parser_template_cc_end");
-
-  extern char header_template_start[] asm("_binary_parser_template_h_start"); 
-  extern char header_template_end[] asm("_binary_parser_template_h_end");
-}
+extern unsigned char parser_template_cc[];
+extern unsigned char parser_template_c[];
+extern unsigned char parser_template_h[];
+extern unsigned int parser_template_c_len, parser_template_cc_len, parser_template_h_len;
 #include "grammar.h"
 typedef struct expr{
   struct expr *parent;

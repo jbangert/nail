@@ -13,13 +13,12 @@ regen-nail-grammar: new_grammar.nail nail
 	./cnail $<
 	astyle $<.c
 	astyle $<.h
-parser_template.cc.o: parser_template.cc
-	ld -r -o $@ --format=binary $<
-parser_template.c.o: parser_template.c 
-	ld -r -o $@ --format=binary $<
-
-parser_template.h.o : parser_template.h
-	ld -r -o $@ --format=binary $<
+parser_template.cc.cc: parser_template.cc
+	xxd -i $< > $@
+parser_template.c.cc: parser_template.c 
+	xxd -i $< > $@
+parser_template.h.cc : parser_template.h
+	xxd -i $< > $@
 
 nail_wrap.c : new_grammar.nail.h nail.i
 	swig -ruby nail.i
@@ -37,5 +36,5 @@ nail: main.o mk_parser.o mk_gen.o datatype.o util.o new_grammar.nail.o parser_te
 
 
 clean: 
-	rm -f *.o nail
+	rm -f *.o nail parser_template.cc.cc parser_template.c.cc parser_template.h.cc
 
