@@ -9,7 +9,7 @@ icmpv6($addrstream, @length, @nextheader) =  {
                                 }
                        }
 }
-ip6fragm (@type uint8) =  select(@type) {
+ip6contents (@type uint8) =  select(@type) {
 
                    HOPBYHOP = 0 {
                             @nextheader uint8
