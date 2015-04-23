@@ -47,7 +47,6 @@ domain = sepBy1 uint8='.' many1 alnum
 #define rr(type,parser) type = <literal(:type:); domain>
 definition = {WHITE;
            hostname domain;
-           @type 
             rr choose {
            rr(NS,domain)
            rr(CNAME,domain)
@@ -56,3 +55,4 @@ definition = {WHITE;
 
            }}
 zone = <many1 definition; WHITE>
+

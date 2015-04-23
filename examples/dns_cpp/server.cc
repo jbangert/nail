@@ -61,7 +61,7 @@ struct hashentry *zone_hashtable(zone *zon){
 //responses are a bit hackish - should really put those into the grammar too
 void domain_response(NailArena *tmp_arena,answer *rr, domain *dom){
         labels *l =(labels *)dom;
-        NailStream stream;
+        NailOutStream stream;
         NailOutStream_init(&stream,256); // TODO: Allocate streams from arena, and/or free this one somewhere!
         gen_labels(tmp_arena,&stream,l);
         size_t count;
@@ -79,7 +79,7 @@ int natoi(unsigned char *s, int n)
     }
     return x;
 }
-int dns_respond(NailStream *stream,NailArena * arena,struct dnspacket *query, zone *zone, struct hashentry *hashtable)
+int dns_respond(NailOutStream *stream,NailArena * arena,struct dnspacket *query, zone *zone, struct hashentry *hashtable)
 {
         dnspacket response;// = n_malloc(arena,sizeof(*response));
         char *retval;
@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
   int sock = start_listening();
   while (1) {
           NailArena arena,tmp_arena;
-          NailStream out;
+          NailOutStream out;
           struct dnspacket *message;
           char *response;
           size_t len;
