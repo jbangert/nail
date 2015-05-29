@@ -1,0 +1,287 @@
+%% This file is for producing a Doctoral Thesis proposal.  It should be fairly
+%% self-explanatory.  
+
+\documentclass[a4paper]{article}
+
+\usepackage[doublespacing]{setspace}
+\usepackage[margin=1in]{geometry}
+\usepackage{url}
+\begin{document}
+
+
+\bibliographystyle{plain}
+\pagestyle{empty}
+\markboth{{\sc thesis proposal}}{{\sc thesis proposal}}
+\def\title{Nail, a practical tool for parsing and generating data formats.}
+\def\author{Julian Bangert}
+\def\addrone{550 Memorial Drive, 15E3}
+\def\addrtwo{Cambridge, MA  02139}
+
+\def\degree{Master of Science}
+%% Added \deptname for PhD proposals in other fields.
+%% Krishna Sethuraman (1990)
+\def\deptname{Electrical Engineering \\ and Computer Science}
+\def\laboratory{Computer Science and Artificial Intelligence Laboratory}
+
+\def\submissiondate{\today}
+\def\completiondate{September 2015}
+
+\def\supervisor{Professor Nickolai Zeldovich}
+\def\supertitleone{Associate Professor }
+
+
+
+\def\abstract{ The proposed research is extending grammar-based parser
+  generators to handle binary protocols and data formats.  Our
+  prototype tool, Nail, introduces several new ideas to achieve that
+  goal, including dependent fields and stream transforms to capture
+  protocol features such as size and offset fields, checksums, and
+  compressed data, which are impractical to express in existing
+  protocol languages.  We will show several grammars for complicated
+  real-world formats and demonstrate applications built with those. We
+  argue that applications built with Nail are more resilient to memory
+  corruption attacks as well as less-understood parser differential
+  vulnerabilites.  }
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%% You Should Not Need To Modify Anything Below Here %%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Cover Page - Author signs %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{singlespace}
+\begin{center}
+{\Large \bf 
+   Massachusetts Institute of Technology
+\\ Department of \deptname \\}
+\vspace{.25in}
+{\Large \bf
+   Proposal for Thesis Research in Partial Fulfillment
+\\ of the Requirements for the Degree of
+\\ \degree \\}
+\end{center}
+
+\vspace{.5in}
+
+\def\sig{{\small \sc (Signature of Author)}}
+
+\begin{tabular}{rlc}
+   {\small \sc Title:}                       & \multicolumn{2}{l}{\title}
+\\ {\small \sc Submitted by:}
+                            & \author  & \\
+                            & \addrone & \\
+& \addrtwo & \\
+& \\
+& \\
+\cline{2-2} & \\
+			    & \makebox[2in][c]{\sig} & \\
+\\ {\small \sc Date of Submission:}          & \multicolumn{2}{l}{\submissiondate}
+\\ {\small \sc Expected Date of Completion:} & \multicolumn{2}{l}{\completiondate}
+\\ {\small \sc Laboratory:}                  & \multicolumn{2}{l}{\laboratory}
+\end{tabular}
+
+
+\vspace{.75in}
+{\bf \sc Brief Statement of the Problem:}
+
+\abstract
+
+
+\underline{\bf  Supervision Agreement}
+
+\vspace{.25in}
+
+\vspace{.25in}
+The program outlined in this proposal is adequate for a Master's thesis. The supplies and facilities
+required are available, and I am willing to supervise the research and evaluate the thesis report.
+\vspace{.5in}
+\begin{tabular}{crc}
+  \hspace{2in} & {\sc Signed:} & \\ \cline{3-3}
+               &               & {\small \sc \supervisor} \\
+               &               &                             \\
+               & {\sc Date:}   & \\ \cline{3-3}
+\end{tabular}
+
+\end{singlespace}
+\newpage
+
+\section{Motivation}
+Binary file formats and network protocols are hard to parse safely: 
+The libpng image decompression library had 24 remotely
+exploitable vulnerabilities from 2007 to 2013 according to CVEDetails,
+Adobe's PDF and Flash viewers have been notoriously plagued by input
+processing vulnerabilities, and even the zlib compression library had
+input processing vulnerabilities in the past.
+Most of these attacks involve memory corruption; therefore, it is easy to assume that 
+solving memory corruption will end all our woes when handling untrusted inputs. 
+
+However, as memory-safe languages and exploit mitigation  tricks are becoming more prevalent,
+attackers are moving to a new class of attack called {\em parser differentials}. Many applications use
+hand-written input processing code, which is often mixed with the rest of the application, e.g. by
+passing a pointer to the raw input through the application. This (anti-)pattern makes it impossible
+to figure out whether two implementations of the same format or protocol are identical, and input
+handling code can't be easily reused between applications. As a result, different applications often
+disagree in the corner cases of a protocol, which can have fatal security consequences. For example,
+Android has two parsers for ZIP archives involved in securely installing applications. First, a Java
+program checks the signatures of files contained within an app archive and then another tool
+extracts them to the filesystem. Because the two ZIP parsers disagree in multiple places, attackers
+can modify a valid file so that the verifier will see the original contents, but attacker-controlled
+files will be extracted to the filesystem, bypassing Android's code signing. Similar issues showed
+up on iOS~\cite{geohot-evasion} and SSL~\cite{DBLP:conf/fc/KaminskyPS10}.
+
+
+Instead of attempting to parse inputs by hand and failing, 
+a promising approach is to specify
+a precise grammar for the input data format, and automatically generate parsing code from that with tools like {\tt yacc}. As long
+as the parser generator is bug-free, the application will be safe from many
+input processing vulnerabilities. Grammars can also be re-used between
+applications, further reducing effort and eliminating inconsistencies.
+
+
+This approach is typical in compiler design and in other applications handling text-based inputs, but not
+common for binary inputs. The Hammer framework~\cite{hammer-parser} and data description languages such as
+PADS~\cite{Fisher:2005:PDL:1064978.1065046} have been developing generated parsers for binary protocols.
+
+However, if you wanted to use existing tools to parse PDF
+or ZIP files, you would soon find that they cannot handle the complicated---and therefore most
+error-prone---aspects of such formats, so you'd still have to
+hand-write the riskiest bits of code. For example, existing parser generators cannot conveniently represent size or offset fields, and more complex features, such as data compression or checksums, cannot be expressed at all.
+
+
+Furthermore, some parser generators are cumbersome to use when parsing binary data for several
+reasons. First, many parser generators don't produce convenient data structures, and instead call
+but call \emph{semantic actions} that the developer has to write to build up a data structure that
+the rest of the program can use. Therefore, the developer must
+describe the format up to three times: in the grammar, in the data structure, and in the semantic
+actions. Second, most parser generators only address parsing inputs, so the developer would have to manually
+construct outputs. Some parser generators, such as 
+Boost.Spirit, allow generating output, but require the developer to write another set of semantic actions. 
+\section{Approach}
+
+We address these challenges with Nail, a new parser generator for binary formats:
+
+
+First, parser generators typically parse inputs into an abstract syntax
+tree (AST) that corresponds to the grammar.  In order to produce a data
+structure that the rest of the application code can easily process,
+application developers must write explicit {\em semantic actions} that
+update the application's internal representation of the data based on
+each AST node.  
+Writing these semantic actions requires the programmer to describe the
+structure of the input three
+times---once to describe the grammar, once to describe the internal data
+structure, and once again in the semantic actions that translate the
+grammar into the data structure---leading to potential bugs and
+inconsistencies.
+Furthermore, in a memory-unsafe language like C, these semantic
+actions often involve error-prone manual memory allocation and
+pointer manipulation.
+
+
+Second,  applications often need to produce output in the same
+format as their input---for example, applications might both
+read and write files, or both receive and send network packets.
+Most parser generators focus on just parsing an input, rather
+than producing an output, thus requiring the programmer to manually
+construct outputs, which is work-intensive and leads to
+more code that could contain errors.
+Some parser generators, such as
+Boost.Spirit~\cite{boost-spirit},
+allow reusing the grammar for generating output from the internal
+representation.  However, those generators require yet another set of
+semantic actions to be written, transforming the internal representation
+back into an AST\@.
+
+Third, many data formats contain redundancies, such as repeating
+information in multiple structures.  Applications usually do not
+explicitly check for consistency, and if different applications use
+different instances of the same value, an attacker can craft an input that
+causes inconsistencies~\cite{evaders6}.  Furthermore, security
+vulnerabilities can occur when an application assumes two repetitions
+of the same data to be consistent, such as allocating a buffer based on
+the value of one size field and copying into that buffer based on the
+value of another~\cite{python-bug:20078}.
+
+Finally, real-world data formats, such as PNG or PDF, are hard to
+represent with existing parser generators.  Those parsers cannot directly
+deal with length or checksum fields, so the programmer has to
+either write potentially unsafe code to deal with such features, or build
+contrived grammar constructs, such as introducing one grammar rule for
+each possible value of a length field.  Offset fields, which specify
+the position at which some data structure is located, usually require
+the programmer to manipulate a parser's internal state to re-position
+its input.  More complicated transformations, such as handling compressed
+data, cannot be represented at all.
+
+\section{Proposed Evaluation}
+To show that Nail is practical to handle real world data formats, we
+will demonstrate grammars for several real-world file formats and
+protocols that have had security vulnerabilities in their
+hand-implemented parsers. We will then show how these grammars can be
+used to implement applications and compare their performance and
+complexity to hand-written implementations. So far, we have grammars
+for DNS packets and ZIP files, which we use to develop
+proof-of-concept applications that have comparable performance to
+existing systems used in practice.
+
+We will also show a grammar-based IPv4 and IPv6  stack showing acceptable performance and reduced complexity.
+\section{Previous work}
+
+This proposal and the thesis are based on previously published papers about Nail, including \cite{bangert:nail-langsec}, \cite{bangert:nail-osdi14} and \cite{bangert:nail-login}.
+
+
+
+Generating parsers and generators from an executable specification is the
+core concept of interface generators, such as CORBA~\cite{omg:corba},
+XDR~\cite{RFC:1832}, and Protocol Buffers~\cite{varda2008}.  However,
+interface generators do not allow the programmer to specify the byte-level
+data format; instead, they define their own data encoding that is
+specific to a particular interface generator.  For instance, XDR-based
+protocols are incompatible with Protocol Buffers.  Moreover, this means
+that interface generators cannot be used to interact with existing protocols
+that were not defined using that interface generator in the first place.
+As a result, interface generators cannot be used to parse or generate
+widely used formats such as DNS or ZIP, which is a goal for Nail.
+
+Closely related work has been done in the field of data description languages, for example
+PacketTypes~\cite{mccann2000packet} and DataScript~\cite{back2002datascript}; a
+broader overview of data description languages can be found in Fisher et
+al~\cite{Fisher:700DDL}.
+PacketTypes implements a C-like structure model enhanced with
+length fields and constraints, but works only as a parser, and
+not as an output generator.
+DataScript adds output generation and built-in support for offset fields.
+A particularly sophisticated data description language, PADS~\cite{Fisher:2005:PDL:1064978.1065046},
+which is targeted more towards offline analysis, even features built-in support for XML and
+automatic grammar inference.
+However, these systems cannot easily handle complicated encodings such as compressed data, which are
+supported by Nail's stream transforms. While sophisticated languages like PADS allow for handling
+particular variations of offset fields, compressed data, or even XML entities, each of these
+features has to be implemented in the data description language and all associated tools. Nail's
+transformations keep the core language small, while enabling the wide range of
+features real-world protocols require. 
+
+Recently, the Hammer project~\cite{hammer-parser} introduced a security-focused parser framework for
+binary protocols.
+Hammer implements grammars as language-integrated parser combinators, an approach popularized by
+Parsec for Haskell~\cite{LeijenMeijer:parsec}. The parser combinator style (to our knowledge, first
+described by Burge~\cite{burge1975recursive}) is a natural way of concisely expressing top-down
+grammars~\cite{Danielsson:2010:TPC:1863543.1863585}
+by composing them from one or multiple sub-parsers.\footnote{For more
+background on the history of expressing grammars, see Bryan Ford's
+masters thesis~\cite{ford2002packrat}, which also describes the
+default parsing algorithm used by Hammer.}
+Hammer then constructs a tree of function pointers which can be invoked to parse a given input into
+an AST\@.
+
+\begin{singlespace}
+\bibliography{n-str,main,locasto,langsec,n,n-conf}
+
+\end{singlespace}
+
+\end{document}
+
+
+
+
