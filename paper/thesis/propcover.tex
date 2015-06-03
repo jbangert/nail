@@ -128,7 +128,7 @@ program checks the signatures of files contained within an app archive and then 
 extracts them to the filesystem. Because the two ZIP parsers disagree in multiple places, attackers
 can modify a valid file so that the verifier will see the original contents, but attacker-controlled
 files will be extracted to the filesystem, bypassing Android's code signing. Similar issues showed
-up on iOS~\cite{geohot-evasion} and SSL~\cite{DBLP:conf/fc/KaminskyPS10}.
+up on iOS code signing~\cite{geohot-evasion} and SSL certificates~\cite{DBLP:conf/fc/KaminskyPS10}.
 
 
 Instead of attempting to parse inputs by hand and failing, 
