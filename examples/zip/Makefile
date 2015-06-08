@@ -9,7 +9,7 @@ extract.o: zip.nail.h
 
 
 zip.nail.h zip.nail.c: zip.nail
-	../../generator/nail $< 
+	../../generator/cnail $< 
 	astyle zip.nail.h
 	astyle zip.nail.c
 zip.nail: 
