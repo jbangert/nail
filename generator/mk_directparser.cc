@@ -394,7 +394,12 @@ public:
       break;
     }
     case FIXEDARRAY:
-      assert(!"unimplemented");
+      std::string iter = boost::str(boost::format("i%d") % num_iters++);
+      ValExpr iexpr(iter);
+      ArrayElemExpr elem(&lval, &iexpr);
+      out << "for(pos "<< iter<< "=0;"<<iter<<"<"<<intconstant_value(p.fixedarray.length) << ";"<<iter<<"++){";
+      parser(p.fixedarray.inner->pr,elem,end);
+      out << "}";
       break;
     case LENGTH:{
       std::string iter = boost::str(boost::format("i%d") % num_iters++);
