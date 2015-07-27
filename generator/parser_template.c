@@ -8,7 +8,7 @@ typedef struct{
         pos *trace;
         pos capacity,iter,grow;
 } n_trace; 
-#define parser_fail(i) __builtin_expect(i<0,0)
+#define parser_fail(i) __builtin_expect(i<0,false)
 static uint64_t read_unsigned_bits_littleendian(NailStream *stream, unsigned count) {
     uint64_t retval = 0;
     unsigned int out_idx=0;

@@ -42,5 +42,4 @@ extern void NailOutStream_release(NailOutStream *str);
 const uint8_t * NailOutStream_buffer(NailOutStream *str,size_t *siz);
 extern int NailOutStream_grow(NailOutStream *stream, size_t count);
 
-#define n_fail(i) __builtin_expect(i,0)
-
+#define n_fail(i) __builtin_expect(i,false)

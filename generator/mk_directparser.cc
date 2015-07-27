@@ -365,7 +365,7 @@ public:
       }
       out << "prev_"<<temp<<"= "<<temp<<";\n"  
           << temp << " = (typeof("<<temp<<"))n_malloc(tmparena,sizeof(*"<<temp<<"));\n"
-          << "if(parser_fail(!"<<temp<<")) {return -1;}"
+          << "if(n_fail(!"<<temp<<")) {return -1;}"
           << temp << "->prev = prev_"<<temp<<";\n";
       parser(i->pr,tmpexpr,gotofail, scope );
       out << iter << "++;\n";
@@ -384,7 +384,7 @@ public:
       
       out << count << "= "<<iexpr<<";\n";
       out << data << "= (typeof("<<data<<"))n_malloc(arena,sizeof("<<elem<<")*"<<count <<");\n"
-          << "if(parser_fail(!"<<data<<")){ return -1;}";
+          << "if(n_fail(!"<<data<<")){ return -1;}";
       out << "while("<<iter<<"){"
           << iter<< "--;\n"
           << "memcpy(&"<<elem <<",&"<<temp<<"->elem,sizeof("<<elem<<"));"
@@ -393,14 +393,15 @@ public:
       out << "}";
       break;
     }
-    case FIXEDARRAY:
+    case FIXEDARRAY: { 
       std::string iter = boost::str(boost::format("i%d") % num_iters++);
       ValExpr iexpr(iter);
       ArrayElemExpr elem(&lval, &iexpr);
       out << "for(pos "<< iter<< "=0;"<<iter<<"<"<<intconstant_value(p.fixedarray.length) << ";"<<iter<<"++){";
-      parser(p.fixedarray.inner->pr,elem,end);
+      parser(p.fixedarray.inner->pr,elem,fail, scope);
       out << "}";
       break;
+    }
     case LENGTH:{
       std::string iter = boost::str(boost::format("i%d") % num_iters++);
       ValExpr count("count", &lval);
@@ -411,7 +412,7 @@ public:
       out << "int32_t "<<iter<<" = 0 ;\n";
       out << count << "= dep_"<<mk_str(p.length.length) << ";\n";
       out << data << " = (typeof("<<data<<"))n_malloc(arena,"<<count<<"*sizeof("<<elem<<"));";
-      out << "if(parser_fail(!"<<data<<")){return -1;}\n";
+      out << "if(n_fail(!"<<data<<")){return -1;}\n";
       out << "for(;"<<iter<<"<"<<count<<";"<<iter<<"++){";
       parser(p.length.parser->pr,elem,fail,scope);
       out << "}\n";
