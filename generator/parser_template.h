@@ -1,13 +1,9 @@
 
 struct NailArenaPool;
-typedef struct NailArena_ {
-    struct NailArenaPool *current;
-    size_t blocksize;
-} NailArena ;
-typedef struct {
-        struct NailArenaPool *pool;
-        char *iter;
-} NailArenaPos;
+struct NailArena;
+struct NailArenaPos;
+typedef struct NailArena NailArena;
+typedef struct NailArenaPos NailArenaPos;
 NailArenaPos n_arena_save(NailArena *arena);
 void n_arena_restore(NailArena *arena, NailArenaPos p);
 

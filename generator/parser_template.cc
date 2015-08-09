@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <setjmp.h>
 #define parser_fail(i) __builtin_expect((i)<0,0)
 
 static int stream_reposition(NailStream *stream, NailStreamPos p)
@@ -80,6 +81,16 @@ static int NailOutStream_write(NailOutStream *stream,uint64_t data, size_t count
         }
         return 0;
 }
+
+struct NailArena {
+  struct NailArenaPool *current;
+  size_t blocksize;
+  jmp_buf *error_ret;
+};
+struct NailArenaPos{
+        struct NailArenaPool *pool;
+        char *iter;
+} 
 typedef struct NailArenaPool{
         char *iter;char *end;
         struct NailArenaPool *next;
@@ -93,7 +104,9 @@ void *n_malloc(NailArena *arena, size_t size)
                 if(size>siz)
                         siz = size + sizeof(NailArenaPool);
                 NailArenaPool *newpool  = (NailArenaPool *)malloc(siz);
-                if(!newpool) return NULL;
+                if(!newpool){
+                  longjmp(*arena->error_ret, -1);
+                }
                 newpool->end = (char *)((char *)newpool + siz);
                 newpool->iter = (char*)(newpool+1);
                 newpool->next = arena->current;
@@ -105,7 +118,7 @@ void *n_malloc(NailArena *arena, size_t size)
         return retval;
 }
 
-int NailArena_init(NailArena *arena, size_t blocksize){
+int NailArena_init(NailArena *arena, size_t blocksize, jmp_buf *err){
         if(blocksize< 2*sizeof(NailArena))
                 blocksize = 2*sizeof(NailArena);
         arena->current = (NailArenaPool*)malloc(blocksize);
@@ -114,6 +127,7 @@ int NailArena_init(NailArena *arena, size_t blocksize){
         arena->current->iter = (char *)(arena->current + 1);
         arena->current->end = (char *) arena->current + blocksize;
         arena->blocksize = blocksize;
+        arena->err = err;
         return 1;
 }
 int NailArena_release(NailArena *arena){
