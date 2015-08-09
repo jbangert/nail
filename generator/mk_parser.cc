@@ -178,8 +178,7 @@ public:
         out << "{ /*ARRAY*/ \n pos save = 0;";
         out << count << "=" << "*(tr++);\n"
             << "save = *(tr++);\n";
-        out <<data << "= " << "(typeof("<<data<<"))n_malloc("<<arena<<"," << count << "* sizeof(*"<<data<<"));\n"
-            << "if(!"<< data<< "){return -1;}\n";
+        out <<data << "= " << "(typeof("<<data<<"))n_malloc("<<arena<<"," << count << "* sizeof(*"<<data<<"));\n";
 
         std::string iter = boost::str(boost::format("i%d") % num_iters++);
         out << "for(pos "<<iter<<"=0;"<<iter<<"<"<<count<<";"<<iter<<"++){";
@@ -209,7 +208,6 @@ public:
         out<< "if(*tr<0) /*OPTIONAL*/ {\n"
            << "tr++;\n"
            << lval << "= " << "(typeof("<<lval<<"))n_malloc("<<arena<<",sizeof(*"<<lval<<"));\n";
-        out << "if(!"<<lval<<") return -1;\n";
         DerefExpr deref(lval);
         action(p.optional->pr,deref,end);
         out << "}\n"
@@ -219,7 +217,6 @@ public:
     case REF:
       {
         out << lval << "= (typeof("<<lval<<")) n_malloc("<<arena<<",sizeof(*"<<lval<<"));\n"
-            << "if(!"<<lval<<"){return -1;}";
         out << "if(parser_fail(bind_"<<mk_str(p.ref.name)<< "("<<arena<<"," << lval << ", stream,&tr,trace_begin)))"
             << "{return -1;}\n";
         break;
@@ -270,7 +267,6 @@ public:
               << "if(parser_fail(peg_"<<name<<"(&tmp_arena,&trace,&stream))) goto fail;"
               << "if(stream.pos != stream.size) goto fail; "
               << "retval =  (typeof(retval))n_malloc(arena,sizeof(*retval));\n"
-              <<"if(!retval) goto fail;\n"
               << "stream.pos = 0;\n"
               << "tr_ptr = trace.trace;"
               << "if(bind_"<<name<<"(arena,retval,&stream,&tr_ptr,trace.trace) < 0) goto fail;\n"

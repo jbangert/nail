@@ -365,7 +365,6 @@ public:
       }
       out << "prev_"<<temp<<"= "<<temp<<";\n"  
           << temp << " = (typeof("<<temp<<"))n_malloc(tmparena,sizeof(*"<<temp<<"));\n"
-          << "if(n_fail(!"<<temp<<")) {return -1;}"
           << temp << "->prev = prev_"<<temp<<";\n";
       parser(i->pr,tmpexpr,gotofail, scope );
       out << iter << "++;\n";
@@ -384,7 +383,6 @@ public:
       
       out << count << "= "<<iexpr<<";\n";
       out << data << "= (typeof("<<data<<"))n_malloc(arena,sizeof("<<elem<<")*"<<count <<");\n"
-          << "if(n_fail(!"<<data<<")){ return -1;}";
       out << "while("<<iter<<"){"
           << iter<< "--;\n"
           << "memcpy(&"<<elem <<",&"<<temp<<"->elem,sizeof("<<elem<<"));"
@@ -473,7 +471,6 @@ public:
     case REF:{
       std::string parameters =   parameter_invocation(p.ref.parameters,scope);
       out << lval << "= (typeof("<<lval<<")) n_malloc("<<arena<<",sizeof(*"<<lval<<"));\n";
-      out << "if(!"<<lval<<"){return -1;}\n";
       out << "if(parser_fail(peg_"<<mk_str(p.name.name)<<"(arena,tmparena, "<<lval<<",str_current "<<parameters<<"))) { "<<fail<<"}\n";
       break;
     }
@@ -529,8 +526,7 @@ public:
             out << name << "* parse_"<<name << "(NailArena *arena, NailStream *stream){\n";
           out << name << "*retval = ("<<name<<"*)n_malloc(arena, sizeof(*retval));"
               << "NailArena tmparena;"
-              <<"NailArena_init(&tmparena, 4096);"
-              << "if(!retval) return NULL;\n"
+              <<"NailArena_init(&tmparena, 4096, arena->error_ret);"
               << "if(parser_fail(peg_"<<name<<"(arena, &tmparena,retval, stream))){"
               << "goto fail;"
               << "}";
