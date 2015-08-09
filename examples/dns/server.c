@@ -50,7 +50,7 @@ struct hashentry{
 struct hashentry *zone_hashtable(zone *zon){
         struct hashentry * table= calloc(sizeof(struct hashentry),hashsize(zon)); //COLLISIONS
         FOREACH(domain,*zon){
-                unsigned long hash = domain_hash(domain);
+          unsigned long hash = domain_hash((struct domain *)domain); //lazy hack, they are the same struct 
                 int entry = hash%hashsize(zon);
                 while(table[entry].def!=NULL) entry = (entry + 1) % hashsize(zon);
                 table[entry].hash = hash;
@@ -61,11 +61,11 @@ struct hashentry *zone_hashtable(zone *zon){
 //responses are a bit hackish - should really put those into the grammar too
 void domain_response(NailArena *tmp_arena,answer *rr, domain *dom){
         labels *l =(labels *)dom;
-        NailStream stream;
+        NailOutStream stream;
         NailOutStream_init(&stream,256); // TODO: Allocate streams from arena, and/or free this one somewhere!
         gen_labels(tmp_arena,&stream,l);
         size_t count;
-        rr->rdata.elem = NailOutStream_buffer(&stream, &count);
+        rr->rdata.elem = (uint8_t*)NailOutStream_buffer(&stream, &count);
         rr->rdata.count = count;
         //TODO: We need to free this
 }
@@ -79,7 +79,7 @@ int natoi(char *s, int n)
     }
     return x;
 }
-int dns_respond(NailStream *stream,NailArena * arena,struct dnspacket *query, zone *zone, struct hashentry *hashtable)
+int dns_respond(NailOutStream *stream,NailArena * arena,struct dnspacket *query, zone *zone, struct hashentry *hashtable)
 {
         dnspacket response;// = n_malloc(arena,sizeof(*response));
         char *retval;
@@ -163,8 +163,14 @@ int main(int argc, char** argv) {
   if(argc<2) exit(-1);
   char *zonebuf = malloc(ZONESIZ);
   FILE *zonefil = fopen(argv[1],"r");
+  jmp_buf oom;
+
   NailArena permanent;
-  NailArena_init(&permanent,4096);
+  if(0!= setjmp(oom)){
+    printf("OOM during init\n");
+    exit(-1);
+  }
+  NailArena_init(&permanent,4096,&oom);
   if(!zonebuf || !zonefil) exit(-1);
   remote_len = fread(zonebuf,1,ZONESIZ,zonefil);
   zone * zon = parse_zone(&permanent,zonebuf, remote_len);
@@ -175,28 +181,32 @@ int main(int argc, char** argv) {
   struct hashentry *hashtable = zone_hashtable(zon);
   int sock = start_listening();
   while (1) {
-          NailArena arena,tmp_arena;
-          NailStream out;
-          struct dnspacket *message;
-          char *response;
-          size_t len;
-          
-          remote_len = sizeof(remote);
-          packet_size = recvfrom(sock, packet, sizeof(packet), 0, (struct sockaddr*)&remote, &remote_len);
-          NailArena_init(&arena,4096);
-          NailArena_init(&tmp_arena,4096);
-          NailOutStream_init(&out,4096);
-          message = parse_dnspacket(&arena,packet, packet_size);
-          if (!message) {
-                  printf("Invalid packet; ignoring\n");
-                  continue;
-          }
-          assert(dns_respond(&out, &tmp_arena,message,zon,hashtable ) == 0);
-          response = NailOutStream_buffer(&out,&len);
-          sendto(sock, response, len, 0, (struct sockaddr*)&remote, remote_len);
-          NailArena_release(&arena);
-          NailArena_release(&tmp_arena);
-          NailOutStream_release(&out);
+    NailArena arena;
+    NailOutStream out;
+    struct dnspacket *message;
+    const char *response;
+    size_t len;
+    jmp_buf err;
+    remote_len = sizeof(remote);
+    packet_size = recvfrom(sock, packet, sizeof(packet), 0, (struct sockaddr*)&remote, &remote_len);
+    if(0 != setjmp(err)){
+      printf("OOM\n");
+      NailArena_release(&arena);
+      continue;
+    }
+    NailArena_init(&arena,4096,&err);
+    
+    NailOutStream_init(&out,4096);
+    message = parse_dnspacket(&arena,packet, packet_size);
+    if (!message) {
+      printf("Invalid packet; ignoring\n");
+      continue;
+    }
+    assert(dns_respond(&out, &arena,message,zon,hashtable ) == 0);
+    response = NailOutStream_buffer(&out,&len);
+    sendto(sock, response, len, 0, (struct sockaddr*)&remote, remote_len);
+    NailArena_release(&arena);
+    NailOutStream_release(&out);
 }
 return 0;
 }
