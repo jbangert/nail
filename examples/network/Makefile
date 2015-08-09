@@ -6,4 +6,4 @@ tun: $(CFILES) $(HEADERS)
 net.nail: 
 	true
 net.nail.h net.nail.c: net.nail
-	../../generator/nail $<  && astyle net.nail.h && astyle net.nail.c
+	../../generator/cnail $<  && astyle net.nail.h && astyle net.nail.c

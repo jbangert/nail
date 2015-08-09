@@ -14,9 +14,6 @@
 #include <uthash.h>   
 
 #include "net.nail.h"
-#include <hammer/hammer.h>
-
-extern HAllocator system_allocator;
 //http://backreference.org/2010/03/26/tuntap-interface-tutorial/
 int tun_alloc(char *dev, int flags) {
 
@@ -91,14 +88,14 @@ void phy_init(phy_iface *phy, macaddr *mac, uint32_t ip){
 void make_ip(ethernet *eth, struct phy_iface *iface){
 }
 
-void send_frame(ethernet *packet,struct phy_iface *iface){
+void send_frame(NailArena *arena,ethernet *packet,struct phy_iface *iface){
         const char *buf;
         size_t len;
-        NailStream out;
+        struct NailOutStream out;
         NailOutStream_init(&out,4096);
-        gen_ethernet(&out,packet);
-        buf =  h_bit_writer_get_buffer(writer,&len);
-        write(iface->tun_fd,buf,len);
+        gen_ethernet(arena,&out,packet);
+
+        write(iface->tun_fd,out.data, out.size);
         NailOutStream_release(&out);
 }
 void prepare_ethernet(ethernet *eth, struct phy_iface *iface){
@@ -118,7 +115,7 @@ void prepare_ethernet(ethernet *eth, struct phy_iface *iface){
 void update_arp(phy_iface *i,uint32_t ip, macaddr host){
         
 }
-void process_arp(arpfour *arp, struct phy_iface *i, ethernet *eth){
+void process_arp(NailArena *arena,arpfour *arp, struct phy_iface *i, ethernet *eth){
         if(arp->operation == 1){
                 //Request
                 if(arp->targetip == i->ip.ip){
@@ -132,7 +129,7 @@ void process_arp(arpfour *arp, struct phy_iface *i, ethernet *eth){
                         memcpy(response.payload.arp.targethost,arp->senderhost,sizeof(macaddr));
                         response.payload.arp.targetip = arp->senderip;
                         prepare_ethernet(&response,i);
-                        send_frame(&response,i);
+                        send_frame(arena,&response,i);
                 }
                 update_arp(i,arp->senderip,arp->senderhost);
         } else if(arp->operation ==2)
@@ -142,13 +139,13 @@ void process_arp(arpfour *arp, struct phy_iface *i, ethernet *eth){
         }
 }
 #define IP_BROADCAST 0xFFFFFFFF
-void process_ip(ipfour *ip, struct ip_iface *i){
+void process_ip(NailArena *arena,ipfour *ip, struct ip_iface *i){
         //TODO: Handle fragmentation 
         if(ip->packet.dest != i->ip && ip->packet.dest != i->broadcast && ip->packet.dest !=  IP_BROADCAST)
                 return; 
         //TODO: Deal with the rest of the protocol
 }
-void process_icmp(icmp *icmp, struct iface *i,ethernet *eth){
+void process_icmp(NailArena *arena,icmp *icmp, struct phy_iface *i,ethernet *eth){
         if(icmp->type == 8){ // Echo request
                 ethernet reply;
                 memcpy(&reply.dest,eth->src,sizeof(macaddr));
@@ -158,11 +155,11 @@ void process_icmp(icmp *icmp, struct iface *i,ethernet *eth){
                 reply.payload.icmp.type = 0; // Echo reply
                 reply.payload.icmp.code = 0;
                 reply.payload.icmp.data = icmp->data;
-                send_frame(&reply,i);
+                send_frame(arena,&reply,i);
         }
 }
 // We need to send requests somehow
-void process_frame(ethernet *frame, struct phy_iface *i ){
+void process_frame(NailArena *arena,ethernet *frame, struct phy_iface *i ){
         const macaddr broadcast = {0xFF, 0xFF,0xFF,0xFF,0xFF,0xFF};
         //TODO: handle VLAN ? 
         if(memcmp(frame->dest,i->mac, sizeof(i->mac)) &&  memcmp(frame->dest,broadcast,sizeof(broadcast))){
@@ -170,13 +167,13 @@ void process_frame(ethernet *frame, struct phy_iface *i ){
         }
         switch(frame->payload.N_type){
         case ARP: 
-                process_arp(&frame->payload.arp, i, frame);
+          process_arp(arena,&frame->payload.arp, i, frame);
                 break;
         case IPFOUR:
-                process_ip(&frame->payload.ipfour,&i->ip);
+          process_ip(arena,&frame->payload.ipfour,&i->ip);
                 break;
         case ICMP:
-                process_icmp(&frame->payload.icmp,i, frame);
+          process_icmp(arena,&frame->payload.icmp,i, frame);
                 break;
         }
 }
@@ -208,6 +205,12 @@ int main (int argc, char **argv){
     
           
     NailArena arena;
+    jmp_buf oom;
+    if(0!= setjmp(oom)){
+      printf("OOM;\n");
+      NailArena_release(&arena);
+      continue;
+    }
     struct ethernet *frame;
     /* Note that "buffer" should be at least the MTU size of the interface, eg 1500 bytes */
     size_t nread = read(tun_fd,buffer,sizeof(buffer));
@@ -216,11 +219,11 @@ int main (int argc, char **argv){
       close(tun_fd);
       exit(1);
     }
-    NailArena_init(&arena, 4096);
+    NailArena_init(&arena, 4096,&oom);
     printf("Read %d bytes from device %s\n", nread, tun_name);
     frame = parse_ethernet(&arena,buffer,nread);
     if(frame){
-            process_frame(frame,&i);
+      process_frame(&arena,frame,&i);
             printf("Frame parsed successfully\n");
     }
     NailArena_release(&arena);
