@@ -6,6 +6,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "zip.nail.h"
 #define FOREACH(val,coll) for(__typeof__((coll).elem[0]) *val=(coll).elem;val<(coll).elem + (coll).count;val++)
 char *mmap_file(char *filename, size_t *size){
@@ -24,9 +25,14 @@ int main(int argc,char **argv){
                 NailArena arena;
                 zip_file *zip;
                 size_t size;
+                jmp_buf err;
                 char *filedata = mmap_file(argv[f],&size);
                 if(!filedata){fprintf(stderr,"Err: Cannot open %s %s\n",argv[f], strerror(errno)); continue;}
-                NailArena_init(&arena,1024);
+                if(0!=setjmp(err)){
+                        printf("OOM\n");
+                        exit(-1);
+                }
+                NailArena_init(&arena,1024, &err);
                 zip = parse_zip_file(&arena,filedata,size);
                 if(!zip){
                         fprintf(stderr,"Err: Invalid ZIP file %s\n",argv[f]); 
