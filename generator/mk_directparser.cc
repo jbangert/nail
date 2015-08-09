@@ -382,7 +382,7 @@ public:
       }
       
       out << count << "= "<<iexpr<<";\n";
-      out << data << "= (typeof("<<data<<"))n_malloc(arena,sizeof("<<elem<<")*"<<count <<");\n"
+      out << data << "= (typeof("<<data<<"))n_malloc(arena,sizeof("<<elem<<")*"<<count <<");\n";
       out << "while("<<iter<<"){"
           << iter<< "--;\n"
           << "memcpy(&"<<elem <<",&"<<temp<<"->elem,sizeof("<<elem<<"));"

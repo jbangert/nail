@@ -216,7 +216,7 @@ public:
       break;
     case REF:
       {
-        out << lval << "= (typeof("<<lval<<")) n_malloc("<<arena<<",sizeof(*"<<lval<<"));\n"
+        out << lval << "= (typeof("<<lval<<")) n_malloc("<<arena<<",sizeof(*"<<lval<<"));\n";
         out << "if(parser_fail(bind_"<<mk_str(p.ref.name)<< "("<<arena<<"," << lval << ", stream,&tr,trace_begin)))"
             << "{return -1;}\n";
         break;
