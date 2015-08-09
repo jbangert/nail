@@ -82,15 +82,6 @@ static int NailOutStream_write(NailOutStream *stream,uint64_t data, size_t count
         return 0;
 }
 
-struct NailArena {
-  struct NailArenaPool *current;
-  size_t blocksize;
-  jmp_buf *error_ret;
-};
-struct NailArenaPos{
-        struct NailArenaPool *pool;
-        char *iter;
-} 
 typedef struct NailArenaPool{
         char *iter;char *end;
         struct NailArenaPool *next;
@@ -127,7 +118,7 @@ int NailArena_init(NailArena *arena, size_t blocksize, jmp_buf *err){
         arena->current->iter = (char *)(arena->current + 1);
         arena->current->end = (char *) arena->current + blocksize;
         arena->blocksize = blocksize;
-        arena->err = err;
+        arena->error_ret = err;
         return 1;
 }
 int NailArena_release(NailArena *arena){

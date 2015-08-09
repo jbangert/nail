@@ -157,8 +157,13 @@ int main(int argc, char** argv) {
   if(argc<2) exit(-1);
   uint8_t *zonebuf = (uint8_t *)malloc(ZONESIZ);
   FILE *zonefil = fopen(argv[1],"r");
+  jmp_buf init_oom;
+  if(0!= setjmp(init_oom)){
+    printf("Init oom\n");
+    exit(-1);
+  }
   NailArena permanent;
-  NailArena_init(&permanent,4096);
+  NailArena_init(&permanent,4096,&init_oom);
   if(!zonebuf || !zonefil) exit(-1);
   remote_len = fread(zonebuf,1,ZONESIZ,zonefil);
   NailMemStream zonestream(zonebuf, remote_len);
@@ -170,33 +175,39 @@ int main(int argc, char** argv) {
   struct hashentry *hashtable = zone_hashtable(zon);
   int sock = start_listening();
   while (1) {
-          NailArena arena,tmp_arena;
-          NailOutStream out;
-          struct dnspacket *message;
-          char *response;
-          size_t len;
-          
-          remote_len = sizeof(remote);
-          packet_size = recvfrom(sock, packet, sizeof(packet), 0, (struct sockaddr*)&remote, &remote_len);
-          NailArena_init(&arena,4096);
-          NailArena_init(&tmp_arena,4096);
-          NailOutStream_init(&out,4096);
-          NailMemStream packetstream(packet, packet_size);
-          message = parse_dnspacket(&arena,&packetstream);
-          if (!message) {
-                  printf("Invalid packet; ignoring\n");
-                  continue;
-          }
-          assert(dns_respond(&out, &tmp_arena,message,zon,hashtable ) == 0);
-          response = (char *)NailOutStream_buffer(&out,&len);
-          sendto(sock, response, len, 0, (struct sockaddr*)&remote, remote_len);
-          NailArena_release(&arena);
-          NailArena_release(&tmp_arena);
-          NailOutStream_release(&out);
+    NailArena arena;//,tmp_arena;
+    NailOutStream out;
+    struct dnspacket *message;
+    char *response;
+    size_t len;
+    jmp_buf err;
+    
+    if(0!= setjmp(err)){
+      printf("OOM\n");
+      NailArena_release(&arena);
+      
+    }
+    remote_len = sizeof(remote);
+    packet_size = recvfrom(sock, packet, sizeof(packet), 0, (struct sockaddr*)&remote, &remote_len);
+    NailArena_init(&arena,4096,&err);
+    //NailArena_init(&tmp_arena,4096);
+    NailOutStream_init(&out,4096);
+    NailMemStream packetstream(packet, packet_size);
+    message = parse_dnspacket(&arena,&packetstream);
+    if (!message) {
+      printf("Invalid packet; ignoring\n");
+      continue;
+    }
+    assert(dns_respond(&out, &arena,message,zon,hashtable ) == 0);
+    response = (char *)NailOutStream_buffer(&out,&len);
+    sendto(sock, response, len, 0, (struct sockaddr*)&remote, remote_len);
+    NailArena_release(&arena);
+    //NailArena_release(&tmp_arena);
+    NailOutStream_release(&out);
   }
 
 
-return 0;
+  return 0;
 }
 
 

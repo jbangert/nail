@@ -259,7 +259,7 @@ public:
           out << name << "*parse_" << name << "(NailArena *arena, const uint8_t *data, size_t size){\n"
               << "NailStream stream = {.data = data, .pos= 0, .size = size, .bit_offset = 0};\n"
               << "NailArena tmp_arena;"
-              << "NailArena_init(&tmp_arena, 4096);"
+              << "NailArena_init(&tmp_arena, 4096, arena->error_ret);"
               <<"n_trace trace;\n"
               <<"pos *tr_ptr;\n pos pos;\n"
               << name <<"* retval;\n"
