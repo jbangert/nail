@@ -3,6 +3,6 @@ udp = {
     destination uint16 
     @length      uint16 
     checksum uint16 
-    $content transform size(@length $current)
+    $content transform size( $current @length)
     payload apply $content (many uint8)
 }

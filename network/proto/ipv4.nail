@@ -16,11 +16,8 @@ ipfour = {
               @hdrchecksum uint16
               source uint32
               dest uint32
-              $options transform ip_header($current @ihl)     
-
-              $header transform head($current)
-              transform ip_checksum($header @hdrchecksum)
-              payload udp // This really needs fixing       
-              transform check_offset($current @totallength)
+              $options transform ip_header($current @ihl @hdrchecksum)   
+              payload udp // This really needs fixing
+              transform this_offset($current @totallength)
         }
 }

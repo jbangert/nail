@@ -395,7 +395,7 @@ public:
       std::string iter = boost::str(boost::format("i%d") % num_iters++);
       ValExpr iexpr(iter);
       ArrayElemExpr elem(&lval, &iexpr);
-      out << "for(pos "<< iter<< "=0;"<<iter<<"<"<<intconstant_value(p.fixedarray.length) << ";"<<iter<<"++){";
+      out << "for(size_t "<< iter<< "=0;"<<iter<<"<"<<intconstant_value(p.fixedarray.length) << ";"<<iter<<"++){";
       parser(p.fixedarray.inner->pr,elem,fail, scope);
       out << "}";
       break;
@@ -454,17 +454,17 @@ public:
         out << "typename strt_current::pos_t back_"<< this_many<<"= str_current->getpos();";
       else
         out << "NailStreamPos back_"<< this_many<<"= stream_getpos(str_current);";
-      out << "NailArenaPos back_"<<this_many<<" = n_arena_save(arena);";
+      out << "NailArenaPos backarena_"<<this_many<<" = n_arena_save(arena);";
       parser(p.optional->pr,deref, (boost::format("goto fail_optional_%d;") % this_many).str(), scope);
       out << " goto succ_optional_" << this_many <<  ";\n";
       out << "fail_optional_" << this_many << ":\n";
-      out << "n_arena_restore(arena,back_"<<this_many<<");\n";
+      out << "n_arena_restore(arena,backarena_"<<this_many<<");\n";
       out << lval << "= NULL;";
       if(option::templates)
         out << "str_current->rewind(back_"<<this_many<<");";
       else
         out << "stream_reposition(str_current,back_"<< this_many<<");\n";
-      out << "succ_optional_" << this_many << ":\n";
+      out << "succ_optional_" << this_many << ":;\n";
       out << "}";
     }
       break;
