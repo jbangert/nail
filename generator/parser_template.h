@@ -1,4 +1,4 @@
-
+#include <setjmp.h>
 struct NailArenaPool;
 struct NailArena;
 struct NailArenaPos;
@@ -7,7 +7,7 @@ typedef struct NailArenaPos NailArenaPos;
 NailArenaPos n_arena_save(NailArena *arena);
 void n_arena_restore(NailArena *arena, NailArenaPos p);
 
-extern int NailArena_init(NailArena *arena,size_t blocksize);
+extern int NailArena_init(NailArena *arena,size_t blocksize, jmp_buf *error_return);
 extern int NailArena_release(NailArena *arena);
 extern void *n_malloc(NailArena *arena, size_t size);
 struct NailStream {
