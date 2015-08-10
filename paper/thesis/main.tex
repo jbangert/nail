@@ -14,7 +14,7 @@
 %% re-specify the pagestyle after you \include  cover.tex.  For more
 %% information, see the first few lines of mitthesis.cls. 
 
-\documentclass[12pt,vi,twoside]{mitthesis}
+\documentclass[12pt,twoside]{mitthesis}
 %%
 %%  If you want your thesis copyright to you instead of MIT, use the
 %%  ``vi'' option, as above.
@@ -30,6 +30,37 @@
 %% some PDF conversions mess up the ligatures.  -LB, 1/22/2014
 \usepackage{cmap}
 \usepackage[T1]{fontenc}
+
+
+\usepackage[letterpaper, breaklinks, pdfborder={0 0 0}]{hyperref}
+\usepackage[square,comma,numbers,sort&compress]{natbib}
+\usepackage{times}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{mathptmx}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{underscore}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\usepackage{color}
+\usepackage{xspace}
+\usepackage{multirow}
+\usepackage{relsize}
+\usepackage{fancyvrb}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.12}
+\usetikzlibrary{pgfplots.statistics}
+\usepgfplotslibrary{units}
+
+\input{cmds}
+\input{code/fmt}
+
 \pagestyle{plain}
 
 %% This bit allows you to either specify only the files which you wish to
@@ -49,12 +80,21 @@
 % applicable.
 % \include{signature}
 \pagestyle{plain}
+
 \include{contents}
-\include{chap1}
-\include{chap2}
-\appendix
-\include{appa}
-\include{appb}
+\include{intro}
+%% \include{chap2}
+%% \appendix
+%% \include{appa}
+%% \include{appb}
+\input{relwk}
+\input{motivation}
+\input{design}
+\input{impl}
+\input{eval}
+%\input{future}
+\input{concl}
+% \input{ack}
 \include{biblio}
 \end{document}
 
