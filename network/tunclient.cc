@@ -69,9 +69,11 @@ typedef struct arpentry{
         UT_hash_handle hh;
 } arpentry;
 #define ARPSIZE 512
+struct phy_iface;
 struct ip_iface{
-        uint32_t ip;
-        uint32_t broadcast;
+  uint32_t ip;
+  uint32_t broadcast;
+  phy_iface *phy;
 };
 typedef struct phy_iface{
         int tun_fd;
@@ -84,22 +86,22 @@ void phy_init(phy_iface *phy, macaddr *mac, uint32_t ip){
         memcpy(phy->mac,mac,sizeof(phy->mac));
         phy->arp = NULL;
         phy->ip.ip = ip; 
-        
-}
-void make_ip(ethernet *eth, struct phy_iface *iface){
+        phy->ip.phy = phy;
 }
 
-void send_frame(NailArena *arena,ethernet *packet,struct phy_iface *iface){
+int send_frame(NailArena *arena,ethernet *packet,struct phy_iface *iface){
         const char *buf;
         size_t len;
         struct NailOutStream out;
         NailOutStream_init(&out,4096);
         gen_ethernet(arena,&out,packet);
 
-        write(iface->tun_fd,out.data, out.size);
+        write(iface->tun_fd,out.data, out.pos);
         NailOutStream_release(&out);
+        return 0; //XXX: Error handling for retransmit? 
 }
 void prepare_ethernet(ethernet *eth, struct phy_iface *iface){
+  eth->vlan = NULL;
         switch(eth->payload.N_type){
         case ARP:
                 memcpy(eth->dest,eth->payload.arp.targethost,sizeof(eth->dest));
@@ -113,8 +115,17 @@ void prepare_ethernet(ethernet *eth, struct phy_iface *iface){
                 break;
         }
 }
+int send_ipfour(NailArena *arena,ip_iface *i,uint32_t dst, uint32_t src, struct ip_payload *payload){
+  ethernet eth;
+  eth.payload.N_type = IPFOUR;
+  eth.payload.ipfour.packet.ttl = 255;
+  eth.payload.ipfour.packet.payload = *payload;
+  eth.payload.ipfour.packet.source = src;
+  eth.payload.ipfour.packet.dest = dst;
+  prepare_ethernet(&eth,i->phy);
+  return send_frame(arena, &eth, i->phy);
+}
 void update_arp(phy_iface *i,uint32_t ip, macaddr host){
-        
 }
 void process_arp(NailArena *arena,arpfour *arp, struct phy_iface *i, ethernet *eth){
         if(arp->operation == 1){
@@ -139,24 +150,26 @@ void process_arp(NailArena *arena,arpfour *arp, struct phy_iface *i, ethernet *e
                 update_arp(i,arp->senderip,arp->senderhost);
         }
 }
+void process_icmp(NailArena *arena,icmp *icmp, uint32_t sender, struct ip_iface *i){
+        if(icmp->data.N_type == ECHOREQUEST){ // Echo request
+          ip_payload payload;
+          payload.N_type = ICMP;
+          payload.icmp = *icmp;
+          payload.icmp.data.N_type = ECHORESPONSE;
+          send_ipfour(arena,i, sender, i->ip, &payload);
+        }
+}
 #define IP_BROADCAST 0xFFFFFFFF
 void process_ip(NailArena *arena,ipfour *ip, struct ip_iface *i){
         //TODO: Handle fragmentation 
         if(ip->packet.dest != i->ip && ip->packet.dest != i->broadcast && ip->packet.dest !=  IP_BROADCAST)
-                return; 
-        //TODO: Deal with the rest of the protocol
-}
-void process_icmp(NailArena *arena,icmp *icmp, struct phy_iface *i,ethernet *eth){
-        if(icmp->type == 8){ // Echo request
-                ethernet reply;
-                memcpy(&reply.dest,eth->src,sizeof(macaddr));
-                memcpy(&reply.src,eth->dest,sizeof(macaddr));
-                reply.vlan = eth->vlan;
-                reply.payload.N_type = ICMP;
-                reply.payload.icmp.type = 0; // Echo reply
-                reply.payload.icmp.code = 0;
-                reply.payload.icmp.data = icmp->data;
-                send_frame(arena,&reply,i);
+                return;
+        switch(ip->packet.payload.N_type){
+        case UDP:
+          break;
+        case ICMP:
+          process_icmp(arena, &ip->packet.payload.icmp,ip->packet.source, i);
+          break;
         }
 }
 // We need to send requests somehow
@@ -172,9 +185,6 @@ void process_frame(NailArena *arena,ethernet *frame, struct phy_iface *i ){
                 break;
         case IPFOUR:
           process_ip(arena,&frame->payload.ipfour,&i->ip);
-                break;
-        case ICMP:
-          process_icmp(arena,&frame->payload.icmp,i, frame);
                 break;
         }
 }

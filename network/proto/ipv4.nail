@@ -1,3 +1,17 @@
+icmp = {
+     @type uint8
+     code uint8
+     @checksum uint16
+     data select(@type) {
+          ECHOREQUEST = 8 many uint8
+          ECHORESPONSE = 0 many uint8
+     }
+     transform ip_checksum($current @checksum)
+}
+ip_payload(@protocol uint8) = select(@protocol) {
+                      UDP = 17 udp
+                      ICMP = 1 icmp
+              }
 ipfour = {
        $ippacket transform tail($current)
        packet  apply $ippacket {
@@ -12,12 +26,11 @@ ipfour = {
               mf uint1
               fragmentoff uint13
               ttl uint8
-              protocol uint8  | [17]
+              @protocol uint8 
               @hdrchecksum uint16
               source uint32
               dest uint32
-              $options transform ip_header($current @ihl @hdrchecksum)   
-              payload udp // This really needs fixing
-              transform this_offset($current @totallength)
+              $options,$body transform ip_header($current @ihl @hdrchecksum @totallength)   
+              payload apply $body ip_payload(@protocol) 
         }
 }

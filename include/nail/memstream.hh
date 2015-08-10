@@ -22,9 +22,9 @@ public:
     pos.bit_offset = 0;
   }
   int check(unsigned count){
-      if(size - (count>>3) - ((pos.bit_offset + count & 7)>>3) < pos.pos)
-        return -1;
-      return 0;
+    if((pos.pos<<3) + pos.bit_offset  + count > (size<<3))
+      return -1;
+    return 0;
   }
   pos_t getpos() { return pos; }
   void rewind(pos_t &p) { pos = p;}

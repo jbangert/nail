@@ -95,7 +95,7 @@ template <> struct tail_parse<NailMemStream>{
     return 0;
   }
 };
- int tail_generate(NailArena *tmp, NailOutStream *fragment, NailOutStream *current){ 
+ int tail_generate(NailArena *tmp, const NailOutStream *fragment, NailOutStream *current){ 
         //TODO: Refactor into a stream append library!
         if(NailOutStream_grow(current, 8*fragment->pos)<0)
                 return -1;

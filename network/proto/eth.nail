@@ -10,12 +10,6 @@ arpfour = {
     targethost macaddr
     targetip   uint32    
 }
-icmp = {
-     type uint8 
-     code uint8
-     checksum uint16 // TODO: Compute UDP checksum 
-     data uint32
-}
 ethernet = { 
            dest macaddr
            src  macaddr
@@ -26,8 +20,7 @@ ethernet = {
                 vid uint12
                 }
            payload choose { 
-              ICMP = <uint16= 1; icmp>   
               ARP = <uint16= 0x0806; arpfour> 
               IPFOUR = <uint16= 0x0800; ipfour>
-           }               
+           }
 }
