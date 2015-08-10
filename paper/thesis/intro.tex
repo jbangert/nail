@@ -1,0 +1,146 @@
+\chapter{Introduction}
+
+Code that handles untrusted inputs, such as processing network
+data or parsing a file, is error-prone and is often exploited by
+attackers.
+%   This is in part because attackers have precise control
+% over the inputs to that code, and can craft inputs that trigger
+% subtle corner cases in input processing.
+For example, the libpng image decompression library had 24 remotely
+exploitable vulnerabilities from 2007 to 2013~\cite{cvedetails:libpng},
+Adobe's PDF and Flash viewers have been notoriously plagued by input
+processing vulnerabilities, and even the zlib compression library had
+input processing vulnerabilities in the past~\cite{cvedetails:zlib}.
+With a memory-unsafe language like C, mistakes in input processing
+code can lead to memory errors like buffer overflows, and even with
+a memory-safe language like Java, inconsistencies between different
+parsers can lead to security issues~\cite{saurik-masterkey}.
+
+A promising approach to avoid these problems is to specify
+a precise grammar for the input data format, and to use a parser
+generator, such as {\tt lex} and {\tt yacc}, to synthesize the input
+processing code.  Developers that use a parser generator do not need
+to write error-prone input processing code on their own, and as long
+as the parser generator is bug-free, the application will be safe from
+input processing vulnerabilities. Grammars can also be re-used between
+applications, further reducing effort and eliminating inconsistencies.
+
+Unfortunately, applying this approach in practice, using state-of-the-art
+parser generators, still requires too much manual programmer effort,
+and is still error-prone, for four reasons:
+
+First, parser generators typically parse inputs into an abstract syntax
+tree (AST) that corresponds to the grammar.  In order to produce a data
+structure that the rest of the application code can easily process,
+application developers must write explicit {\em semantic actions} that
+update the application's internal representation of the data based on
+each AST node.  
+Writing these semantic actions requires the programmer to describe the
+structure of the input three
+times---once to describe the grammar, once to describe the internal data
+structure, and once again in the semantic actions that translate the
+grammar into the data structure---leading to potential bugs and
+inconsistencies.
+Furthermore, in a memory-unsafe language like C, these semantic
+actions often involve error-prone manual memory allocation and
+pointer manipulation.
+
+Second,  applications often need to produce output in the same
+format as their input---for example, applications might both
+read and write files, or both receive and send network packets.
+Most parser generators focus on just parsing an input, rather
+than producing an output, thus requiring the programmer to manually
+construct outputs, which is work-intensive and leads to
+more code that could contain errors.
+Some parser generators, such as
+Boost.Spirit~\cite{boost-spirit},
+allow reusing the grammar for generating output from the internal
+representation.  However, those generators require yet another set of
+semantic actions to be written, transforming the internal representation
+back into an AST\@.
+
+Third, many data formats contain redundancies, such as repeating
+information in multiple structures.  Applications usually do not
+explicitly check for consistency, and if different applications use
+different instances of the same value, an attacker can craft an input that
+causes inconsistencies~\cite{evaders6}.  Furthermore, security
+vulnerabilities can occur when an application assumes two repetitions
+of the same data to be consistent, such as allocating a buffer based on
+the value of one size field and copying into that buffer based on the
+value of another~\cite{python-bug:20078}.
+
+Finally, real-world data formats, such as PNG or PDF, are hard to
+represent with existing parser generators.  Those parsers cannot directly
+deal with length or checksum fields, so the programmer has to
+either write potentially unsafe code to deal with such features, or build
+contrived grammar constructs, such as introducing one grammar rule for
+each possible value of a length field.  Offset fields, which specify
+the position at which some data structure is located, usually require
+the programmer to manipulate a parser's internal state to re-position
+its input.  More complicated transformations, such as handling compressed
+data, cannot be represented at all.
+
+
+
+This paper presents the design and implementation of Nail, a parser generator that greatly reduces
+the programmer effort required to use grammars. Nail addresses the above challenges with
+several key ideas, as follows.
+
+First, Nail grammars define both a format's external representation and an internal object model.
+This removes the semantic actions and type declarations that programmers have to write with existing
+parser generators. While this somewhat reduces the flexibility of the internal model, it forces the programmer
+to clearly separate syntactic validation and semantic processing.
+
+Second, this well-defined internal representation allows Nail to
+establish a {\em semantic bijection} between data formats and their
+internal object model.  As a result, this enables Nail to not just
+parse input but also generate output from the internal representation,
+without requiring the programmer to write additional code.
+
+% \XXX[Currently, Nail always makes a default choice when
+% there are multiple options to express a constant, however Nail could be extended
+% to allow a grammar-specific plug-in to make these choices, say for faster
+% alignment, streaming applications when data is not ready, or visual appearance in
+% human-readable protocols.]
+
+
+%  However, Nail allows \emph{constants} in the
+% external format to have multiple representations if they should not affect the
+% semantics of the data. For example, in a text protocol, the amount of
+% white-space separating tokens should not affect the meaning of the data and
+% consequently Nail does not expose it to the application. As long as
+% constants are only used for their intended purpose of representing syntax-only
+% features, the generated output will have the same semantics as the parsed input.
+
+Third, Nail introduces two abstractions, \emph{dependent fields} and
+\emph{transformations}, to elegantly handle problematic structures,
+such as offset fields or checksums.  Dependent fields capture fields
+in a protocol whose value depends in some way on the value or layout
+of other parts of the format; for example, offset or length fields,
+which specify the position or length of another data structure, fall
+in this category.  Transformations allow the programmer to escape the
+generated code to modify the raw data and interact with dependent fields
+in a controlled manner.
+
+To evaluate whether Nail's design is effective at handling real-world data
+formats, we implemented a prototype of Nail for C\@. Using our prototype, we
+implemented grammars for parts of an IP network stack, for DNS packets,
+and for ZIP files, each in about a hundred lines of grammar. On top of these
+grammars, we were able to build a DNS server in under 200 lines of C code, and
+an {\tt unzip} utility in about 50 lines of C code, with performance comparable
+to or exceeding existing implementations. This suggests both that Nail is
+effective at handling complex real-world data formats, and that Nail makes it
+easy for application developers to parse and generate external data
+representations. Performance results show that the Nail-based DNS server
+outperforms the widely used BIND DNS server, demonstrating that Nail-based
+parsers and generators can achieve good performance.
+
+The rest of this paper is organized as follows.  \S\ref{s:relwk}
+puts Nail in the context of related work.
+\S\ref{s:motivation} motivates the need for Nail by examining
+past data format vulnerabilities.
+\S\ref{s:design} describes
+Nail's design.  \S\ref{s:impl} discusses our implementation
+of Nail.  \S\ref{s:eval} provides evaluation results, and
+\S\ref{s:concl} concludes.
+

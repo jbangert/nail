@@ -1,0 +1,41 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8}]
+\PY{n}{labels} \PY{o}{=} \PY{o}{\PYZlt{}}\PY{n}{many} \PY{p}{\PYZob{}}\PY{err}{@}\PY{n}{length}  \PY{n}{uint8} \PY{o}{|} \PY{l+m+mf}{1.}\PY{l+m+mf}{.64}
+              \PY{n}{label} \PY{n}{n\PYZus{}of} \PY{err}{@}\PY{n}{length} \PY{n}{uint8} \PY{p}{\PYZcb{}}
+          \PY{n}{uint8} \PY{o}{=} \PY{l+m+mi}{0} \PY{o}{\PYZgt{}} 
+\PY{n}{compressed}\PY{o}{=}\PY{p}{\PYZob{}}
+   \PY{err}{\PYZdl{}}\PY{n}{decompressed} \PY{n}{transform} \PY{n}{dnscompress}\PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{current}\PY{p}{)}
+   \PY{n}{labels} \PY{n}{apply} \PY{err}{\PYZdl{}}\PY{n}{decompressed} \PY{n}{label}
+\PY{p}{\PYZcb{}}     
+\PY{n}{question}\PY{o}{=}\PY{p}{\PYZob{}}
+  \PY{n}{labels} \PY{n}{compressed}
+  \PY{n}{qtype} \PY{n}{uint16} \PY{o}{|} \PY{l+m+mf}{1.}\PY{l+m+mf}{.16} 
+  \PY{n}{qclass} \PY{n}{uint16} \PY{o}{|} \PY{p}{[}\PY{l+m+mi}{1}\PY{p}{,}\PY{l+m+mi}{255}\PY{p}{]}
+\PY{p}{\PYZcb{}}
+\PY{n}{answer}\PY{o}{=}\PY{p}{\PYZob{}}
+  \PY{n}{labels} \PY{n}{compressed}
+  \PY{n}{rtype} \PY{n}{uint16} \PY{o}{|} \PY{l+m+mf}{1.}\PY{l+m+mf}{.16}
+  \PY{n}{class} \PY{n}{uint16} \PY{o}{|} \PY{p}{[}\PY{l+m+mi}{1}\PY{p}{]}
+  \PY{n}{ttl} \PY{n}{uint32}
+  \PY{err}{@}\PY{n}{rlength} \PY{n}{uint16} 
+  \PY{n}{rdata} \PY{n}{n\PYZus{}of} \PY{err}{@}\PY{n}{rlength} \PY{n}{uint8} 
+\PY{p}{\PYZcb{}}
+\PY{n}{dnspacket} \PY{o}{=} \PY{p}{\PYZob{}}
+  \PY{n}{id} \PY{n}{uint16}
+  \PY{n}{qr} \PY{n}{uint1}
+  \PY{n}{opcode} \PY{n}{uint4}
+  \PY{n}{aa} \PY{n}{uint1} 
+  \PY{n}{tc} \PY{n}{uint1}
+  \PY{n}{rd} \PY{n}{uint1}
+  \PY{n}{ra} \PY{n}{uint1}
+  \PY{n}{uint3} \PY{o}{=} \PY{l+m+mi}{0}
+  \PY{n}{rcode} \PY{n}{uint4}
+  \PY{err}{@}\PY{n}{questioncount} \PY{n}{uint16}
+  \PY{err}{@}\PY{n}{answercount} \PY{n}{uint16}
+  \PY{err}{@}\PY{n}{authoritycount} \PY{n}{uint16}   \PY{c+c1}{// Ignored}
+  \PY{err}{@}\PY{n}{additionalcount} \PY{n}{uint16}  \PY{c+c1}{//Ignored       }
+  \PY{n}{questions} \PY{n}{n\PYZus{}of} \PY{err}{@}\PY{n}{questioncount} \PY{n}{question}         
+  \PY{n}{responses} \PY{n}{n\PYZus{}of} \PY{err}{@}\PY{n}{answercount} \PY{n}{answer}
+  \PY{n}{authority} \PY{n}{n\PYZus{}of} \PY{err}{@}\PY{n}{authoritycount} \PY{n}{answer}
+  \PY{n}{additional} \PY{n}{n\PYZus{}of} \PY{err}{@}\PY{n}{additionalcount} \PY{n}{answer}
+\PY{p}{\PYZcb{}}
+\end{Verbatim}

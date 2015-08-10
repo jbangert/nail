@@ -1,0 +1,405 @@
+\section{Design}
+\label{s:design}
+
+Nail's goals are to reduce programmer effort required to safely interact with data formats and
+prevent vulnerabilities like those described in \S\ref{s:motivation}. In particular, this means:
+
+\begin{itemize}
+
+
+\item Using a single grammar to define both the \emph{external format} and the
+  \emph{internal representation}.  This allows the same grammar to be re-used
+  in multiple programs, and helps avoid vulnerabilities like the Android Master
+  Key bug.
+
+\item Parsing inputs into internal representations, as well as
+      generating outputs from internal representations, without
+      requiring the programmer to write any semantic actions. This prevents
+      vulnerabilities such as the iOS XNU bug, where format recognition and semantics
+      are mixed and interact in unexpected ways.
+
+\item Eliminating redundancy in internal representations, such as
+      storing both an explicit length field and an implicit length
+      of a container data structure, to provide programmers
+      a consistent, unambiguous view of the data.
+      This helps avoid bugs such as the one discovered in the
+      Python ZIP library~\cite{python-bug:20078}.
+
+\item Allow programmers to define grammars for complex real-world
+      data formats through well-defined extensibility mechanisms. 
+      This helps prevent programmers from falling back on manual
+      parsing when encountering a complex data format.
+
+\end{itemize}
+
+
+\subsection{Overview}
+
+\paragraph{Internal model.}
+
+Nail grammars describe both the \emph{external format} and an
+\emph{internal representation} of a protocol.
+Nail produces the following from a single, descriptive grammar: 
+
+\begin{itemize}
+\item \textit{Type declarations} for the internal model, which
+the application should use to represent data items in memory.
+
+\item The \textit{parser}, a function that the application
+should invoke to parse a sequence of bytes into an instance
+of the above model.
+
+\item The \textit{generator}, a function that the application
+should invoke to create a sequence of bytes from an instance
+of the model.
+\end{itemize}
+
+For example, Figure~\ref{fig:dns-full} shows a Nail grammar for DNS
+packets.  For this grammar, Nail produces the type declarations
+shown in Figure~\ref{fig:dns-full-struct}, and the parser and
+generator functions shown in Figure~\ref{fig:dns-full-api}.
+
+
+\input{fig-dnsfull}
+
+\noindent
+
+\paragraph{Semantic bijection.}
+Parsing inputs and generating outputs suggests a bijection
+between external data and its internal representation. However,
+a bijection in the traditional sense often does not make sense for data
+formats. Consider a grammar for a text language that tolerates white space, or a binary protocol
+that tolerates arbitrarily long padding. Program semantics should be independent of the number of padding elements in the input, and Nail therefore
+does not expose that information to the programmer. We call such discarded fields \emph{constants}. 
+Similarly, programs should not necessarily preserve the layout of objects referred to by their offsets. 
+
+Therefore, Nail  establishes only a  \emph{semantic bijection} between the external format and the internal model.
+That is, when Nail parses an input into an internal representation, and then
+generates output from that representation, the two byte streams (input and
+output) will have the same meaning (i.e., be interpreted equivalently by Nail).
+However, the byte streams might not be identical. If the grammar
+consists of a simple protocol without offset fields, constants, and the like, there is a
+conventional bijection between  internal models and valid parser inputs.
+%\footnote{Say, the physical layer of most communication
+%  protocols is a possibly infinite sequence of symbols that are syntactically nil followed by a
+%  pre-determined synchronization sequence and the actual contents of the transmission.}
+ 
+
+\paragraph{Hiding redundant information.}
+Nail's internal model is designed to hide unneeded and redundant information from the application.
+Nail introduces \emph{dependent fields}, which contain data that can be computed during generation
+and need to be kept as additional state during parsing. Dependent fields are, for example, used to represent
+lengths, offsets, and checksums. If dependent fields were exposed in the internal model, information
+would be duplicated and inconsistent internal data structures could be produced when data is
+modified. For example, when using Nail to handle UDP packets, without dependent fields, programmers
+might forget to update checksum fields when they modify the payload data.
+
+\paragraph{Parser extensions.}
+Real-world protocols contain complicated ways of encoding data. Fully representing these in an
+intentionally limited model such as our parser language is impractical. Therefore, Nail introduces
+\emph{transformations}, which allow arbitrary code by the programmer to interact with the parser and
+generator. Nail parsers and generators interact with data through an abstract stream, which allows
+reading and writing of bits and re-positioning. Transformations allow the programmer to write
+functions in a general-purpose language that consume streams and define new temporary streams, while
+also reading or writing the values of dependent fields.
+
+\input{fig-syntax}
+
+Initial versions of Nail's design included a special combinator for handling offset fields,
+which consumed a dependent field and applied
+a parser at the offset specified therein. However, it proved impossible to foresee all the ways in which a protocol could encode an offset;
+for example, some protocols such as PDF and ZIP locate structures by scanning for a magic number starting at the
+end of the file or at a fixed offset. In nested grammars, offsets are also not necessarily computed from
+the beginning of a file or packet.
+Nail's transformations allow the programmer to write arbitrary functions that can
+handle such structures and streams, which are a generic abstraction for input and
+output data that allow the decoded data to be integrated with the rest of the
+generated Nail parser.
+
+
+\subsection{Basics}
+
+A Nail parser defines both the structure of some external format and a data type to represent that
+format. Parsers are constructed by combinators over simpler parsers, an approach popularized by the Parsec
+framework~\cite{LeijenMeijer:parsec}. We provide the most common combinators familiar from other parser
+ combinator libraries, such as Parsec and Hammer~\cite{hammer-parser} and extend them so they also
+ describe a data type. 
+
+We present both a systematic overview of Nail's syntax with short examples
+in Figure~\ref{fig:syntax}, and explain our design in more detail below,
+using a grammar for the well-known DNS protocol as a running example
+(shown in Figure~\ref{fig:dns-full}).
+
+
+\paragraph{Rules.}
+A Nail grammar consists of rules that assign a parser to a name. Rules are written as assignments,
+such as \cc{ints = /*parser definition*/}, which defines a rule called \cc{ints}. As we will
+describe later in \S\ref{s:dependent} and \S\ref{s:transforms}, rules can optionally consume parameters.
+Rules can be invoked in a Nail grammar anywhere a parser can appear. Rule invocations act as though
+the body of the rule had been substituted in the code. If parameters appear, they are passed by
+reference.
+\paragraph{Integers and constraints.}
+
+Nail's fundamental parsers represent signed or unsigned
+integers with arbitrary lengths up to 64 bits.
+Note that is possible to define parsers for sub-byte lengths, for example, the flag bits in the DNS
+message header, in lines 5 through 8.
+
+The grammar can also constrain the values of an integer.  Nail expresses
+constraints as a set of permissible values or value ranges. Extending the Nail language and
+implementation to support richer constraints languages would be relatively trivial, however we have
+found that the current syntax covers permissible values within existing protocols correctly and
+concisely.
+
+
+\paragraph{Repetition.}
+
+The \cc{many} combinator takes a parser and applies it repeatedly
+until it fails, returning an array of the inner parser's results. In line 39 of the DNS grammar, a
+sequence of labels is parsed by parsing as many labels as possible, that is, until an invalid length
+field is encountered.
+The \cc{sepBy} combinator
+additionally takes a constant parser, which it applies in between parsing
+two values, but not before parsing the first value or after parsing the
+last.  This is useful for parsing an array of items delimited by a separator.
+%For examle, \cc{many uint8} represents an array of 8-bit unsigned
+%integers, and \cc{sepBy uint8=',' (many uint8 | '0'..'9')} recognizes
+%comma-separated lists of decimal numbers.
+
+\paragraph{Structures.}
+
+Nail provides a structure combinator with semantic labels instead of the sequence combinator that
+other parser combinator libraries use to capture structures in data formats. 
+The structure combinator consists of a sequence of fields, typically consisting of a label and a
+parser that describes the contents of that field, surrounded by curly braces. Other field types will be described below.
+ The syntax of the structure combinator is inspired by the Go language~\cite{golang}, with field
+ names preceding their definition.
+
+
+% A sample grammar for a DNS header and the corresponding C data type the Nail parser produces, are
+% shown in Figure~\ref{fig:dns-struct}.
+
+\paragraph{Constants.}
+In some cases, not all bytes in a structure actually contain information, such as magic numbers or
+reserved fields. Those fields can be represented in Nail grammars by constant fields in structures.
+Constant fields do not correspond to a field in the internal model, but they are validated during
+parsing and generated during output.  Constants can either have integer values, such as
+in line 9 of the DNS grammar, or string values for text-based protocols, e.g. \cc{many uint8 = ``Foo''}.
+
+
+In some protocols, there might be many ways to represent the same constant field
+and there is no semantic difference between the different syntactic representations.
+Nail therefore allows repeated constants, such as \cc{many (uint8=' ')}, which parses any number of space characters, or
+\cc{|| uint8 = 0x90 || uint16 = 0x1F0F}, which parses two of the many representations for x86
+NOP instructions, which are used as padding between basic blocks in an executable. 
+
+As discussed above, choosing to use these combinators on constant parsers
+weakens the bijection between the format and the data type, as there are
+multiple byte-strings that correspond to the same internal representation and
+the generator chooses one of these.
+
+\paragraph{Wrap combinator.} 
+When implementing real protocols with Nail, we often found
+structures that consist of many constants and only one named field. This pattern is
+common in binary protocols which use fixed headers to denote the type of data
+structure to be parsed.  In order to keep the internal representation cleaner,
+we introduced the wrap combinator, which takes a sequence of parsers containing
+exactly one non-constant parser. The external format is defined as though the wrap combinator were a
+structure, but the data model does not introduce a structure with just one element, making the application-visible representation
+(and thus application code) more concise.
+Line 39 of the DNS grammar uses the wrap combinator to hide the terminating NUL-byte of a sequence
+of labels.
+
+
+\paragraph{Choices.}
+If multiple structures can appear at a given position in a format, the programmer lists the options
+along with a label for each in the \cc{choose} combinator. 
+During parsing, Nail remembers the current input position and attempts each option in the order they
+appear in the grammar. If an option fails, the parser backtracks to the initial position. If no
+options succeed, the entire combinator fails. In the data model, choices are represented as tagged
+unions.  The programmer has to be careful when options overlap, because if the programmer meant to
+generate output for a choice, but the external representation is also valid for an earlier,
+higher-priority option, the parser will interpret it as such. However, real data formats normally do
+not have this overlap and we did not encounter it in the grammars we wrote.
+An example is provided in Figure~\ref{fig:grammar-arith}.
+
+% If two options the same string could be parsed by two options, generated output for the latter
+% option is not necessarily understood identically by the parser. However, actual data formats are
+% usually not ambiguous in this sense.
+% \XXX[nz][I don't understand this paragraph (esp the first sentence).]
+
+
+\paragraph{Optional.}
+Nail includes an \cc{optional} combinator, which attempts to recognize a value, but succeeds
+without consuming input when it cannot recognize that value. Syntactically, \cc{optional} is
+equivalent to a choice between the parser and an empty structure, but in the internal model it is
+more concisely represented as a reference that is null when the parser fails.
+For example, the grammar for  Ethernet headers uses \cc{optional vlan\_header} to parse the VLAN
+header that appears only in Ethernet packets transmitted to a non-default VLAN\@.
+
+\paragraph{References.}
+Rules allow for recursive grammars. To support recursive data types, we introduce the
+reference combinator \cc{*}  that does not change the syntax of the external format described, but
+introduces a layer of indirection, such as a reference or pointer, to the model data type.
+The reference combinator does not need to be used when another combinator, such as \cc{optional} or
+\cc{many}, already introduces indirection in the data type. An example is shown in Figure~\ref{fig:grammar-arith}.
+
+\begin{figure}
+\smaller[0.5]
+\begin{verbatim}
+expr = choose {
+  PAREN = <uint8='('; *expr; uint8=')'>
+  PRODUCT = sepBy1 uint8='*' expr
+  SUM = sepBy1 uint8='+' expr
+  INTEGER = many1 uint8 | '0' .. '9'
+}
+\end{verbatim}
+% \cc{paren = < uint8="("; optional *paren; uint8=")" >}.
+\caption{Grammar for sums and products of integers.}
+\label{fig:grammar-arith}
+\end{figure}
+% To support recursive structures, we include a reference combinator \cc{*}, which
+%   is syntactically equivalent to directly including the parser, but in the internal model adds a
+%   level of indirection to the value. This allows recursive structures to be parsed, f
+
+
+
+\subsection{Dependent fields}
+\label{s:dependent}
+Data formats often contain values that are determined by other values or the layout of information,
+such as checksums, duplicated information, or offset and  length fields.
+We represent such values using \emph{dependent fields} and handle them transparently during
+parsing and generation without exposing them to the internal model. 
+
+
+Dependent fields are defined within a structure like normal fields, but their name starts with an \cc{@} symbol.
+A dependent field is in scope and can be referred to by the definition of all subsequent fields in
+the same structure. Dependent fields can be passed to rule invocations as parameters.
+
+Dependent fields are handled like other fields when parsing input, but their values are not stored
+in the internal data type. Instead the value can be referenced by subsequent parsers and it
+discarded when the field goes out of scope.
+When generating output, Nail visits a dependent field twice. First, while generating the other fields of a
+structure, the generator reserves space for the dependent field in the output. Once
+the dependent field goes out of scope, the generator  writes the
+dependent field's value to this space.
+
+Nail provides only one built-in combinator that uses dependent fields, \cc{n_of}, which acts like
+the \cc{many} combinator, except it represents an exact number, specified in the dependent field, of
+repetitions, as opposed to as many repetitions as possible. For example, DNS labels, which
+are encoded as a length followed by
+a value, are described in line 38 of the DNS grammar.
+Other dependencies, such as offset fields or checksums, are not handled directly by combinators, but
+through  transformations, as we describe next.
+
+\subsection{Input streams and transformations}
+\label{s:transforms}
+
+Traditional parsers handle input one symbol at a time, from beginning to end.
+However, real-world formats often require non-linear parsing. Offset fields require a parser to move
+to a different position in the input, possibly backwards. Size fields require the parser to stop
+processing before the end of input has been reached, and perhaps resume executing a parent parser.
+Other cases, such as compressed data, require more complicated processing on parts of the input
+before it can be handled.
+
+Nail introduces two concepts to handle these challenges, \emph{streams} and \emph{transformations}. 
+Streams represent a sequence of bytes that contain some external format. The parsers and generators
+that Nail generates always operate on an implicit stream named \cc{\$current} that they process front to
+back, reading input or appending output.
+Grammars can use the \cc{apply} combinator to parse or generate external data on a different stream,
+inserting the result in the data model.
+
+Streams are passed as arguments to a rule or defined within the grammar through \emph{transformations}.
+The current stream is always passed as an implicit parameter.
+
+Transformations are two arbitrary functions called during parsing and output generation.
+The parsing function  takes any number of stream arguments and dependent field values,
+and produces any number of temporary streams. This function may reposition and read from the
+input streams and read the values of dependent fields, but not change their contents and values. 
+The generating function has to be an inverse of the parsing function. It takes the same number of
+temporary streams that the parsing function produces, and writes the same number of streams and
+dependent field values that the parsing function consumes.
+
+Typically, the top level of most grammars is a rule that takes only a single stream, which may then
+be broken up by various transformations and passed to sub-rules, which eventually parse various linear
+fragment streams. Upon parsing, these fragment streams are generated and then combined by the
+transforms.
+
+ To reduce both programmer effort and the risk of unsafe operations, Nails provides implementations of
+transformations for many common features, such as checksums, size, and offset fields. Furthermore,
+Nail provides library functions that can be used to safely operate on streams, such as splitting and
+concatenation. Nail implements streams as iterators, so they can share underlying buffers and can be
+efficiently duplicated and split.
+
+Transformations need to be carefully written, because they can violate Nail's safety properties
+and introduce
+bugs. However, as we will show in \S\ref{s:eval-effort}, Nail transformations are much shorter than
+hand-written parsers, and many formats can be represented with just the transformations in Nail's
+standard library.
+For example, our Zip transformations are 78 lines of code, compared to 1600 lines of code for a
+   hand-written parser. Additionally, Nail provides convenient and safe interfaces for allocating
+   memory and accessing streams that address the most common occurrences of buffer overflow
+   vulnerabilities.  
+
+Transformations can handle a wide variety of patterns in data formats, including the following: 
+\paragraph{Offsets.}
+A built-in transformation for handling offset fields, which is invoked as follows:
+\cc{\$fragment transform offset\_u32(\$current, \cc{@}offset)}. 
+This transformation corresponds to two functions for parsing and
+generation, as shown in Figure~\ref{fig:xform-sig}. It defines a new stream \cc{\$fragment} that can
+be used to parse data at the offset contained in \cc{@offset}, by
+using \cc{apply \$fragment some_parser}.
+
+\begin{figure}[h]
+\smaller[0.5]
+\input{code/offset-xform}
+\caption{Pseudocode for two functions that implement the offset transform.}
+\label{fig:xform-sig}
+\end{figure}
+
+
+\paragraph{Sizes.}
+A similar transformation handles size fields. Just like the offset transform, it takes two parameters, a
+stream and a dependent field, but instead of returning the suffix of the current stream after an
+offset, it returns a slice of the given size from the current stream starting at its current
+position. When generating, it appends the fragment stream to the current stream and writes the size
+of the fragment to the dependent field.
+
+\paragraph{Compressed data.}
+Encoded, compressed, or encrypted data can be handled transparently by writing a custom
+transformation that transforms a coded stream into one that can be parsed by a Nail grammar and vice
+versa. This transformation must be carefully written to not have bugs.
+
+\paragraph{Checksums.}
+Checksums can be verified and computed in a transformation that takes a stream and a dependent
+field. In some cases, a checksum is calculated over a buffer that contains the checksum itself, with
+the checksum being set to some particular value. Because the functions implementing a transformation
+are passed a pointer to any dependent fields, the checksum function can set the checksum's initial
+value before calculating the checksum over the entire buffer, including the checksum.
+
+
+\paragraph{}
+A real-world example with many different transforms, used to support
+the ZIP file format, is described in \S\ref{s:eval-formats}.
+
+
+% For example, we imagine the following grammar could be used to represent
+% a sequence of bytes \texttt{data} followed by its CRC32 checksum:
+
+% \begin{verbatim}
+% data many uint8; @checksum uint32
+% raw_depend @checksum data crc32
+% \end{verbatim}
+
+% \noindent
+% where \texttt{crc32} is a function supplied by the application, with
+% the following signature:
+
+% \begin{verbatim}
+% bool crc32(uint32_t *out, uint8_t *in);
+% \end{verbatim}
+
+% Because this feature compromises Nail's security guarantees, it should
+% only be used in limited circumstances and with carefully prepared checksum
+% functions.  This feature is not implemented in the current prototype.
+

@@ -1,0 +1,19 @@
+\section{Conclusion}
+\label{s:concl}
+
+This paper presented the design and implementation of \textit{Nail},
+a tool for parsing and generating complex data formats based on a
+precise grammar.  Nail helps programmers avoid
+memory corruption and inconsistency vulnerabilities while reducing effort
+in parsing and generating real-world protocols and file formats.
+Nail achieves this by reducing the expressive power of the grammar,
+establishing a \emph{semantic bijection} between data formats and internal
+representations.  Nail captures complex data formats by introducing
+\emph{dependent fields}, \emph{streams}, and \emph{transforms}.
+Using these techniques, Nail is able to support DNS packet and ZIP file
+formats, and enables applications to handle these data formats in many
+fewer lines of code.
+Nail and all of the applications and grammars developed in this paper
+are released as open-source software, available at
+\url{https://github.com/jbangert/nail}.
+

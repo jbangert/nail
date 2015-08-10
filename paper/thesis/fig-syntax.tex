@@ -1,0 +1,105 @@
+\begin{figure*}
+\centering
+\smaller[0.5]
+\begin{tabular}{p{4.5cm}p{6cm}p{4.5cm}}
+\toprule
+\bf Nail grammar & \bf External format & \bf Internal data type in C \\
+\midrule
+
+\cc{uint4}
+  & 4-bit unsigned integer
+  & \cc{uint8_t} \\
+
+\midrule
+\cc{int32 | [1,5..255,512]}
+  & Signed 32-bit integer $x \in \{ 1, 5..255, 512 \}$
+  & \cc{int32_t} \\
+
+\midrule
+\cc{uint8 = 0}
+  & 8-bit constant with value 0
+  & \cc{/* empty */} \\
+
+\midrule
+\cc{optional int8 | 16..}
+  & 8-bit integer $\geq 16$ or nothing
+  & \cc{int8_t *} \\
+
+\midrule
+\cc{many int8 | ![0]}
+  & A NULL-terminated string
+  & \cc{struct \{} \\
+& & \cc{~~size_t N_count;} \\
+& & \cc{~~int_t *elem;} \\
+& & \cc{\};} \\
+
+\midrule
+\cc{\{}
+  & Structure with two fields
+  & \cc{struct \{} \\
+\cc{~~hours uint8}
+& & \cc{~~uint8_t hours;} \\
+\cc{~~minutes uint8}
+& & \cc{~~uint8_t minutes;} \\
+\cc{\}}
+& & \cc{\};} \\
+
+\midrule
+\cc{<int8='"'; \emph{p}; int8='"'>}
+  & A value described by parser $p$, in quotes
+  & The data type of \emph{p} \\
+
+\midrule
+\cc{choose \{}
+  & Either an 8-bit integer between 1 and 8,
+  & \cc{struct \{} \\
+\cc{~~A = uint8 | 1..8}
+  & \qquad or a 16-bit integer larger than 256
+  & \cc{~~enum \{A, B\} N_type;} \\
+\cc{~~B = uint16 | 256..}
+& & \cc{~~union \{} \\
+\cc{\}}
+& & \cc{~~~~uint8_t a;} \\
+& & \cc{~~~~uint16_t b;} \\
+& & \cc{~~\};} \\
+& & \cc{\};} \\
+
+\midrule
+\cc{@valuelen uint16}
+  & A 16-bit length field, followed by
+  & \cc{struct \{} \\
+\cc{value n_of @valuelen uint8}
+  & \qquad that many bytes
+  & \cc{~~size_t N_count;} \\
+& & \cc{~~uint8_t *elem;} \\
+& & \cc{\};} \\
+
+\midrule
+\cc{\$data transform}
+  & Applies programmer-specified function to
+  & \cc{/* empty */} \\
+\cc{~~deflate(\$current @method)}
+  & \qquad create new stream (\S\ref{s:transforms})
+  & \\
+
+\midrule
+\cc{apply \$stream  \emph{p}}
+  & Apply parser \emph{p} to stream \cc{\$stream} (\S\ref{s:transforms})
+  & The data type of \emph{p} \\
+
+\midrule
+\cc{foo = \emph{p}}
+  & Define rule \cc{foo} as parser \emph{p}
+  & \cc{typedef /* type of \emph{p} */ foo;} \\
+
+\midrule
+\cc{* p}
+  & Apply parser \emph{p}
+  & Pointer to the data type of \emph{p} \\
+
+\bottomrule
+\end{tabular}
+
+\caption{Syntax of Nail parser declarations and the formats and data types they describe.}
+\label{fig:syntax}
+\end{figure*}

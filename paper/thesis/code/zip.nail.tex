@@ -1,0 +1,38 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8}]
+\PY{n}{zip} \PY{o}{=} \PY{p}{\PYZob{}}   \PY{c+cm}{/*simplified and cut for brevity*/}
+    \PY{c+cm}{/* Call zip\PYZus{}eod transform to isolate end\PYZus{}directory and contents streams*/}
+     \PY{err}{\PYZdl{}}\PY{n}{contents}\PY{p}{,} \PY{err}{\PYZdl{}}\PY{n}{end\PYZus{}directory} \PY{n}{transform} \PY{n}{zip\PYZus{}eod} \PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{current}\PY{p}{)}
+     \PY{c+cm}{/* Parse end\PYZus{}directory stream. The end\PYZus{}of\PYZus{}directory parser takes the }
+\PY{c+cm}{      content stream as a parameter */}
+     \PY{n}{contents} \PY{n}{apply} \PY{err}{\PYZdl{}}\PY{n}{end\PYZus{}directory} \PY{n}{end\PYZus{}of\PYZus{}directory}\PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{contents}\PY{p}{)}
+\PY{p}{\PYZcb{}}
+\PY{n}{end\PYZus{}of\PYZus{}directory}\PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{filestream}\PY{p}{)} \PY{o}{=} \PY{p}{\PYZob{}} \PY{c+cm}{/*Grammar rules can have parameters*/}
+     \PY{n}{uint32} \PY{o}{=} \PY{l+m+mh}{0x06054b50} \PY{c+cm}{/* constant*/}
+     \PY{n}{disks} \PY{n}{uint16} \PY{o}{|} \PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}  \PY{c+cm}{/* constraint*/}
+     \PY{n}{directory\PYZus{}disk} \PY{n}{uint16} \PY{o}{|} \PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}
+     \PY{err}{@}\PY{n}{this\PYZus{}records} \PY{n}{uint16} \PY{c+cm}{/*dependent field*/}
+     \PY{err}{@}\PY{n}{total\PYZus{}records} \PY{n}{uint16} 
+     \PY{c+cm}{/*The following transform ensures these two fields are always equal*/}
+     \PY{n}{transform} \PY{n}{uint16\PYZus{}depend} \PY{p}{(}\PY{err}{@}\PY{n}{this\PYZus{}records} \PY{err}{@}\PY{n}{total\PYZus{}records}\PY{p}{)}
+     \PY{err}{@}\PY{n}{directory\PYZus{}size} \PY{n}{uint32} \PY{c+cm}{/*These two dependent fields are used by the  */}
+     \PY{err}{@}\PY{n}{directory\PYZus{}start} \PY{n}{uint32}\PY{c+cm}{/* transformations below to find the directory*/}
+     \PY{c+cm}{/*dirstr1 is the the suffic of filestream starting @directory\PYZus{}start*/}
+     \PY{err}{\PYZdl{}}\PY{n}{dirstr1} \PY{n}{transform} \PY{n}{offset\PYZus{}u32} \PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{filestream} \PY{err}{@}\PY{n}{directory\PYZus{}start}\PY{p}{)} 
+     \PY{c+cm}{/*Another stream with @directory\PYZus{}size bytes starting at that offset*/}
+     \PY{err}{\PYZdl{}}\PY{n}{directory\PYZus{}stream} \PY{n}{transform} \PY{n}{size\PYZus{}u32} \PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{dirstr1} \PY{err}{@}\PY{n}{directory\PYZus{}size}\PY{p}{)}
+     \PY{err}{@}\PY{n}{comment\PYZus{}length} \PY{n}{uint16} \PY{c+cm}{/*Dependent field used with the built in n\PYZus{}of*/}
+     \PY{n}{comment} \PY{n}{n\PYZus{}of} \PY{err}{@}\PY{n}{comment\PYZus{}length} \PY{n}{uint8} \PY{c+cm}{/* Variable\PYZhy{}length comment*/}
+     \PY{n}{files} \PY{n}{apply} \PY{err}{\PYZdl{}}\PY{n}{directory\PYZus{}stream} \PY{n}{n\PYZus{}of} \PY{err}{@}\PY{n}{total\PYZus{}records} 
+        \PY{n}{dir\PYZus{}fileheader}\PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{filestream}\PY{p}{)} \PY{c+cm}{/*Array of directory entries*/}
+\PY{p}{\PYZcb{}}
+\PY{n}{dir\PYZus{}fileheader}\PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{filestream}\PY{p}{)} \PY{o}{=} \PY{p}{\PYZob{}} 
+     \PY{n}{uint32} \PY{o}{=} \PY{l+m+mh}{0x02014b50}
+     \PY{err}{@}\PY{n}{compressed\PYZus{}size} \PY{n}{uint16} 
+     \PY{err}{@}\PY{n}{crc32} \PY{n}{uint32} 
+     \PY{err}{@}\PY{n}{file\PYZus{}name\PYZus{}len} \PY{n}{uint16}
+     \PY{err}{@}\PY{n}{off} \PY{n}{uint32}
+     \PY{n}{filename} \PY{n}{n\PYZus{}of} \PY{err}{@}\PY{n}{file\PYZus{}name\PYZus{}len} \PY{n}{uint8}
+     \PY{err}{\PYZdl{}}\PY{n}{cstream} \PY{n}{transform} \PY{n}{offset\PYZus{}u32} \PY{p}{(}\PY{err}{\PYZdl{}}\PY{n}{filestream} \PY{err}{@}\PY{n}{off}\PY{p}{)}
+     \PY{n}{contents} \PY{n}{apply} \PY{err}{\PYZdl{}}\PY{n}{cstream} \PY{n}{fileentry}\PY{p}{(}\PY{err}{@}\PY{n}{crc32}\PY{p}{,}\PY{err}{@}\PY{n}{compressed\PYZus{}size}\PY{p}{)}
+\PY{p}{\PYZcb{}}
+\end{Verbatim}

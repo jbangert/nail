@@ -1,0 +1,18 @@
+\begin{figure*}
+  \begin{tabular}{lp{2.75in}}
+    \toprule
+    \bf Method & \bf Description \\
+    \midrule
+    \texttt{bool check(uint n)} & Check if the current position is at least $n$ bits before the end of the stream. \\
+    \texttt{uint read\_bits(uint n)} &  Read $n$ bits from the stream. Check($n$) must be true. Does not move the current position.\\
+    \texttt{uint read\_bits\_little(uint n)} &  Like read\_bits, but interprets the value as little endian.\\
+    \texttt{void advance(uint n)} & Advances the current position by $n$ bits.\\
+    \texttt{void backup(uint n))} & Reverses the current position by $n$ bits.\\
+    \texttt{pos\_t get\_pos(uint n))} & Returns the current position.\\
+    \texttt{void reposition(pos\_t old))} & Reverts the current position to a value formerly returned from get\_pos().\\
+
+    \bottomrule
+    \end{tabular}
+\label{fig:stream-api}
+\caption{The operations Nail parsers invoke on their input streams.}
+\end{figure*}
