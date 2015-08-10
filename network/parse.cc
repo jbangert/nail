@@ -31,9 +31,9 @@ template <> struct ip_checksum_parse<NailMemStream> {
     return 0;
   }
 };
-int ip_checksum_generate(NailArena *tmp, NailOutStream *current, uint16_t *ptr_checksum){
+int ip_checksum_generate(NailArena *tmp, NailOutStream *current, uint16_t *ptr_checksum, uint16_t extra_1=0, uint16_t extra_2 =0){
   
-  uint32_t checksum=0;
+  uint32_t checksum=extra_1+extra_2;
   const uint16_t *field =  (uint16_t *)current->data;
   for(size_t ihl = current->pos/2; ihl>0;ihl--){
       checksum += *field;
@@ -72,9 +72,10 @@ int ip_header_generate(NailArena *tmp,  const NailOutStream* in_options, const N
   *ihl /= 4;
   *ihl += 5;
 
-  ip_checksum_generate(tmp, current, out_checksum);
   if(n_fail(tail_generate(tmp, in_body, current))) return -1;
   *total_length = *ihl * 4 + in_body->pos;
+  
+  ip_checksum_generate(tmp, current, out_checksum, *ihl, *total_length);
   return 0;
 }
   
