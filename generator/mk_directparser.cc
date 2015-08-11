@@ -164,7 +164,7 @@ public:
         ValExpr lval(std::string ("dep_") + name);
         out << type << " dep_" << name << ";\n";
         parser(field->dependency.parser->pr,lval,fail,newscope);
-        newscope.add_dependency_definition(name,type);
+        newscope.add_dependency_definition(name,type, 0);
         break;
       }
       case TRANSFORM:{

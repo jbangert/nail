@@ -104,7 +104,7 @@ class GenGenerator{
           }
           int width =  boost::lexical_cast<int>(mk_str(p.pr.integer.parser.unsign));
           out << type  << " dep_"<< name << ";";
-          newscope.add_dependency_definition(name,type);
+          newscope.add_dependency_definition(name,type, width);
           assert(post == "");
           out << "NailOutStreamPos rewind_"<< name << "=NailOutStream_getpos(str_current);";
           out << "NailOutStream_write(str_current,0,"<<width<<");";
@@ -149,15 +149,25 @@ class GenGenerator{
           FOREACH(stream, field->transform.left){
             newscope.add_stream_definition(mk_str(*stream));
           }
+          invocation << "{ NailOutStreamPos t_rewind_eot =NailOutStream_getpos(str_current);\n";
+
+          FOREACH(param, field->transform.right){
+            if(param->N_type != PDEPENDENCY) continue;
+            std::string name (mk_str(param->pdependency));
+            if(!newscope.is_local_dependency(name)) continue;
+            invocation << "NailOutStream_reposition(str_current, rewind_"<<name<<");";
+            invocation << "NailOutStream_write(str_current,dep_"<<name<<","<<newscope.dependency_width(name)<<");";
+          }
+          invocation << " NailOutStream_reposition(str_current, t_rewind_eot);\n }";
           transform_invocations.push_front(invocation.str());
         }
           break;
         }
       }
+      fixup <<  "NailOutStream_reposition(str_current, end_of_struct);";
       for(auto &transform: transform_invocations){
         out << transform;
       }
-      fixup <<  "NailOutStream_reposition(str_current, end_of_struct);";
       //TODO:  We need to properly interleave APPLY and TRANSFORM when generating! Transform at the
       //end is wrong in some cases (when the applied parser relies on a context from the transform)
       out << fixup.str();

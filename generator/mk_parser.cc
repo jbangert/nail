@@ -514,7 +514,7 @@ class CPrimitiveParser{
             out  << "NailStream *stream = &tmpstream;"; //TODO: parametrize this on action
             dependency_action.action(field->dependency.parser->pr,lval,end); 
             out << "}";
-            newscope.add_dependency_definition(name,type);
+            newscope.add_dependency_definition(name,type, 0);
             out << "n_tr_setpos(trace,trace_"<<name<<");\n";
             out << "n_tr_const(trace,str_current);\n";
           }

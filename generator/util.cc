@@ -154,7 +154,7 @@ std::string parameter_definition(const definition &def, Scope &scope){
             std::string name = mk_str(param->ddependency.name);
             assert(post == "");
             params << ","<<  type << "* dep_" << name << post;
-            scope.add_dependency_parameter(name,type);
+            scope.add_dependency_parameter(name,type, 0);
           }
             break;
           }

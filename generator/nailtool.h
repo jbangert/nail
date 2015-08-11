@@ -44,6 +44,7 @@ NailException(const std::string &message) : std::logic_error(message){}
 struct Dependency{
   std::string name;
   std::string typedef_type;
+  uint64_t width; // XXX: Replace by a line that should be inserted to output this Dependency
 };
 class Scope{ 
   std::map<std::string,Dependency> dependencies;
@@ -57,10 +58,11 @@ public:
       throw NailException("Duplicate stream "+value);
     }
   }
-  void add_dependency_parameter(std::string value, std::string type){
+  void add_dependency_parameter(std::string value, std::string type,uint64_t width){
     Dependency dep;
     dep.name = std::string("dep_")+value;
     dep.typedef_type = type;
+    dep.width = width;
     if(!dependencies.emplace(value,dep).second){
       throw NailException("Duplicate dependency "+value);
     }
@@ -70,10 +72,11 @@ public:
       throw NailException("Duplicate dependency "+value);
     }
   }
-  void add_dependency_definition(std::string value,std::string type){
+  void add_dependency_definition(std::string value,std::string type,uint64_t width ){
     Dependency dep;
     dep.name = std::string("&dep_")+value;
     dep.typedef_type = type;
+    dep.width = width;
     if(!dependencies.emplace(value,dep).second){
       throw NailException("Duplicate dependency "+value);
     }
@@ -107,6 +110,19 @@ public:
         return parent->stream_ptr(name);
     }
     return i->second;                
+  }
+  bool is_local_dependency(std::string name){
+    return dependencies.count(name)>0;
+  }
+  uint64_t dependency_width(std::string name){
+    auto i = dependencies.find(name);
+    if(i==dependencies.end()){
+      if(!parent)
+              throw NailException(std::string("Undefined reference to ") +  name);
+      else
+        return parent->dependency_width(name);
+    }
+    return i->second.width;            
   }
 };
 
