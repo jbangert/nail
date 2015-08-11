@@ -12,7 +12,7 @@
 #include <linux/if_tun.h>
 #include <time.h>
 
-#include <uthash.h>   
+#include <unordered_map> 
 #include "parse.hh"
 
 
@@ -67,7 +67,6 @@ typedef struct arpentry{
         uint32_t ip;
         macaddr mac; // All 0 when unused 
         time_t time;
-        UT_hash_handle hh;
 } arpentry;
 #define ARPSIZE 512
 struct phy_iface;
@@ -75,20 +74,18 @@ struct ip_iface{
   uint32_t ip;
   uint32_t broadcast;
   phy_iface *phy;
-};
+ip_iface(phy_iface *parent, uint32_t _ip, uint32_t _broadcast) : phy(parent), ip(_ip), broadcast(_broadcast){}
+    };
 typedef struct phy_iface{
-        int tun_fd;
-        macaddr mac;
+int tun_fd;
+macaddr mac;
 
-        arpentry *arp; 
-        struct ip_iface ip; // TODO: Add multi-IP support?
+std::unordered_map<uint32_t,arpentry> arp;
+struct ip_iface ip; // TODO: Add multi-IP support?
+  phy_iface(int fd,macaddr MAC, uint32_t ip_addr,uint32_t broadcast, uint32_t netmask,uint32_t gateway):  tun_fd(fd), ip(this,ip_addr,broadcast){
+     memcpy(mac, MAC, sizeof mac);
+  }
 } phy_iface;
-void phy_init(phy_iface *phy, macaddr *mac, uint32_t ip){
-        memcpy(phy->mac,mac,sizeof(phy->mac));
-        phy->arp = NULL;
-        phy->ip.ip = ip; 
-        phy->ip.phy = phy;
-}
 
 int send_frame(NailArena *arena,ethernet *packet,struct phy_iface *iface){
         const char *buf;
@@ -112,9 +109,11 @@ void prepare_ethernet(ethernet *eth, struct phy_iface *iface){
                 break;
         case IPFOUR:
                 //eth->dest =  0;//ARP here!
-                memcpy(eth->src,iface->mac,sizeof(eth->src)); 
-                break;
-        }
+          memset(eth->dest, 0xFF,sizeof eth->dest);// TODO: ARP!!!
+          
+             memcpy(eth->src,iface->mac,sizeof(eth->src)); 
+             break;
+             }
 }
 int send_ipfour(NailArena *arena,ip_iface *i,uint32_t dst, uint32_t src, struct ip_payload *payload){
   ethernet eth;
@@ -123,10 +122,15 @@ int send_ipfour(NailArena *arena,ip_iface *i,uint32_t dst, uint32_t src, struct 
   eth.payload.ipfour.packet.payload = *payload;
   eth.payload.ipfour.packet.source = src;
   eth.payload.ipfour.packet.dest = dst;
-  prepare_ethernet(&eth,i->phy);
+   prepare_ethernet(&eth,i->phy);
   return send_frame(arena, &eth, i->phy);
 }
 void update_arp(phy_iface *i,uint32_t ip, macaddr host){
+  auto entry = i->arp[ip];
+  entry.ip = ip;
+  memcpy(entry.mac,host, sizeof entry.mac);
+  entry.time  = time(NULL);
+    
 }
 void process_arp(NailArena *arena,arpfour *arp, struct phy_iface *i, ethernet *eth){
         if(arp->operation == 1){
@@ -209,10 +213,8 @@ int main (int argc, char **argv){
     perror("Allocating interface");
     exit(1);
   }
-  struct phy_iface i;
-  i.tun_fd = tun_fd;
   macaddr mac = {1,2,3,4,5,6};
-  phy_init(&i,&mac,mkip(192,168,1,3));
+  phy_iface i(tun_fd,mac, mkip(192,168,1,3),mkip(192,168,1,255),mkip(255,255,255,0),mkip(192,168,1,1));
   /* Now read data coming from the kernel */
   while(1) {
     
