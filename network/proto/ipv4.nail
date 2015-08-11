@@ -6,7 +6,7 @@ icmp = {
           ECHOREQUEST = 8 many uint8
           ECHORESPONSE = 0 many uint8
      }
-     transform ip_checksum($current @checksum)
+     transform internet_checksum($current @checksum)
 }
 ip_payload(@protocol uint8) = select(@protocol) {
                       UDP = 17 udp
@@ -30,7 +30,8 @@ ipfour = {
               @hdrchecksum uint16
               source uint32
               dest uint32
-              $options,$body transform ip_header($current @ihl @hdrchecksum @totallength)   
+              transform ip_header_checksum($current @hdrchecksum @ihl)        
+              $options,$body transform ip_header($current @ihl @totallength @protocol)
               payload apply $body ip_payload(@protocol) 
         }
 }
