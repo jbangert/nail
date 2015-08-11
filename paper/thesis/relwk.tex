@@ -1,6 +1,14 @@
-\section{Related work}
+\chapter{Related work}
 \label{s:relwk}
 
+This thesis is based on previously published papers about Nail, including \cite{bangert:nail-langsec}, \cite{bangert:nail-osdi14} and \cite{bangert:nail-login}.
+We presented an earlier design of Nail at a
+workshop~\cite{bangert:nail-langsec}.  At that stage, Nail had only
+limited support for dependent fields, and did not support stream
+transforms at all, which are crucial for supporting real-world formats
+like DNS and ZIP\@.  The workshop paper also did not provide a detailed
+design discussion or evaluation.
+Since presenting the conference paper~\cite{bangert:nail-osdi14}, we implemented the C++ backend and explored novel uses of Nail for network protocols. 
 \paragraph{Parsers.}
 
 Generating parsers and generators from an executable specification is the
@@ -64,12 +72,6 @@ formats, manually handling offsets, checksums, and the like, risking bugs.
 Nail handles more complicated constructs without the programmer manually
 writing code to support them.
 
-We presented an earlier design of Nail at a
-workshop~\cite{bangert:nail-langsec}.  At that stage, Nail had only
-limited support for dependent fields, and did not support stream
-transforms at all, which are crucial for supporting real-world formats
-like DNS and ZIP\@.  The workshop paper also did not provide a detailed
-design discussion or evaluation.
 
 
 \paragraph{Application use of parsers.}

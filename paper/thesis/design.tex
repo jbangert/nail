@@ -1,4 +1,4 @@
-\section{Design}
+\chapter{Design}
 \label{s:design}
 
 Nail's goals are to reduce programmer effort required to safely interact with data formats and
@@ -33,7 +33,7 @@ prevent vulnerabilities like those described in \S\ref{s:motivation}. In particu
 \end{itemize}
 
 
-\subsection{Overview}
+\section{Overview}
 
 \paragraph{Internal model.}
 
@@ -117,7 +117,7 @@ output data that allow the decoded data to be integrated with the rest of the
 generated Nail parser.
 
 
-\subsection{Basics}
+\section{Basics}
 
 A Nail parser defines both the structure of some external format and a data type to represent that
 format. Parsers are constructed by combinators over simpler parsers, an approach popularized by the Parsec
@@ -264,7 +264,7 @@ expr = choose {
 
 
 
-\subsection{Dependent fields}
+\section{Dependent fields}
 \label{s:dependent}
 Data formats often contain values that are determined by other values or the layout of information,
 such as checksums, duplicated information, or offset and  length fields.
@@ -292,7 +292,7 @@ a value, are described in line 38 of the DNS grammar.
 Other dependencies, such as offset fields or checksums, are not handled directly by combinators, but
 through  transformations, as we describe next.
 
-\subsection{Input streams and transformations}
+\section{Input streams and transformations}
 \label{s:transforms}
 
 Traditional parsers handle input one symbol at a time, from beginning to end.

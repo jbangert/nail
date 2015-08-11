@@ -5,6 +5,7 @@
   y=0.75cm,
   ytick={1,2},
   yticklabels={NailDNS, Bind 9},
+  xtick={0,50000,100000,150000,200000},
   xmin=0,
   xlabel ={Throughput},
   x unit ={\frac{\text{queries}}{s}},
@@ -13,14 +14,14 @@
 ]
 \addplot+[boxplot]
   table[row sep=\\,y index=0] {
-data\\
- 140950.177719\\
- 137100.337896\\
- 140575.256869\\
- 139215.019250\\
- 109667.926913\\
- 125123.464186\\
- 139507.888042\\
+    data\\
+    190733.210721\\
+189364.319996\\
+146137.368999\\
+191168.613247\\
+187743.527772\\
+191879.571775\\
+194041.878838\\
  };
 \addplot+[boxplot]
   table[row sep=\\,y index=0] {
@@ -45,18 +46,19 @@ data\\
   xmin=0,
   xlabel ={Round Trip Time},
   x unit= {msec},
+  xtick={0, 0.1, 0.2,0.3,0.4,0.5},
   scaled x ticks = false
 ]
 \addplot+[boxplot]
-  table[row sep=\\,y index=0] {
+table[row sep=\\,y index=0] {
 data\\
-0.137\\
-0.141\\
-0.138\\
-0.139\\
-0.176\\
-0.155\\
-0.139\\
+0.097\\
+0.097\\
+0.125\\
+0.096\\
+0.098\\
+0.095\\
+0.094\\
  };
 \addplot+[boxplot]
   table[row sep=\\,y index=0] {

@@ -1,4 +1,4 @@
-\section{Evaluation}
+\chapter{Evaluation}
 \label{s:eval}
 
 \input{fig-ethernet}
@@ -20,7 +20,7 @@ In our evaluation of Nail, we answer four questions:
 
 \end{itemize}
 
-\subsection{Data formats}
+\section{Data formats}
 \label{s:eval-formats}
 
 To answer the first question, we used Nail to implement grammars
@@ -32,7 +32,7 @@ We find that despite the challenging aspects of these protocols, Nail is
 able to capture the protocols, by relying on its novel features: dependent
 fields, streams, and transforms.  In contrast, state-of-the-art parser
 generators would be unable to fully handle 5 out of the 7 data formats.
-In the rest of this subsection, we describe the DNS and Zip grammars in
+In the rest of this section, we describe the DNS and Zip grammars in
 more detail, focusing on how Nail's features enable us to support these
 formats.
 
@@ -205,7 +205,7 @@ specified compression method. These functions are otherwise oblivious
 to the layout or metadata of the file.
 
 
-\subsection{Programmer effort}
+\section{Programmer effort}
 \label{s:eval-effort}
 
 %code size unzip 6.0
@@ -294,7 +294,7 @@ file measures over 1,600 lines of C, which suggests that Nail is highly
 effective at reducing manual input parsing code, even for the complex
 ZIP file format.
 
-\subsection{Security} 
+\section{Security} 
 
 We use a twofold approach to evaluate the security of applications
 implemented with Nail. First, we analyze a list of CVE's related to the
@@ -329,7 +329,7 @@ corrupted DNS queries to our server for 4 hours, during which it did
 not crash or trigger the stack or heap corruption detector.
 
 
-\subsection{Performance}
+\section{Performance}
 
 To evaluate whether Nail-based parsers are compatible with good
 performance, we compare the performance of our DNS server to that of ISC
@@ -350,13 +350,16 @@ restarting each daemon in between; we also repeated the tests with 1
 million domain names, and found similar results.  We also performed one
 initial dry run to warm the file system cache for the zone file.
 
-The results are shown in Figure~\ref{fig:perf-dns}, and demonstrate that
-our Nail-based DNS server can achieve higher performance and lower latency
-than BIND\@.  Although BIND is a more sophisticated DNS server,
-and implements many features that are not present in our Nail-based DNS
-server and that allow it to be used in more complicated configurations, 
-we believe our results demonstrate that Nail's parsers are not
-a barrier to achieving good performance.
-
+The results are shown in Figure~\ref{fig:perf-dns}, and demonstrate
+that our Nail-based DNS server can achieve higher performance and
+lower latency than BIND\@.  Although BIND is a more sophisticated DNS
+server, and implements many features that are not present in our
+Nail-based DNS server and that allow it to be used in more complicated
+configurations, we believe our results demonstrate that Nail's parsers
+are not a barrier to achieving good performance.  Previous papers on
+Nail presented results using a Nail parser generated as C, whereas
+these results were produced on the same configuration with the newer
+C++ parser generator, which improves performance by using a more
+efficient stream representation.
 \input{fig-perf-dns}
 
