@@ -28,8 +28,7 @@ Useful transformations are often only possible to write when specialized to thei
 
 
 Transformations can also be expressed through chaining together other transformations -- which is equivalent to composing them directly in the Nail grammar, but results in shorter and easier to understand Nail grammars.
-
-In addition to allowing complicated file formats to be captured more naturally by mapping their layout onto different stream types, we will show in Section~\ref{sec:network-stack} that templated streams allow new classes of applications for Nail transformations, such as reassembling packets.
+In addition to allowing complicated file formats to be captured more naturally by mapping their layout onto different stream types, for example, fragmented network packets can be stored as individual fragments and do not have to be assembled into a continuous buffer.
 
 \paragraph{Defense-in-depth.}
 

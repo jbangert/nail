@@ -195,7 +195,7 @@ void process_frame(NailArena *arena,ethernet *frame, struct phy_iface *i ){
 }
 unsigned char buffer[9000];
 uint32_t mkip(uint32_t a,uint32_t b,uint32_t c,uint32_t d){
-        return a<< 24 | b<<16 | c<<8 | d;
+        return a<< 24 | b<<16 | c<<8 | d; 
 }
 
 int main (int argc, char **argv){

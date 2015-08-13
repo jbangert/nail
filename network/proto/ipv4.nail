@@ -22,9 +22,9 @@ ipfour = {
               @totallength uint16
               ident uint16
               uint1 = 0
-              df uint1 
-              mf uint1
-              fragmentoff uint13
+              @df uint1 
+              @mf uint1
+              @fragmentoff uint13
               ttl uint8
               @protocol uint8 
               @hdrchecksum uint16
@@ -32,6 +32,7 @@ ipfour = {
               dest uint32
               transform ip_header_checksum($current @hdrchecksum @ihl)        
               $options,$body transform ip_header($current @ihl @totallength @protocol)
+              transform ip_fragmentation($body @df @mf @fragmentoff)
               payload apply $body ip_payload(@protocol) 
         }
 }

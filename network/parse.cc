@@ -1,7 +1,7 @@
 #include "parse.hh"
 #include <nail/size.hh>
 #include <arpa/inet.h> //htons
-/* template<typename siz_t> struct NailCoroFragmentStream {
+template<typename siz_t> struct NailCoroFragmentStream {
 private:
   typedef std::map<siz_t, NailMemStream> inner_t;
   std::map<siz_t, NailMemStream> streams;
@@ -10,7 +10,7 @@ public:
     inner_t::iterator iter;
     NailMemStream::pos_t pos;
   } 
-  };*/
+};
 template <typename str> struct internet_checksum_parse {
 };
 template <> struct internet_checksum_parse<NailMemStream> {
