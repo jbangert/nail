@@ -1,199 +1,75 @@
-
-# Created by https://www.gitignore.io/api/c,vim,c++,linux,emacs,windows,visualstudiocode
-
-### C ###
-# Prerequisites
-*.d
-
-# Object files
 *.o
-*.ko
-*.obj
-*.elf
-
-# Linker output
-*.ilk
-*.map
-*.exp
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
-
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
-
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
-
-### C++ ###
-# Prerequisites
-
-# Compiled Object files
-*.slo
-
-# Precompiled Headers
-
-# Compiled Dynamic libraries
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-
-# Executables
-
-### Emacs ###
-# -*- mode: gitignore; -*-
+*.orig
+*TAGS
+GPATH
 *~
-\#*\#
-/.emacs.desktop
-/.emacs.desktop.lock
-*.elc
-auto-save-list
-tramp
+*.bbl
+*.aux
+*.dvi 
+*.blg 
+*.ps
+*.log
+a.out
+nail.bootstrap
+*.nail-test
+tests/*/*.nail.*
+examples/*/*.nail.*
+[#]*[#]
 .\#*
-
-# Org-mode
-.org-id-locations
-*_archive
-
-# flymake-mode
-*_flymake.*
-
-# eshell files
-/eshell/history
-/eshell/lastdir
-
-# elpa packages
-/elpa/
-
-# reftex files
-*.rel
-
-# AUCTeX auto folder
-/auto/
-
-# cask packages
-.cask/
-dist/
-
-# Flycheck
-flycheck_*.el
-
-# server auth directory
-/server/
-
-# projectiles files
-.projectile
-projectile-bookmarks.eld
-
-# directory configuration
-.dir-locals.el
-
-# saveplace
-places
-
-# url cache
-url/cache/
-
-# cedet
-ede-projects.el
-
-# smex
-smex-items
-
-# company-statistics
-company-statistics-cache.el
-
-# anaconda-mode
-anaconda-mode/
-
-### Linux ###
-
-# temporary files which can be created if a process still has a handle open of a deleted file
-.fuse_hidden*
-
-# KDE directory preferences
-.directory
-
-# Linux trash folder which might appear on any partition or disk
-.Trash-*
-
-# .nfs files are created when an open file is removed but is still being accessed
-.nfs*
-
-### Vim ###
-# swap
-[._]*.s[a-v][a-z]
-[._]*.sw[a-p]
-[._]s[a-v][a-z]
-[._]sw[a-p]
-# session
-Session.vim
-# temporary
-.netrwhist
-# auto-generated tag files
-tags
-
-### VisualStudioCode ###
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-.history
-
-### Windows ###
-# Windows thumbnail cache files
-Thumbs.db
-ehthumbs.db
-ehthumbs_vista.db
-
-# Folder config file
-Desktop.ini
-
-# Recycle Bin used on file shares
-$RECYCLE.BIN/
-
-# Windows Installer files
-*.cab
-*.msi
-*.msm
-*.msp
-
-# Windows shortcuts
-*.lnk
-
-# End of https://www.gitignore.io/api/c,vim,c++,linux,emacs,windows,visualstudiocode
+*.ll
+/examples/test/gen_stupid/Makefile
+/examples/test/gen_stupid/foo.c
+/examples/test/gen_stupid/foo.c.orig
+/examples/test/gen_stupid/generator.c
+/examples/test/gen_stupid/generator.c.orig
+/examples/test/gen_stupid/grammar.h
+/examples/test/gen_stupid/rfc20135
+/examples/test/gen_stupid/server
+/examples/test/gen_stupid/server.c
+/examples/test/gen_stupid/server.h
+/examples/test/gen_stupid/testdomain
+/examples/test/gen_stupid/testin
+/examples/test/gen_stupid/testpackets.pcap.pcapng
+/examples/test/gen_stupid/testpackets/packet.0
+/examples/test/gen_stupid/testpackets/packet.2
+/examples/test/gen_stupid/testpackets/packet.3
+/examples/test/gen_stupid/testpackets/packet.4
+/examples/test/gen_stupid/testpackets_old/packet.0
+/examples/test/gen_stupid/testpackets_old/packet.1
+/examples/test/gen_stupid/testpackets_old/packet.2
+/examples/test/gen_stupid/testpackets_old/packet.3
+/examples/dns/foo.c
+/examples/dns/generator.c
+/generator/foo.c
+/generator/mk_gen
+/generator/parser_invocation
+/generator/parser_invocation.c
+/generator/run-generator.sh
+/generator/test/#test.1#
+/generator/test/test.2
+/generator/test/test.3
+/generator/test/test1.c
+/generator/test/test2.c
+/generator/testbin/*
+/nail/macros/#int-struct.h#
+/generator/nail
+/examples/dns/generator.c.old
+/.metadata/*
+.cproject
+.project
+/examples/dns/action.c
+/generator/tools/test.nail
+/generator/tools/old2new.c
+/generator/tools/old2new.out
+/generator/tools/old2new
+/generator/tools/bootstrap.c
+/generator/tools/bootstrap.cc
+/generator/newgrammar.h
+/examples/test/union/foo.c
+/examples/test/union/test
+/generator/mk_parser.cc~
+/examples/dns/resolver
+/examples/network/tun
+/examples/zip/extract
+/examples/dns/server
+/tests/select/test
