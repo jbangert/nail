@@ -1,6 +1,6 @@
 CXX=clang++
 CFLAGS+= -I../../include  -std=gnu99 -O3
-CXXFLAGS+= -I../../include  -std=gnu++11  -O3
+CXXFLAGS+= -I../../include  -std=gnu++11 -fPIC -O3
 all: server  # resolver
 
 server.o:server.cc dns.cc dns.nail.cc
