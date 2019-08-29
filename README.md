@@ -1,6 +1,7 @@
 Nail
 ====
 
+**Moved to https://github.com/hcoona/one/tree/master/nail**
 
 \textit{Nail} is an interface generator that allows programmers
 to safely parse and generate protocols defined by a Parser-Expression
