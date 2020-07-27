@@ -2,6 +2,8 @@
 int dnscompress_parse(NailArena *tmp,NailStream *str_decompressed, NailStream *current){
         if(current->bit_offset) return -1;
         size_t begin_labels = current->pos;
+        // When following pointers, we should never cross this offset
+        size_t current_limit = begin_labels;
         size_t pos = begin_labels;
         int first_label = 1;
         //First, figure out how large the stream should be.
@@ -24,7 +26,11 @@ int dnscompress_parse(NailArena *tmp,NailStream *str_decompressed, NailStream *c
                                 first_label = 0;
                                 current->pos = pos+1;
                         }
-                        pos = highbyte & 63 << 8 | current->data[pos];
+                        pos = (highbyte & 63) << 8 | current->data[pos];
+                        // Compression pointers should always point backwards
+                        if (pos >= current_limit)
+                          return -1;
+                        current_limit = pos;
                 } else {
                         size += highbyte;
                         pos += highbyte;
@@ -42,7 +48,7 @@ int dnscompress_parse(NailArena *tmp,NailStream *str_decompressed, NailStream *c
                 highbyte = current->data[pos];
                 if(highbyte >= 192){                     
                         if(pos >= current->size) return -1;
-                        pos = highbyte & 63 << 8 | current->data[pos+1];
+                        pos = (highbyte & 63) << 8 | current->data[pos+1];
                         continue;
                 }
                 memcpy(str_decompressed->data + str_decompressed->pos, current->data + pos, highbyte + 1);
