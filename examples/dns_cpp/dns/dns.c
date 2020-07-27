@@ -24,7 +24,7 @@ int dnscompress_parse(NailArena *tmp,NailStream *str_decompressed, NailStream *c
                                 first_label = 0;
                                 current->pos = pos+1;
                         }
-                        pos = highbyte & 63 << 8 | current->data[pos];
+                        pos = (highbyte & 63) << 8 | current->data[pos];
                 } else {
                         size += highbyte;
                         pos += highbyte;
@@ -42,7 +42,7 @@ int dnscompress_parse(NailArena *tmp,NailStream *str_decompressed, NailStream *c
                 highbyte = current->data[pos];
                 if(highbyte >= 192){                     
                         if(pos >= current->size) return -1;
-                        pos = highbyte & 63 << 8 | current->data[pos+1];
+                        pos = (highbyte & 63) << 8 | current->data[pos+1];
                         continue;
                 }
                 memcpy(str_decompressed->data + str_decompressed->pos, current->data + pos, highbyte + 1);
